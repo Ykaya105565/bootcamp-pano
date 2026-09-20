@@ -1,0 +1,14 @@
+{
+  "name": "AI Engineering Bootcamp Panosu",
+  "short_name": "Bootcamp",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#EDF0EC",
+  "theme_color": "#EDF0EC",
+  "lang": "tr",
+  "icons": [
+    {"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}
+  ]
+}
