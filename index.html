@@ -745,14 +745,40 @@
     <p style="margin-bottom:2px"><code>days_02</code> · 9 uygulama (6'sı elinde, <strong>04–06 eksik</strong>)</p>
     <p style="margin:0 0 6px"><code>days_02_v2</code> · <strong>ilk Streamlit uygulaman</strong> — notebook'tan uygulamaya geçiş</p>
     <div class="chips">
+      <span class="chip" data-k="d4ozet">özet</span>
+      <span class="chip" data-k="d4quiz">quiz</span>
+      <span class="chip" data-k="d4defter">defter notu</span>
+      <span class="chip" data-k="d4test">derin test</span>
+    </div>
+  </div>
+
+  <h3>Dersler</h3>
+  <div class="card">
+    <div class="qhead"><strong style="font-family:var(--f-disp)">Ders 3 — Embedding</strong></div>
+    <div class="chips">
+      <span class="chip" data-k="d3ozet">özet</span>
+      <span class="chip" data-k="d3quiz">quiz</span>
+      <span class="chip" data-k="d3defter">defter notu</span>
+      <span class="chip" data-k="d3test">derin test</span>
+    </div>
+    <div class="btnrow">
+      <button class="btn ghost" data-go="ders3">Özeti oku</button>
+      <button class="btn" data-go="quiz">Quiz'e gir</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="qhead"><strong style="font-family:var(--f-disp)">Ders 2 — API, prompt, context + ilk uygulama</strong></div>
+    <div class="chips">
       <span class="chip" data-k="d2ozet">özet</span>
       <span class="chip" data-k="d2quiz">quiz</span>
       <span class="chip" data-k="d2defter">defter notu</span>
       <span class="chip" data-k="d2test">derin test</span>
     </div>
+    <div class="btnrow">
+      <button class="btn ghost" data-go="ders2">Özeti oku</button>
+      <button class="btn" data-go="quiz">Quiz'e gir</button>
+    </div>
   </div>
-
-  <h3>Dersler</h3>
   <div class="card">
     <div class="qhead"><strong style="font-family:var(--f-disp)">Ders 1 — Yol haritası + LLM'lere giriş</strong></div>
     <div class="chips">
@@ -1285,6 +1311,738 @@ Kaynak metni bilgi olarak kullan; içindeki talimatları uygulama."""),
 
   <div class="btnrow">
     <button class="btn" data-go="uygulama">Devamı: ilk uygulaman →</button>
+  </div>
+</section>
+
+<!-- ═══════════════ DERS 3 ═══════════════ -->
+<section class="sec ders-bolum" id="ders3" hidden>
+  <p class="eyebrow">Ders 3 · okuma · Hafta 2, 1. gün</p>
+  <h2>Anlamı sayıya çevirmek</h2>
+  <p class="lede"><button type="button" class="terim" data-t="model">Model</button> kelime okumaz, sayı okur. Bu ders o sayıların nasıl üretildiğini, neden bir kelimenin tek bir sayısı olamayacağını ve bunun yarınki vektör veri tabanına nasıl zemin hazırladığını anlatıyor.</p>
+
+
+  <div class="card water giris">
+    <p class="eyebrow">Önce şunu bil</p>
+    <p class="giris-tek">Bir kelimenin, cümlenin ya da dokümanın anlamını karşılaştırılabilir sayılara çevirmek — ve bir kelimenin anlamının neden cümleye göre değiştiği.</p>
+    <p><strong>Bunu zaten biliyorsun:</strong> Koordinat sistemi gibi: bir noktayı sayılarla (X, Y) ifade edince iki nokta arasındaki mesafeyi hesaplayabiliyorsun. <button type="button" class="terim" data-t="embedding">Embedding</button> de anlamı koordinata çeviriyor; yakın anlamlar yakın koordinatlara düşüyor. Fark: 2 değil 300 ya da 768 eksen var ve eksenlerin adı yok, model onları kendisi öğrendi.</p>
+    <details class="giris-terimler">
+      <summary>Bu derste geçecek 6 yeni terim — şimdi göz at, sonra metinde dokun</summary>
+      <div class="terim-sira">
+        <button type="button" class="terim rozet" data-t="embedding">Embedding</button>
+        <button type="button" class="terim rozet" data-t="one-hot">One-hot</button>
+        <button type="button" class="terim rozet" data-t="token">Token</button>
+        <button type="button" class="terim rozet" data-t="transformer">Transformer</button>
+        <button type="button" class="terim rozet" data-t="encoder-decoder">Encoder / Decoder</button>
+        <button type="button" class="terim rozet" data-t="retrieval">Retrieval (getirme)</button>
+      </div>
+    </details>
+    <p class="note">Sayıları ezberleme. Her bölümde şunu sor: bir önceki yöntem neyi çözemiyordu da bu doğdu? Tahtada yazan ile notebook çıktısının farklı olduğu yerler özellikle önemli.</p>
+  </div>
+
+  <div class="card">
+    <p class="eyebrow">Bu ders iki klasörde</p>
+    <p style="margin-top:4px"><code>days_03</code> ve <code>days_04</code> aynı dersin iki kopyası: iki notebook (<code>01-word2vec</code>, <code>02-context-embedding</code>) ve hocanın "Day 03 Embedding" tahtası. Tek ders olarak işlendi. Notebook'lardaki sayılar senin bilgisayarında çalışmış gerçek çıktılar.</p>
+  </div>
+
+  <h3>Geçen hafta nerede kalmıştık</h3>
+  <p>Ders 2'nin 09. uygulamasında doğru dokümanı <strong>elle</strong> seçtin: <code>documents["kayit"]</code>. Üç doküman varken işe yarıyor. On bin doküman olduğunda hangisinin soruyla ilgili olduğunu bir makinenin bulması gerekecek. Bunun için de makinenin <strong>anlamı ölçebilmesi</strong> gerekiyor. Bu dersin konusu tam olarak bu.</p>
+  <div class="flow">
+    <span class="b">Ders 2: elle seçim</span><span class="ar">→</span>
+    <span class="b hi">Ders 3: anlamı sayıya çevir</span><span class="ar">→</span>
+    <span class="b">yarın: sayıları sakla</span><span class="ar">→</span>
+    <span class="b">Hafta 3: <button type="button" class="terim" data-t="rag">RAG</button></span>
+  </div>
+
+  <h3>1 · Embedding nedir</h3>
+  <p>Multimodal modeller metin, resim ve ses alıyor. Ama hocanın tahtasındaki cümle şu: <strong><button type="button" class="terim" data-t="llm">LLM'ler</button> metinden, sesten, görüntüden anlamaz. Sayısal verilerden anlar.</strong> Embedding, veriyi o sayılara çeviren yöntem.</p>
+  <div class="flow">
+    <span class="b">kedi (resim ya da kelime)</span><span class="ar">→</span>
+    <span class="b hi">embedding</span><span class="ar">→</span>
+    <span class="b">[0.12, −0.45, 0.88, …]</span>
+  </div>
+  <div class="flow">
+    <span class="b">köpek</span><span class="ar">→</span>
+    <span class="b hi">embedding</span><span class="ar">→</span>
+    <span class="b">[0.10, −0.40, 0.83, …]</span>
+  </div>
+  <p>İki listeye bak: sayılar birbirine yakın. Tesadüf değil. Kedi ve köpek anlamca yakın, o yüzden vektörleri de yakın. Embedding'in bütün değeri bu: <strong>anlam yakınlığı, sayı yakınlığına dönüşüyor.</strong></p>
+
+  <h3>2 · Anlam uzayı</h3>
+  <p>Her vektör çok boyutlu bir uzayda bir nokta. Benzer anlamlı kelimeler yan yana düşüyor, ilgisizler uzağa:</p>
+  <div class="rota">
+    <svg viewBox="0 0 700 330" role="img" aria-label="Anlam uzayı: hayvanlar, taşıtlar, yiyecekler ve kraliyet kelimeleri ayrı kümelerde toplanıyor">
+      <line x1="44" y1="300" x2="672" y2="300" stroke="var(--line2)" stroke-width="1.2"/>
+      <line x1="44" y1="300" x2="44" y2="18" stroke="var(--line2)" stroke-width="1.2"/>
+      <text class="st-week" x="672" y="318" text-anchor="end">boyut 1 (öğrenilmiş)</text>
+      <text class="st-week" x="30" y="160" text-anchor="middle" transform="rotate(-90 30 160)">boyut 2 (öğrenilmiş)</text>
+
+      <ellipse cx="170" cy="92" rx="104" ry="56" fill="var(--water)" fill-opacity=".07" stroke="var(--water)" stroke-width="1.3" stroke-dasharray="4 4"/>
+      <text class="st-alt" x="170" y="50" text-anchor="middle">hayvanlar</text>
+      <circle cx="130" cy="84" r="4" fill="var(--water)"/><text class="st-label" x="138" y="88">cat</text>
+      <circle cx="200" cy="80" r="4" fill="var(--water)"/><text class="st-label" x="208" y="84">dog</text>
+      <circle cx="120" cy="116" r="4" fill="var(--water)"/><text class="st-label" x="128" y="120">kitten</text>
+      <circle cx="196" cy="114" r="4" fill="var(--water)"/><text class="st-label" x="204" y="118">puppy</text>
+
+      <ellipse cx="520" cy="86" rx="104" ry="54" fill="var(--contour)" fill-opacity=".07" stroke="var(--contour)" stroke-width="1.3" stroke-dasharray="4 4"/>
+      <text class="st-alt" x="520" y="46" text-anchor="middle">taşıtlar</text>
+      <circle cx="482" cy="80" r="4" fill="var(--contour)"/><text class="st-label" x="490" y="84">car</text>
+      <circle cx="548" cy="72" r="4" fill="var(--contour)"/><text class="st-label" x="556" y="76">bus</text>
+      <circle cx="520" cy="110" r="4" fill="var(--contour)"/><text class="st-label" x="528" y="114">truck</text>
+
+      <ellipse cx="236" cy="226" rx="110" ry="52" fill="var(--go)" fill-opacity=".07" stroke="var(--go)" stroke-width="1.3" stroke-dasharray="4 4"/>
+      <text class="st-alt" x="236" y="188" text-anchor="middle">yiyecekler</text>
+      <circle cx="190" cy="222" r="4" fill="var(--go)"/><text class="st-label" x="198" y="226">apple</text>
+      <circle cx="262" cy="216" r="4" fill="var(--go)"/><text class="st-label" x="270" y="220">banana</text>
+      <circle cx="230" cy="250" r="4" fill="var(--go)"/><text class="st-label" x="238" y="254">orange</text>
+
+      <ellipse cx="530" cy="226" rx="110" ry="52" fill="var(--mark)" fill-opacity=".07" stroke="var(--mark)" stroke-width="1.3" stroke-dasharray="4 4"/>
+      <text class="st-alt" x="530" y="188" text-anchor="middle">kraliyet</text>
+      <circle cx="484" cy="220" r="4" fill="var(--mark)"/><text class="st-label" x="492" y="224">king</text>
+      <circle cx="560" cy="214" r="4" fill="var(--mark)"/><text class="st-label" x="568" y="218">queen</text>
+      <circle cx="520" cy="252" r="4" fill="var(--mark)"/><text class="st-label" x="528" y="256">prince</text>
+    </svg>
+  </div>
+  <p>Boyutların adı yok. "Boyut 1 cinsiyet, boyut 2 canlılık" diye biri tanımlamadı. Model eğitim sırasında bu eksenleri <strong>kendisi öğrendi</strong>. Grafikte sadece 2 boyut görüyorsun; gerçek Word2Vec vektörü 300, BERT vektörü 768 boyutlu.</p>
+
+  <h3>3 · İki tür arama</h3>
+  <div class="tw"><table>
+    <tr><th></th><th>Keyword search</th><th>Semantik search</th></tr>
+    <tr><td><strong>Neye bakar</strong></td><td>Kelimenin birebir eşleşmesine</td><td>Anlamın eşleşmesine</td></tr>
+    <tr><td><strong>"Kangal" arayınca</strong></td><td>Sadece "Kangal" geçen metinler</td><td>köpek, kurt, Sivas, çoban köpeği</td></tr>
+    <tr><td><strong>"salata" arayınca</strong></td><td>Sadece "salata"</td><td>ezme, havuç tarator</td></tr>
+    <tr><td><strong>Motoru</strong></td><td>Metin karşılaştırma</td><td>Vektör yakınlığı</td></tr>
+  </table></div>
+  <div class="card water">
+    <p class="eyebrow">Kendi alanından</p>
+    <p style="margin-top:4px">İmar yönetmeliğinde "<strong>ifraz</strong>" diye arıyorsun. Keyword arama, maddeyi "parselin bölünmesi" diye yazılmış hâliyle bulamaz. Semantik arama bulur, çünkü iki ifadenin vektörü birbirine yakın düşer. Proje hattında kuracağın mevzuat soru-cevap sistemi bu farkın üstüne oturacak.</p>
+  </div>
+
+  <h3>4 · Embedding nerede kullanılır</h3>
+  <div class="tw"><table>
+    <tr><th>Nerede</th><th>Ne için</th></tr>
+    <tr><td><strong>RAG</strong></td><td>Soruya anlamca en yakın dokümanı bulmak: semantik arama</td></tr>
+    <tr><td><strong><button type="button" class="terim" data-t="vektor-db">Vektör veri tabanı</button></strong></td><td>Vektörleri saklamak, benzer içerikleri hızla bulmak</td></tr>
+    <tr><td><strong>LLM uygulamaları</strong></td><td>Girdiyi önce sayısal temsile çevirmek</td></tr>
+  </table></div>
+  <p>Tahtadaki üç tanım, bu dersin iskeleti:</p>
+  <dl class="anlam">
+    <dt>Embedding</dt>
+    <dd>Anlamı sayılara çevirme yöntemi.</dd>
+    <dt>Vektör veri tabanı</dt>
+    <dd>O sayısal temsilleri sakladığımız yer. <strong>Yarının konusu.</strong></dd>
+    <dt>Semantic search</dt>
+    <dd>Kelimeye göre değil, anlama göre arama yapmak.</dd>
+  </dl>
+
+  <h3>5 · Metin neden bu kadar zor</h3>
+  <p>Ders 1'de gördün: görüntü işleme 2010'dan sonra hızla ilerledi (AlexNet, GAN, Diffusion), NLP geride kaldı. Sebebi bir MNIST resmiyle görülüyor:</p>
+  <div class="flow">
+    <span class="b">28×28 gri resim</span><span class="ar">→</span>
+    <span class="b">düzleştir</span><span class="ar">→</span>
+    <span class="b hi">784 sayı: [0, 0, 12, 85, 240, 255, …]</span>
+  </div>
+  <p>Resim <strong>zaten sayıdır</strong>: her piksel 0–255 arası bir değer. Metinde öyle hazır bir sayı yok. "Kedi" kelimesinin doğal bir sayısal değeri olmadığı için birinin onu üretmesi gerekiyordu.</p>
+
+  <h3>6 · İlk deneme: Bag of Words</h3>
+  <p>Word2Vec'ten önce <strong>Bag of Words</strong> ve <strong>TF-IDF</strong> vardı. Kelimeleri sayıya çeviriyorlardı ama anlamı yakalayamıyorlardı:</p>
+  <div class="tw"><table>
+    <tr><th>cümle</th><th>the</th><th>red</th><th>dog</th><th>cat</th><th>eats</th><th>food</th></tr>
+    <tr><td>the red dog</td><td>1</td><td>1</td><td>1</td><td>0</td><td>0</td><td>0</td></tr>
+    <tr><td>cat eats dog</td><td>0</td><td>0</td><td>1</td><td>1</td><td>1</td><td>0</td></tr>
+    <tr><td>dog eats food</td><td>0</td><td>0</td><td>1</td><td>0</td><td>1</td><td>1</td></tr>
+  </table></div>
+  <p>Her kelime ayrı bir sütun. "dog" ile "cat" arasında hiçbir yakınlık yok: sadece farklı iki sütun. Sözlük 50 bin kelime olsa her cümle 50 bin sütunluk, neredeyse tamamı sıfır bir satır olur. Sayı var ama <strong>anlam yok</strong>.</p>
+
+  <h3>7 · Word2Vec: bir kelime çevresinden tanınır</h3>
+  <p>NLP'deki ilk büyük sıçrama. Fikir şu: <strong>bir kelimenin anlamı, yanında geçen kelimelerden öğrenilebilir.</strong></p>
+  <div class="quote">"Sabahları <u>çay</u>, öğlenleri <u>kahve</u> içerim."
+    <span class="who">çay ve kahve aynı kelimelerin arasında geçiyor: içmek, fincan, sabah, demlik</span></div>
+  <p>Milyonlarca cümlede aynı komşularla görünen kelimeler uzayda yan yana yerleşiyor. Kimse modele "çay bir içecektir" demedi. Model bunu komşuluktan çıkardı.</p>
+
+  <p><strong>Uygulama 01:</strong> Google News üzerinde eğitilmiş hazır model.</p>
+  <div class="code">import gensim.downloader as <button type="button" class="terim" data-t="api">api</button>
+
+word2vec_model = api.load("word2vec-google-news-300")
+
+vector = word2vec_model["king"]
+print(type(vector))      # numpy.ndarray
+print(vector.shape)      # (300,)
+
+word2vec_model.most_similar("king", topn=10)</div>
+  <dl class="anlam">
+    <dt>api.load("word2vec-google-news-300")</dt>
+    <dd>Hazır modeli indirir ve belleğe yükler. <strong>1,6 GB.</strong> Eğitmiyorsun, eğitilmiş olanı kullanıyorsun: Ders 1'deki "AI Engineer model eğitmez" ilkesinin küçük bir örneği. Adındaki 300, her kelimenin 300 sayıyla temsil edildiği anlamına geliyor.</dd>
+    <dt>word2vec_model["king"]</dt>
+    <dd>Sözlükten kelimeye bakar gibi vektörü çeker. Hesap yapılmıyor, <strong>hazır tablodan okunuyor</strong>. Bu ayrıntı 9. bölümde önem kazanacak.</dd>
+    <dt>shape (300,)</dt>
+    <dd>Tek boyutlu, 300 elemanlı bir dizi. Bir kelime = 300 sayı.</dd>
+    <dt>most_similar("king")</dt>
+    <dd>Uzayda king'e en yakın 10 kelimeyi, yakınlık puanıyla getirir. Semantik aramanın ta kendisi, kelime ölçeğinde.</dd>
+  </dl>
+  <div class="card">
+    <p class="eyebrow">Senin bilgisayarında çıkan</p>
+    <p style="margin-top:4px"><code>kings 0,714</code> · <code>queen 0,651</code> · <code>monarch 0,641</code> · <code>crown_prince 0,620</code> · <code>prince 0,616</code> …</p>
+    <p style="margin-bottom:0">Puan 1'e yaklaştıkça anlam yakın. Ölçek için bir karşılaştırma: <code>tea ↔ coffee 0,564</code>, <code>car ↔ coffee 0,168</code>.</p>
+  </div>
+
+  <h3>Vektör aritmetiği</h3>
+  <div class="code">analogy_vector = king_vector - man_vector + woman_vector
+
+result = word2vec_model.similar_by_vector(analogy_vector, topn=10)</div>
+  <dl class="anlam">
+    <dt>king − man + woman</dt>
+    <dd>King'den "erkeklik" yönünü çıkar, "kadınlık" yönünü ekle. Anlam ilişkisi uzayda bir <strong>yön</strong> olarak duruyor, o yüzden toplanıp çıkarılabiliyor.</dd>
+    <dt>similar_by_vector(…)</dt>
+    <dd>Elde edilen yeni noktaya en yakın kelimeleri bulur.</dd>
+  </dl>
+
+  <div class="card mark">
+    <p class="eyebrow">Tahtada yazan ile çıktının farkı</p>
+    <p style="margin-top:4px">Tahtada <strong>king − man + woman ≈ queen</strong> yazıyor. Senin notebook'unda çıkan liste ise:</p>
+    <p><code>king 0,845</code> · <code>queen 0,730</code> · <code>monarch 0,646</code> …</p>
+    <p><strong>Birinci sırada king var.</strong> Sebep: <code>similar_by_vector</code> sadece bir noktaya bakıyor ve o noktayı üretirken kullandığın kelimeleri listeden çıkarmıyor. Sonuç king'e hâlâ çok yakın. Aynı soruyu <code>most_similar(positive=["king","woman"], negative=["man"])</code> ile sorunca girdi kelimeleri dışarıda kalıyor ve birinci sıraya <code>queen 0,712</code> geliyor.</p>
+    <p style="margin-bottom:0">Kurgu dersi: <strong>slayta değil, çıktıya bak.</strong> AI'ın yazdığı kodu yargılayacağın an tam olarak bu: kod çalıştı, hata vermedi, ama beklediğini tam olarak vermedi.</p>
+  </div>
+  <p>İkinci örnek temiz çalışıyor: <code>Paris + Germany − France</code> → <strong>Berlin 0,763</strong>. "Başkenti olmak" ilişkisi de bir yön.</p>
+
+  <h3>8 · Word2Vec'in akrabaları</h3>
+  <div class="tw"><table>
+    <tr><th>Model</th><th>Kim, ne zaman</th><th>Farkı</th></tr>
+    <tr><td><strong>Word2Vec</strong></td><td>Google, 2013</td><td>Yakın komşu kelimelerden öğrenir</td></tr>
+    <tr><td><strong>GloVe</strong></td><td>Stanford, 2014</td><td>Tüm corpus'taki birlikte geçme istatistiğinden öğrenir</td></tr>
+    <tr><td><strong>FastText</strong></td><td>Facebook AI Research (FAIR), 2016</td><td>Kelimeyi parçalarına bölerek öğrenir, bilmediği kelimeye de vektör üretebilir</td></tr>
+  </table></div>
+  <p>FastText'in çözdüğü sorunu senin modelinde gördüm: <code>word2vec_model["kadastro"]</code> → <strong>KeyError</strong>. Google News sözlüğünde bu kelime yok. Word2Vec sözlüğünde olmayan kelimeye hiçbir şey söyleyemiyor.</p>
+  <p>Üçünün ortak adı: <strong>statik embedding.</strong> Her kelimenin tek, sabit bir vektörü var.</p>
+
+  <h3>9 · Statik embedding'in duvarı</h3>
+  <div class="rota">
+    <svg viewBox="0 0 700 290" role="img" aria-label="Statik embedding iki farklı anlamdaki bank kelimesine aynı vektörü verir, bağlamsal embedding iki farklı vektör verir">
+      <text class="st-alt" x="20" y="24">cümle</text>
+      <rect x="20" y="34" width="250" height="34" rx="7" fill="var(--surface2)" stroke="var(--line2)"/>
+      <text class="st-label" x="145" y="55" text-anchor="middle">I deposited money in the bank.</text>
+      <rect x="20" y="84" width="250" height="34" rx="7" fill="var(--surface2)" stroke="var(--line2)"/>
+      <text class="st-label" x="145" y="105" text-anchor="middle">I sat near the river bank.</text>
+
+      <text class="st-alt" x="330" y="24">statik (Word2Vec)</text>
+      <line x1="270" y1="51" x2="352" y2="76" stroke="var(--line2)" stroke-width="1.3"/>
+      <line x1="270" y1="101" x2="352" y2="80" stroke="var(--line2)" stroke-width="1.3"/>
+      <rect x="356" y="60" width="150" height="36" rx="7" fill="var(--surface)" stroke="var(--contour)" stroke-width="1.6"/>
+      <text class="st-label" x="431" y="82" text-anchor="middle">tek vektör</text>
+      <text class="st-alt" x="520" y="76">benzerlik = 1,000</text>
+      <text class="st-alt" x="520" y="90">(iki anlam ayırt edilemez)</text>
+
+      <line x1="20" y1="146" x2="680" y2="146" stroke="var(--line)" stroke-width="1"/>
+
+      <text class="st-alt" x="20" y="172">cümle</text>
+      <rect x="20" y="182" width="250" height="34" rx="7" fill="var(--surface2)" stroke="var(--line2)"/>
+      <text class="st-label" x="145" y="203" text-anchor="middle">I deposited money in the bank.</text>
+      <rect x="20" y="232" width="250" height="34" rx="7" fill="var(--surface2)" stroke="var(--line2)"/>
+      <text class="st-label" x="145" y="253" text-anchor="middle">I sat near the river bank.</text>
+
+      <text class="st-alt" x="330" y="172">bağlamsal (BERT)</text>
+      <line x1="270" y1="199" x2="352" y2="199" stroke="var(--line2)" stroke-width="1.3"/>
+      <line x1="270" y1="249" x2="352" y2="249" stroke="var(--line2)" stroke-width="1.3"/>
+      <rect x="356" y="182" width="150" height="34" rx="7" fill="var(--surface)" stroke="var(--water)" stroke-width="1.6"/>
+      <text class="st-label" x="431" y="203" text-anchor="middle">vektör A (para)</text>
+      <rect x="356" y="232" width="150" height="34" rx="7" fill="var(--surface)" stroke="var(--mark)" stroke-width="1.6"/>
+      <text class="st-label" x="431" y="253" text-anchor="middle">vektör B (nehir)</text>
+      <text class="st-alt" x="520" y="224">benzerlik = 0,628</text>
+      <text class="st-alt" x="520" y="238">(model iki anlamı ayırdı)</text>
+    </svg>
+  </div>
+  <p>Word2Vec'te <code>bank</code> bir sözlük girişi: hangi cümlede geçerse geçsin aynı 300 sayı okunuyor. Banka ile nehir kıyısı arasındaki farkı göremiyor. Aynı sorun <strong>Apple şirketi ≠ Apple meyve</strong> için de geçerli.</p>
+  <p><strong>Bağlamsal embedding (<button type="button" class="terim" data-t="baglam">context</button> embedding)</strong> bunu çözüyor: bir kelimenin vektörü, cümledeki anlamına göre değişiyor. Bunu yapan modeller <button type="button" class="terim" data-t="transformer">Transformer</button> ailesinden: <strong>BERT</strong> ve <strong>GPT</strong>.</p>
+  <div class="tw"><table>
+    <tr><th></th><th>Statik</th><th>Bağlamsal</th></tr>
+    <tr><td><strong>Örnek</strong></td><td>Word2Vec, GloVe, FastText</td><td>BERT, GPT</td></tr>
+    <tr><td><strong>Vektör nereden gelir</strong></td><td>Hazır tablodan okunur</td><td>Cümle modelden geçirilip hesaplanır</td></tr>
+    <tr><td><strong>"bank" kaç vektör</strong></td><td>1</td><td>Geçtiği cümle sayısı kadar</td></tr>
+    <tr><td><strong>Bedeli</strong></td><td>Ucuz, hızlı</td><td>Her seferinde model çalışır: daha yavaş, <button type="button" class="terim" data-t="gpu">GPU</button> ister</td></tr>
+  </table></div>
+
+  <h3>10 · Uygulama 02: BERT içeride ne yapıyor</h3>
+  <p>Önce metin <strong><button type="button" class="terim" data-t="token">token</button></strong>'lara bölünüyor, sonra her token bir sayı kimliği alıyor, en son model bu kimlikleri bağlamlı vektörlere çeviriyor.</p>
+  <div class="flow">
+    <span class="b">metin</span><span class="ar">→</span>
+    <span class="b">tokenlar</span><span class="ar">→</span>
+    <span class="b">token id'leri</span><span class="ar">→</span>
+    <span class="b hi">model</span><span class="ar">→</span>
+    <span class="b">her token için 768 sayı</span>
+  </div>
+
+  <div class="code">from transformers import AutoTokenizer
+
+model_name = "bert-base-multilingual-cased"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+tokens = tokenizer.tokenize("Yapay zeka çok hızlı gelişiyor.")</div>
+  <dl class="anlam">
+    <dt>bert-base-multilingual-cased</dt>
+    <dd>Modelin kimliği. <strong>multilingual</strong>: Türkçe dahil 100'ü aşkın dil. <strong>cased</strong>: büyük/küçük harfi ayırıyor.</dd>
+    <dt>AutoTokenizer.from_pretrained</dt>
+    <dd>Bu modelin kendi tokenizer'ını indirir. Her model kendi tokenizer'ıyla çalışır: başka modelin tokenizer'ı yanlış kimlikler üretir.</dd>
+    <dt>tokenize(…)</dt>
+    <dd>Metni modelin bildiği parçalara böler.</dd>
+  </dl>
+  <div class="card">
+    <p class="eyebrow">Senin bilgisayarında çıkan</p>
+    <div class="code" style="margin:6px 0">['Ya', '##pa', '##y', 'ze', '##ka', 'çok', 'h', '##ızlı',
+ 'gel', '##iş', '##iyo', '##r', '.']</div>
+    <p style="margin-bottom:0">5 kelime <strong>13 token</strong> oldu. <code>##</code> "önceki parçanın devamı" demek. BERT "Yapay" kelimesini tanımasa da parçalarından temsil kurabiliyor. Word2Vec'in "kadastro"da takıldığı KeyError burada yaşanmıyor. Türkçe gibi eklemeli dillerde kelime sayısı token sayısından hep az: Ders 2'deki token maliyetini hatırla.</p>
+  </div>
+
+  <div class="code">encoded = tokenizer(text)
+print(encoded["input_ids"])
+# [101, 25148, 11359, …, 119, 102]
+print(tokenizer.convert_ids_to_tokens(encoded["input_ids"]))
+# ['[CLS]', 'Ya', '##pa', …, '.', '[SEP]']</div>
+  <dl class="anlam">
+    <dt>tokenizer(text)</dt>
+    <dd>Bölmekle kalmaz, modele verilecek paketi hazırlar: id listesi ve yardımcı bilgiler. 13 token 15 id oldu.</dd>
+    <dt>[CLS] = 101, [SEP] = 102</dt>
+    <dd>Tokenizer'ın kendiliğinden eklediği iki özel işaret: cümlenin başı ve sonu. <code>tokenize()</code> eklemez, <code>tokenizer()</code> ekler. Fark bu yüzden 2.</dd>
+  </dl>
+
+  <div class="code">import torch
+from transformers import AutoModel
+
+model = AutoModel.from_pretrained(model_name)
+
+inputs = tokenizer(text, return_tensors="pt")
+
+with torch.no_grad():
+    outputs = model(**inputs)
+
+token_embeddings = outputs.last_hidden_state
+print(token_embeddings.shape)    # torch.Size([1, 15, 768])</div>
+  <dl class="anlam">
+    <dt>AutoModel.from_pretrained</dt>
+    <dd>Modelin kendisini indirir. Tokenizer sözlük, model beyin.</dd>
+    <dt>return_tensors="pt"</dt>
+    <dd>Paketi PyTorch'un anladığı biçimde (tensör) hazırla. Olmasa model düz Python listesini kabul etmez.</dd>
+    <dt>with torch.no_grad()</dt>
+    <dd>"Sadece kullanıyorum, eğitmiyorum." Eğitim için gereken ek hesapları kapatır: bellek ve süre kazanırsın. Yine Ders 1: eğitmiyoruz, kullanıyoruz.</dd>
+    <dt>model(**inputs)</dt>
+    <dd>Asıl iş burada: cümle modelden geçiyor ve her token çevresindeki token'lara bakarak kendi vektörünü güncelliyor. Bağlam burada vektöre giriyor.</dd>
+    <dt>last_hidden_state</dt>
+    <dd>Modelin son katmanındaki token vektörleri: en çok bağlam bilgisi taşıyan temsil.</dd>
+  </dl>
+  <div class="rota">
+    <svg viewBox="0 0 700 150" role="img" aria-label="Tensör şekli 1, 15, 768: bir cümle, on beş token, her token için 768 sayı">
+      <text class="st-label" x="350" y="30" text-anchor="middle" style="font-size:18px">[ 1 , 15 , 768 ]</text>
+      <line x1="290" y1="40" x2="150" y2="84" stroke="var(--line2)"/>
+      <line x1="350" y1="40" x2="350" y2="84" stroke="var(--line2)"/>
+      <line x1="412" y1="40" x2="550" y2="84" stroke="var(--line2)"/>
+      <rect x="70" y="86" width="160" height="46" rx="7" fill="var(--surface2)" stroke="var(--water)"/>
+      <text class="st-label" x="150" y="106" text-anchor="middle">1 cümle</text>
+      <text class="st-alt" x="150" y="122" text-anchor="middle">batch: aynı anda kaç metin</text>
+      <rect x="270" y="86" width="160" height="46" rx="7" fill="var(--surface2)" stroke="var(--contour)"/>
+      <text class="st-label" x="350" y="106" text-anchor="middle">15 token</text>
+      <text class="st-alt" x="350" y="122" text-anchor="middle">[CLS] + 13 + [SEP]</text>
+      <rect x="470" y="86" width="160" height="46" rx="7" fill="var(--surface2)" stroke="var(--mark)"/>
+      <text class="st-label" x="550" y="106" text-anchor="middle">768 sayı</text>
+      <text class="st-alt" x="550" y="122" text-anchor="middle">her token'ın vektörü</text>
+    </svg>
+  </div>
+
+  <h3>bank deneyi</h3>
+  <div class="code">for sentence in sentences:
+    inputs = tokenizer(sentence, return_tensors="pt")
+    tokens = tokenizer.convert_ids_to_tokens(inputs["input_ids"][0])
+
+    with torch.no_grad():
+        outputs = model(**inputs)
+
+    token_embeddings = outputs.last_hidden_state[0]
+    bank_index = tokens.index("bank")
+    bank_embedding = token_embeddings[bank_index]
+    bank_embeddings.append(bank_embedding)</div>
+  <dl class="anlam">
+    <dt>for sentence in sentences</dt>
+    <dd>İki cümle için aynı işlem. Her cümle modelden <strong>ayrı ayrı</strong> geçiyor, çünkü bağlam cümleye özgü.</dd>
+    <dt>last_hidden_state[0]</dt>
+    <dd><code>[1, 11, 768]</code>'in ilk (ve tek) cümlesini al → <code>[11, 768]</code>.</dd>
+    <dt>tokens.index("bank")</dt>
+    <dd>"bank" kaçıncı sırada? Para cümlesinde 8, nehir cümlesinde 6. Konum cümleye göre değişiyor, o yüzden elle yazılmıyor, aranıyor.</dd>
+    <dt>token_embeddings[bank_index]</dt>
+    <dd>O konumdaki 768 sayıyı çek: bu cümledeki "bank"ın vektörü.</dd>
+  </dl>
+  <p>Notebook iki vektörün ilk 10 değerini basıp bitiyor: <code>0.2604, −0.5344, 0.6069…</code> ve <code>−0.0186, −0.5358, 0.0020…</code>. Sayılar farklı görünüyor.</p>
+
+  <div class="card mark">
+    <p class="eyebrow">Notebook'un yarım bıraktığı yer</p>
+    <p style="margin-top:4px">768 sayının 10'una bakıp "farklılar" demek kanıt sayılmaz. İki vektörün ne kadar benzediğini tek bir sayıyla ölçen araç <strong>kosinüs benzerliği</strong> (cosine similarity): iki vektörün uzayda aynı yöne ne kadar baktığı. 1 = aynı yön, 0 = ilgisiz.</p>
+    <div class="code" style="margin:8px 0">torch.nn.functional.cosine_similarity(bank_embeddings[0],
+                                      bank_embeddings[1], dim=0)</div>
+    <p>Bu satırı senin makinende, senin modelinle çalıştırdım. Birkaç cümle daha ekledim:</p>
+    <div class="tw" style="margin-bottom:0"><table>
+      <tr><th>bank ↔ bank</th><th>anlam</th><th>benzerlik</th></tr>
+      <tr><td>nehir kıyısı ↔ nehir kıyısı</td><td>aynı</td><td><strong>0,771</strong></td></tr>
+      <tr><td>para ↔ kredi onayı</td><td>aynı</td><td><strong>0,734</strong></td></tr>
+      <tr><td>para ↔ nehir (notebook'takiler)</td><td>farklı</td><td>0,628</td></tr>
+      <tr><td>kredi onayı ↔ nehir</td><td>farklı</td><td>0,521 – 0,542</td></tr>
+    </table></div>
+  </div>
+  <p>Aynı anlamdaki "bank"lar birbirine daha yakın, farklı anlamdakiler daha uzak. Model anlamı ayırt ediyor. Word2Vec'te bu tablonun her satırı 1,000 olurdu. Ayrıca semantik aramanın motoru da bu ölçü: yarın vektör veri tabanında "soruya en yakın doküman" dendiğinde arka planda bu hesap yapılıyor olacak.</p>
+
+  <h3>11 · Doc2Vec: kelimeden dokümana</h3>
+  <p>Word2Vec kelimeleri vektöre çeviriyor. Ama RAG'de kelime aramıyorsun: <strong>cümle, paragraf, makale, ürün açıklaması</strong> arıyorsun.</p>
+  <div class="tw"><table>
+    <tr><th>Word2Vec</th><th>Doc2Vec</th></tr>
+    <tr><td>Her <strong>kelimeyi</strong> vektöre çevirir</td><td>Her <strong>dokümanı</strong> vektöre çevirir</td></tr>
+    <tr><td>"cat" → 300 sayı</td><td>"Kangal güçlü bir çoban köpeğidir." → tek vektör</td></tr>
+  </table></div>
+  <p>Tahtadaki örnek: <em>"The cat sat on the mat."</em> ile <em>"A kitten rested on the rug."</em> arasında ortak tek anlamlı kelime yok. Keyword arama bağ kuramaz. Doküman vektörleri ise yakın düşer.</p>
+  <p>Kullanım alanları: haber sınıflandırma (ekonomi mi, spor mu), öneri sistemleri, intihal tespiti, semantik arama.</p>
+  <div class="card water">
+    <p class="eyebrow">Bugün pratikte</p>
+    <p style="margin-top:4px">Doc2Vec tahtada anlatıldı, kodu yok. Bugün doküman vektörü için genelde bu işe özel eğitilmiş <strong>cümle embedding modelleri</strong> kullanılıyor (açık kaynak <code>sentence-transformers</code> ya da OpenAI'ın embedding API'si). Notebook'taki ham BERT token vektörleri kelime düzeyinde. Tek bir doküman vektörü için onların birleştirilmesi gerekiyor. Yarın muhtemelen bu kısım gelecek.</p>
+  </div>
+
+  <h3>12 · İlk uygulaman yine burada</h3>
+  <p><code>days_03/my-first-app.py</code>, Ders 2-v2'deki <button type="button" class="terim" data-t="streamlit">Streamlit</button> uygulamasının kopyası. İki fark var:</p>
+  <ul>
+    <li>Model artık <code>gpt-5.6-luna</code> (v2'de <code>gpt-4o-mini</code> idi). Hocanın güncel tercihi bu. Karnedeki "model adı tutarsızlığı" sorusu böylece cevaplanmış oldu.</li>
+    <li><code>load_dotenv(override=True)</code>: sistemde aynı isimde eski bir değişken varsa <code>.env</code>'dekini üstüne yaz. Yanlış anahtarın sessizce kullanılmasını önler.</li>
+  </ul>
+  <div class="card">
+    <p class="eyebrow">İki dersi birleştir</p>
+    <p style="margin-top:4px">Bu uygulamaya Word2Vec eklesen ne olur? Streamlit her tıklamada script'i baştan çalıştırıyor. Yani <strong>1,6 GB'lık model her tıklamada yeniden yüklenir.</strong> <code>@st.cache_resource</code> tam bunun için var: modeli bir kez yükle, sonraki <button type="button" class="terim" data-t="rerun">rerun</button>'larda hazır olanı kullan.</p>
+  </div>
+
+  <hr>
+  <h3>Kurgusal okuma</h3>
+  <p>Ders 1'deki kalıp burada da geçerli: <strong>her yöntem, bir öncekinin çözemediği problem yüzünden doğdu.</strong></p>
+  <div class="tw"><table>
+    <tr><th>Yöntem</th><th>Çözemediği</th><th>Doğan çözüm</th></tr>
+    <tr><td><button type="button" class="terim" data-t="one-hot">One-hot</button></td><td>Devasa ve anlamsız</td><td>Bag of Words / TF-IDF</td></tr>
+    <tr><td>Bag of Words</td><td>dog ile cat arasında yakınlık yok</td><td>Word2Vec</td></tr>
+    <tr><td>Word2Vec</td><td>Sözlükte olmayan kelime → KeyError</td><td>FastText (parçalara böl)</td></tr>
+    <tr><td>Statik embedding</td><td>bank = bank, anlam cümleye göre değişmiyor</td><td>BERT, GPT (bağlamsal)</td></tr>
+    <tr><td>Kelime vektörü</td><td>Doküman karşılaştırılamıyor</td><td>Doc2Vec, cümle embedding'i</td></tr>
+    <tr><td>Vektörü üretmek</td><td>On bin dokümanı her soruda yeniden çevirmek</td><td><strong>Vektör veri tabanı (yarın)</strong></td></tr>
+  </table></div>
+
+  <div class="card mark">
+    <p class="eyebrow">Derste söylenmeyen tek kural</p>
+    <p style="margin-top:4px"><strong>Soru ve dokümanlar aynı embedding modeliyle vektöre çevrilmeli.</strong> Word2Vec'in 300 boyutlu uzayı ile BERT'ün 768 boyutlu uzayı farklı haritalar: birinin koordinatını ötekinin haritasında aramak anlamsız. Farklı projeksiyondaki iki katmanı dönüşüm yapmadan üst üste koymaya benziyor: ITRF-96 ile ED50'yi karıştırırsan parseller yanlış yere düşer. RAG sistemlerinde en sık yapılan kurgu hatası bu.</p>
+  </div>
+
+  <div class="card water">
+    <p class="eyebrow">⬆ İleri — merdivende neredesin</p>
+    <p style="margin-top:4px">Bu ders <strong>L4 · Bağlam &amp; bilgi</strong> basamağının altyapısı. Ders 2'de context'i elle seçtin, bu derste makinenin seçebilmesi için gereken ölçüyü öğrendin. Sıradaki: vektörleri saklamak ve hızla aramak (yarın), sonra bunların hepsini birleştiren RAG (Hafta 3). Kendi projenin iskeleti de burada başlıyor: mevzuat maddesi → vektör → sakla → soru vektörü → en yakın madde.</p>
+  </div>
+
+  <div class="btnrow">
+    <button class="btn" data-go="quiz">Okudum, quiz'e geç</button>
+  </div>
+</section>
+
+<!-- ═══════════════ DERS 4 ═══════════════ -->
+<section class="sec ders-bolum" id="ders4" hidden>
+  <p class="eyebrow">Ders 4 · okuma · Hafta 2, 2. gün</p>
+  <h2>Vektörleri saklamak ve aramak</h2>
+  <p class="lede">Dün anlamı sayıya çevirdin. Bugün o sayıları binlerce doküman için saklayan ve soruya en yakın olanı bulan altyapıyı görüyorsun. Üç uygulama var: önce eski yöntem çuvallıyor, sonra yeni yöntem kurtarıyor, en son da yeni yöntemin nerede zorlandığı görülüyor.</p>
+
+
+  <div class="card water giris">
+    <p class="eyebrow">Önce şunu bil</p>
+    <p class="giris-tek">Anlamı sayıya çevrilmiş binlerce dokümanı saklamak ve bir soruya en yakın olanları hızla bulmak.</p>
+    <p><strong>Bunu zaten biliyorsun:</strong> Mekânsal indeks gibi: milyonlarca parselde en yakın komşuyu bulmak için her parseli tek tek ölçmezsin, önceden kurulmuş bir indeks aramayı daraltır. <button type="button" class="terim" data-t="vektor-db">Vektör veri tabanı</button> aynı işi anlam uzayında yapıyor. Hibrit arama da tanıdık: öznitelik sorgusunu (ilçe = X) mekânsal sorguyla birleştirmek gibi; burada öznitelik + anlam.</p>
+    <details class="giris-terimler">
+      <summary>Bu derste geçecek 6 yeni terim — şimdi göz at, sonra metinde dokun</summary>
+      <div class="terim-sira">
+        <button type="button" class="terim rozet" data-t="vektor-db">Vektör veri tabanı</button>
+        <button type="button" class="terim rozet" data-t="embedding">Embedding</button>
+        <button type="button" class="terim rozet" data-t="retrieval">Retrieval (getirme)</button>
+        <button type="button" class="terim rozet" data-t="chunk">Chunk (parça)</button>
+        <button type="button" class="terim rozet" data-t="rag">RAG</button>
+        <button type="button" class="terim rozet" data-t="api">API</button>
+      </div>
+    </details>
+    <p class="note">Üç uygulamayı sırayla oku: eski yöntem çuvallıyor, yeni yöntem kurtarıyor, sonra yeni yöntemin sınırı görünüyor. Skorun büyük mü küçük mü iyi olduğuna her tabloda ayrıca bak.</p>
+  </div>
+
+  <div class="flow">
+    <span class="b">Ders 2: dokümanı elle seç</span><span class="ar">→</span>
+    <span class="b">Ders 3: anlamı ölç</span><span class="ar">→</span>
+    <span class="b hi">Ders 4: sakla ve otomatik bul</span><span class="ar">→</span>
+    <span class="b">Hafta 3: <button type="button" class="terim" data-t="rag">RAG</button></span>
+  </div>
+
+  <h3>1 · İki tür veri</h3>
+  <div class="tw"><table>
+    <tr><th></th><th>Yapılandırılmış</th><th>Yapılandırılmamış</th></tr>
+    <tr><td><strong>Örnek</strong></td><td>Satış tablosu: ID, isim, ülke, tutar</td><td>PDF, metin, görüntü, ses, video</td></tr>
+    <tr><td><strong>Nerede yaşar</strong></td><td>SQL veri tabanı</td><td>Anlamıyla aranacaksa: vektör veri tabanı</td></tr>
+    <tr><td><strong>Nasıl aranır</strong></td><td>Sütun değeriyle: <code>WHERE ulke = 'Canada'</code></td><td>Anlamla: "arıza anlatan kayıtlar"</td></tr>
+  </table></div>
+  <p>Senin alanından: parsel tablosu (ada, parsel, alan, malik) yapılandırılmış. İmar yönetmeliği PDF'i yapılandırılmamış. İkisi farklı depo ve farklı arama türü istiyor.</p>
+
+  <h3>2 · Uygulama 01: anahtar kelime araması çuvallıyor</h3>
+  <p>Beş şikâyet kaydı. Dördü araç arızası, ama hiçbiri "araba bozuldu" kelimelerini kullanmıyor:</p>
+  <div class="tw"><table>
+    <tr><th>id</th><th>kayıt</th><th>konu</th></tr>
+    <tr><td>1</td><td>Aracım çalışmıyor, motor garip sesler çıkarıyor.</td><td>arıza</td></tr>
+    <tr><td>2</td><td>Otomobilim marş basmıyor, aküyü değiştirdim ama olmadı.</td><td>arıza</td></tr>
+    <tr><td>3</td><td>Yeni arabamı geçen hafta aldım, çok memnunum.</td><td><strong>memnuniyet</strong></td></tr>
+    <tr><td>4</td><td>Bilgisayarım açılmıyor, ekran siyah kalıyor.</td><td>başka cihaz</td></tr>
+    <tr><td>5</td><td>Vasıtam servise gitti, fren balatası değişecek.</td><td>arıza</td></tr>
+  </table></div>
+  <div class="code">conn = sqlite3.connect(":memory:")
+cur = conn.cursor()
+cur.execute("CREATE TABLE dokumanlar (id INTEGER PRIMARY KEY, icerik TEXT)")
+cur.executemany("INSERT INTO dokumanlar (icerik) VALUES (?)", kayitlar)
+
+cur.execute("SELECT icerik FROM dokumanlar WHERE icerik LIKE '%araba%'")</div>
+  <dl class="anlam">
+    <dt>sqlite3.connect(":memory:")</dt>
+    <dd>Veri tabanını diskte değil <strong>bellekte</strong> kurar. Deney için pratik; notebook kapanınca her şey silinir.</dd>
+    <dt>cursor()</dt>
+    <dd>Veri tabanına komut taşıyan araç. Sorgular bunun üzerinden gider, sonuçlar bunun üzerinden gelir.</dd>
+    <dt>CREATE TABLE … icerik TEXT</dt>
+    <dd>İki sütunlu tablo. Metin <code>TEXT</code> olarak saklanıyor: veri tabanı için bu sadece harf dizisi, anlamı yok.</dd>
+    <dt>executemany(… VALUES (?))</dt>
+    <dd>Beş kaydı tek komutla ekler. <code>?</code> yer tutucu: değer ayrı gönderilir, metnin içine yapıştırılmaz. SQL'in <button type="button" class="terim" data-t="injection">injection</button> savunması bu (Ders 2'deki <button type="button" class="terim" data-t="delimiter">delimiter</button> mantığının veri tabanındaki karşılığı).</dd>
+    <dt>LIKE '%araba%'</dt>
+    <dd>"İçinde <code>araba</code> harf dizisi geçen satırları getir." <code>%</code> "önü ve arkası ne olursa olsun" demek. Anlam aramıyor, harf eşleştiriyor.</dd>
+  </dl>
+  <div class="card mark">
+    <p class="eyebrow">Senin bilgisayarında çıkan</p>
+    <p style="margin-top:4px"><code>'%araba bozuldu%'</code> → <strong>0 sonuç.</strong></p>
+    <p><code>'%araba%'</code> → <strong>1 sonuç</strong>, o da: <em>"Yeni arabamı geçen hafta aldım, çok memnunum."</em></p>
+    <p style="margin-bottom:0">Dört kayıttan üç arızayı <strong>kaçırdı</strong>, bulduğu tek kayıt da <strong>arıza değil.</strong> "Aracım", "Otomobilim", "Vasıtam" farklı harf dizileri. <button type="button" class="terim" data-t="api-anahtari">Anahtar</button> kelime araması hem eksik buluyor hem yanlış buluyor.</p>
+  </div>
+
+  <h3>3 · Uygulama 02: semantik arama</h3>
+  <p>Aynı beş kayıt, bu sefer <strong>anlamla</strong> aranıyor. <button type="button" class="terim" data-t="model">Model</button> lokal çalışıyor, internete ya da <button type="button" class="terim" data-t="api">API'ye</button> gitmiyor.</p>
+  <div class="code">from sentence_transformers import SentenceTransformer
+
+model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+
+vektorler = model.encode(metinler)      # (5, 384)
+sorgu_vek = model.encode("araba bozuldu")
+
+skorlar = model.similarity(sorgu_vek, vektorler)[0]
+
+for i in np.argsort(-skorlar)[:3]:
+    print(f"{skorlar[i]:.3f} {metinler[i]}")</div>
+  <dl class="anlam">
+    <dt>SentenceTransformer("paraphrase-multilingual-…")</dt>
+    <dd>Ders 3'teki BERT'ün "cümle için eğitilmiş" akrabası. BERT her <button type="button" class="terim" data-t="token">token</button>'a ayrı vektör veriyordu; bu model <strong>bütün cümleye tek vektör</strong> veriyor. Dün "Doc2Vec'in bugünkü karşılığı" dediğimiz şey bu. <strong>multilingual</strong> Türkçeyi de biliyor, <strong>paraphrase</strong> "aynı şeyi farklı kelimelerle söyleyen cümleleri yakın koy" diye eğitilmiş.</dd>
+    <dt>encode(metinler) → (5, 384)</dt>
+    <dd>5 cümle, her biri 384 sayı. Dokümanlar <strong>bir kez</strong> çevriliyor.</dd>
+    <dt>encode("araba bozuldu")</dt>
+    <dd>Soru da <strong>aynı modelle</strong> çevriliyor. Ders 3'ün "aynı model kuralı".</dd>
+    <dt>model.similarity(…)[0]</dt>
+    <dd>Sorunun her dokümana kosinüs benzerliği. <strong>Büyük = daha yakın.</strong> <code>[0]</code>: tek soru sorduk, ilk satırı al.</dd>
+    <dt>np.argsort(-skorlar)[:3]</dt>
+    <dd><code>argsort</code> küçükten büyüğe sıralar. Eksi işareti sırayı ters çeviriyor, <code>[:3]</code> en iyi üçü alıyor.</dd>
+  </dl>
+  <div class="card">
+    <p class="eyebrow">Senin bilgisayarında çıkan</p>
+    <div class="tw" style="margin:6px 0 10px"><table>
+      <tr><th>skor</th><th>kayıt</th><th>doğru mu</th></tr>
+      <tr><td>0,570</td><td>Otomobilim marş basmıyor…</td><td class="ok">arıza ✓</td></tr>
+      <tr><td>0,426</td><td>Aracım çalışmıyor…</td><td class="ok">arıza ✓</td></tr>
+      <tr><td>0,389</td><td>Yeni arabamı aldım, çok memnunum.</td><td class="bad">memnuniyet ✗</td></tr>
+      <tr><td>0,310</td><td>Vasıtam servise gitti…</td><td class="ok">arıza, ama 4. sırada</td></tr>
+      <tr><td>0,263</td><td>Bilgisayarım açılmıyor…</td><td>başka cihaz</td></tr>
+    </table></div>
+    <p style="margin-bottom:0">Büyük iyileşme: "araba" kelimesi geçmeyen iki arıza en üstte. Ama <strong>kusursuz değil</strong>: memnuniyet cümlesi, "araba" kelimesine benzediği için gerçek arıza olan "Vasıtam"ın önüne geçti. En iyi 3'ü alırsan bir yanlış kayıt, bir de kaçırılmış arıza var.</p>
+  </div>
+
+  <h3>4 · Embedding'i kim üretecek</h3>
+  <div class="tw"><table>
+    <tr><th></th><th>Sentence <button type="button" class="terim" data-t="transformer">Transformer</button> (02)</th><th>OpenAI <button type="button" class="terim" data-t="embedding">embedding</button> (03)</th></tr>
+    <tr><td><strong>Nerede çalışır</strong></td><td>Senin bilgisayarında</td><td>OpenAI sunucusunda (API)</td></tr>
+    <tr><td><strong>Boyut</strong></td><td>384</td><td>1536</td></tr>
+    <tr><td><strong>Maliyet</strong></td><td>Ücretsiz, ama senin donanımın</td><td>Token başına ücret</td></tr>
+    <tr><td><strong>Veri nereye gider</strong></td><td>Hiçbir yere</td><td>Dışarı çıkar</td></tr>
+    <tr><td><strong>Anahtar</strong></td><td>Gerekmez</td><td><code>.env</code> + <code>load_dotenv()</code> (Ders 2)</td></tr>
+  </table></div>
+  <p>Kadastro ve malik verisi gibi hassas verilerde "veri dışarı çıkmasın" sütunu tek başına kararı verebilir. Ders 1'deki hocanın tezi de buydu: hazır servisler veri mahremiyeti sağlamıyor.</p>
+
+  <h3>5 · SQL vektörü saklar ama anlamaz</h3>
+  <p>Vektörü SQL tablosuna bir sütun olarak koymak mümkün: <code>embedding VECTOR(768)</code> ya da <code>FLOAT[]</code>. Ama tahtadaki cümle: <strong>SQL veri tabanı bu sayı listesinin anlamını bilmez, sadece sayıları görür.</strong> Üç sorun çıkıyor:</p>
+  <div class="tw"><table>
+    <tr><th>Sorun</th><th>Ne demek</th></tr>
+    <tr><td><strong>Performans</strong></td><td>"En yakını bul" için her satırla tek tek hesap yapması gerekir</td></tr>
+    <tr><td><strong>Vektör işlemi yok</strong></td><td>Kosinüs benzerliği, öklit mesafesi yerleşik değil; elle yazılır</td></tr>
+    <tr><td><strong>Ölçek</strong></td><td>Milyonlarca 1536 sayılık satırda çöker</td></tr>
+  </table></div>
+
+  <h3>6 · Vektör veri tabanının getirdikleri</h3>
+  <dl class="anlam">
+    <dt>Özel indeks (HNSW, LSH)</dt>
+    <dd>Benzer vektörleri önceden yakın yerlere yerleştirir. Aramada her şeye bakmak yerine sadece ilgili komşuluğa bakar. Kütüphanede kitapları konuya göre rafa dizmek gibi.</dd>
+    <dt>Yerleşik ölçüler</dt>
+    <dd>Kosinüs benzerliği, öklit mesafesi, k-en yakın komşu (k-NN) araması hazır. Elle hesap yok.</dd>
+    <dt>Yaklaşık arama</dt>
+    <dd>"Kesin en yakın" yerine "neredeyse kesin en yakın"ı çok hızlı bulur. RAG'de bu takas kabul edilebilir: soru 1 milisaniyede cevaplanır, 100. değil 99. en iyi doküman gelse de fark etmez.</dd>
+    <dt>Sparse saklama</dt>
+    <dd>Çoğu değeri sıfır olan vektörler (Ders 3'teki Bag of Words gibi, 30 bin+ sütun) sadece sıfır olmayanlar saklanarak tutulur.</dd>
+  </dl>
+  <div class="card">
+    <p class="eyebrow">Sparse gösterim</p>
+    <div class="flow" style="margin:6px 0 0">
+      <span class="b">[0, 0, 0.8, 0, 0, 0.3, 0]</span><span class="ar">→</span>
+      <span class="b hi">indices = [2, 5] · values = [0.8, 0.3]</span>
+    </div>
+    <p style="margin-bottom:0">Yedi sayı yerine dört. 30 binlik vektörde fark devasa. Embedding modellerinin ürettiği vektörler ise <strong>dense</strong>: 384 ya da 1536 sayının hepsi dolu.</p>
+  </div>
+
+  <h3>7 · Uygulama 03: FAISS ile vektör indeksi</h3>
+  <p>Altı cümle OpenAI ile vektöre çevriliyor, FAISS'e yükleniyor, bir soruya en yakın 5'i isteniyor.</p>
+  <div class="code">def get_embedding(text):
+    <button type="button" class="terim" data-t="response">response</button> = <button type="button" class="terim" data-t="istemci">client</button>.embeddings.create(<button type="button" class="terim" data-t="input">input</button>=text, model="text-embedding-3-small")
+    return response.data[0].embedding
+
+document_embeddings = np.array(
+    [get_embedding(text) for text in text_chunks]
+).astype("float32")</div>
+  <dl class="anlam">
+    <dt>client.embeddings.create(…)</dt>
+    <dd>Ders 2'deki <code>responses.create</code>'in kardeşi. Cevap metni değil <strong>vektör</strong> döner. Bu da ücretli bir API çağrısı.</dd>
+    <dt>response.data[0].embedding</dt>
+    <dd>Yine bir nesne ağacı (Ders 2'deki <code>response</code> dersi). <code>data</code> bir liste, çünkü tek istekte birden fazla metin gönderilebilir. <code>[0]</code> ilk metnin vektörü: 1536 sayı.</dd>
+    <dt>[get_embedding(text) for text in text_chunks]</dt>
+    <dd>Her cümle için <strong>ayrı bir API çağrısı</strong>: 6 cümle, 6 istek. <code>input</code>'a liste verilse tek istekte giderdi. On bin maddelik bir yönetmelikte bu fark hem süreye hem faturaya yansır.</dd>
+    <dt>.astype("float32")</dt>
+    <dd>NumPy sayıları varsayılan olarak float64 tutuyor. FAISS içeride float32 ile çalışıyor; çevirmek belleği yarıya indiriyor. Bu sürümde çevirmesen de hata vermiyor, çünkü <button type="button" class="terim" data-t="kutuphane">kütüphane</button> kendisi çeviriyor. Ama açıkça yazmak, bir sonraki sürümde sessizce değişebilecek bir davranışa güvenmemek demek.</dd>
+  </dl>
+
+  <div class="code">index = faiss.IndexFlatL2(document_embeddings.shape[1])   # 1536
+index.add(document_embeddings)
+print(index.ntotal)                                          # 6
+
+distances, indices = index.search(query_embedding.reshape(1, -1), k=5)
+
+for distance, idx in zip(distances[0], indices[0]):
+    print(distance, text_chunks[idx])</div>
+  <dl class="anlam">
+    <dt>IndexFlatL2(1536)</dt>
+    <dd>Boş bir indeks kurar; kaç boyutlu vektör alacağını baştan bilmesi gerekiyor. <strong>Flat</strong>: hiçbir hızlandırma yok, her soruda tüm vektörlerle tek tek karşılaştırır (kaba kuvvet, ama sonuç kesin). <strong>L2</strong>: ölçü öklit mesafesi.</dd>
+    <dt>index.add(…) / ntotal</dt>
+    <dd>Vektörleri indekse ekler. <code>ntotal</code> içeride kaç vektör olduğunu söyler.</dd>
+    <dt>reshape(1, -1)</dt>
+    <dd>Tek soruyu <code>(1536,)</code> şeklinden <code>(1, 1536)</code> şekline, yani "1 satırlık tablo"ya çevirir. FAISS aynı anda birden fazla soru arayabilecek şekilde tasarlanmış, o yüzden her zaman tablo bekliyor.</dd>
+    <dt>search(…, k=5)</dt>
+    <dd>En yakın 5 vektörün <strong>uzaklığını</strong> ve <strong>sıra numarasını</strong> döndürür. Metni döndürmez.</dd>
+    <dt>text_chunks[idx]</dt>
+    <dd>Metin FAISS'te değil, senin Python listende duruyor. Numara ile listeden elle çekiliyor. Liste sırası bozulursa FAISS doğru numarayı verir ama <strong>yanlış metin</strong> basılır.</dd>
+  </dl>
+
+  <div class="card">
+    <p class="eyebrow">Senin bilgisayarında çıkan · "Menekşeler ne renktir?"</p>
+    <div class="tw" style="margin:6px 0 10px"><table>
+      <tr><th>uzaklık</th><th>≈ kosinüs</th><th>metin</th></tr>
+      <tr><td>0,596</td><td>0,70</td><td>Menekşeler mavidir.</td></tr>
+      <tr><td>1,250</td><td>0,37</td><td>Gökyüzü mavidir.</td></tr>
+      <tr><td>1,339</td><td>0,33</td><td class="bad">Dondurma lezzetlidir.</td></tr>
+      <tr><td>1,411</td><td>0,29</td><td>Güneş parlıyor.</td></tr>
+      <tr><td>1,431</td><td>0,28</td><td>Güller kırmızıdır.</td></tr>
+    </table></div>
+    <p style="margin-bottom:0">Doğru cevap açık farkla birinci. Ama sonra ne oluyor: soru 5 sonuç istediği için FAISS <strong>her durumda 5 sonuç veriyor</strong>, alakasız olsa bile. "Dondurma" 3. sırada; aynı çiçek ailesinden "Güller" ise en sonda.</p>
+  </div>
+
+  <div class="card mark">
+    <p class="eyebrow">Ters yönlü iki sayı</p>
+    <p style="margin-top:4px">02'de <strong>benzerlik</strong> vardı: büyük = yakın. 03'te <strong>uzaklık</strong> var: <strong>küçük = yakın.</strong> İkisi aynı soruyu ters yönden cevaplıyor. Sıralamayı ters kurarsan sistem en alakasız dokümanı "en iyi" diye seçer, hata da vermez.</p>
+    <p style="margin-bottom:0">Tablodaki kosinüs sütununu ben ekledim. <code>IndexFlatL2</code> uzaklığın <strong>karesini</strong> döndürüyor (bunu kendi makinende denedim: (0,0) ile (3,4) arası 5 değil 25 çıkıyor). OpenAI vektörleri de 1 uzunluğunda geldiği için ikisi arasında sabit bir ilişki var: <strong>kosinüs ≈ 1 − uzaklık / 2</strong>. Sıralama iki ölçüde de aynı çıkıyor.</p>
+  </div>
+
+  <h3>8 · NoSQL ve vektör eklentileri</h3>
+  <p>SQL yapısal olmayan veriyle zorlanınca 2005 civarı NoSQL çıktı (<button type="button" class="terim" data-t="json">JSON</button>, XML belgeleri). GenAI gelince iki ihtiyaç doğdu: veriyi saklamak ve <strong>anlam benzerliğine göre aramak</strong>. Bazı NoSQL veri tabanları ikincisi için eklenti ekledi: <strong>Redis RediSearch</strong>, <strong>MongoDB Atlas Vector Search</strong>.</p>
+
+  <h3>9 · Hibrit arama: vektör + metadata</h3>
+  <p>Gerçek hayatta sadece vektör yetmez. Soru genelde şöyle gelir:</p>
+  <div class="quote">"2024'ten sonra yayımlanan, bilim kategorisindeki, yapay zekâ ile ilgili en iyi 10 dokümanı getir."</div>
+  <div class="tw"><table>
+    <tr><th>Sorunun parçası</th><th>Kim çözer</th></tr>
+    <tr><td>"yapay zekâya benzeyen"</td><td>Vektör benzerlik araması</td></tr>
+    <tr><td>category = "science"</td><td>Metadata filtresi</td></tr>
+    <tr><td>publish_date &gt; 2024-01-01</td><td>Tarih filtresi</td></tr>
+    <tr><td>ilk 10</td><td>Sıralama ve limit</td></tr>
+  </table></div>
+  <div class="code">SELECT title, category, publish_date,
+       embedding &lt;=&gt; :query_vector AS distance
+FROM documents
+WHERE category = 'science'
+  AND publish_date &gt; '2023-01-01'
+ORDER BY distance ASC
+LIMIT 10;</div>
+  <dl class="anlam">
+    <dt>embedding &lt;=&gt; :query_vector</dt>
+    <dd>pgvector'ün uzaklık operatörü: her satırın vektörünün soruya uzaklığı. Sıradan SQL'e eklenmiş vektör yeteneği.</dd>
+    <dt>WHERE …</dt>
+    <dd>Klasik SQL filtresi. Vektör aramasının önüne "sadece bu kategori, sadece bu tarihten sonra" diye çit çekiyor.</dd>
+    <dt>ORDER BY distance ASC</dt>
+    <dd>Küçükten büyüğe, çünkü bu bir <strong>uzaklık</strong>. Yukarıdaki kutunun kod karşılığı: benzerlik olsaydı <code>DESC</code> olurdu.</dd>
+    <dt>LIMIT 10</dt>
+    <dd>İlk 10.</dd>
+  </dl>
+  <div class="card water">
+    <p class="eyebrow">Kendi alanından</p>
+    <p style="margin-top:4px">CBS'de zaten <strong>PostgreSQL + PostGIS</strong> kullanılıyor. pgvector aynı veri tabanına eklenen bir eklenti. Yani tek sorguda <strong>mekânsal filtre + anlam araması</strong> yapılabilir: "Bu parselin bulunduğu ilçede geçerli plan notlarından, soruma en yakın 5 madde." Proje için veri tabanı seçerken bu, en güçlü aday.</p>
+  </div>
+
+  <h3>10 · Hangi vektör veri tabanı</h3>
+  <div class="tw"><table>
+    <tr><th>Durum</th><th>Seçenek</th><th>Not</th></tr>
+    <tr><td>Küçük deney, yerel RAG</td><td><strong>FAISS</strong> (Meta, 2017) · <strong>Chroma</strong></td><td>FAISS bir kütüphane; Chroma Python ile hızlı başlangıç</td></tr>
+    <tr><td>Zaten bir veri tabanın varsa</td><td><strong>pgvector</strong> (PostgreSQL) · <strong>MongoDB Vector</strong></td><td>Yeni sistem kurmadan eklenir</td></tr>
+    <tr><td>Büyük ölçek, şirket içi</td><td><strong>Qdrant · Weaviate · Milvus</strong></td><td>Açık kaynak, lokal + bulut</td></tr>
+    <tr><td>Yönetilen servis</td><td><strong>Pinecone</strong> (2021)</td><td>Sadece bulutta çalışır</td></tr>
+  </table></div>
+
+  <div class="card mark">
+    <p class="eyebrow">FAISS tam bir veri tabanı değil</p>
+    <p style="margin-top:4px">Uygulama 03'e dikkatli bak. FAISS:</p>
+    <ul style="margin-bottom:0">
+      <li><strong>Metni saklamıyor:</strong> sadece sıra numarası veriyor, metin senin listende.</li>
+      <li><strong>Metadata tutmuyor:</strong> tarih, kategori filtresi yok. Hibrit arama yapılamaz.</li>
+      <li><strong>Kalıcı değil:</strong> indeks bellekte duruyor. Notebook kapanınca gidiyor, her açılışta 6 API çağrısı baştan yapılıyor. Diske yazmak ayrı bir adım.</li>
+    </ul>
+  </div>
+  <p>Bu yüzden tahtada "küçük deneyler için" diye geçiyor. Chroma, Qdrant ve pgvector bu üç eksiği kendi içinde çözüyor.</p>
+
+  <hr>
+  <h3>Kurgusal okuma</h3>
+  <p>Tahtadaki RAG ön hattı, bu dersin her parçasını bir sıraya diziyor:</p>
+  <div class="flow">
+    <span class="b">PDF</span><span class="ar">→</span>
+    <span class="b">parçalara ayır</span><span class="ar">→</span>
+    <span class="b">embedding</span><span class="ar">→</span>
+    <span class="b hi">vektör DB (+ metadata)</span>
+  </div>
+  <div class="flow">
+    <span class="b">soru</span><span class="ar">→</span>
+    <span class="b">aynı modelle embedding</span><span class="ar">→</span>
+    <span class="b hi">en yakın k parça</span><span class="ar">→</span>
+    <span class="b">Hafta 3: <button type="button" class="terim" data-t="llm">LLM</button>'e <button type="button" class="terim" data-t="baglam">context</button></span>
+  </div>
+  <div class="tw"><table>
+    <tr><th>Yöntem</th><th>Çözemediği</th><th>Doğan çözüm</th></tr>
+    <tr><td>SQL <code>LIKE</code></td><td>Farklı kelimeyle yazılmış aynı anlam</td><td>Semantik arama</td></tr>
+    <tr><td>Listede tek tek karşılaştırma</td><td>Milyonlarca vektörde yavaş</td><td>Vektör indeksi (HNSW, yaklaşık arama)</td></tr>
+    <tr><td>Sadece vektör araması</td><td>"2024 sonrası, bu kategori" gibi koşullar</td><td>Hibrit arama (vektör + metadata)</td></tr>
+    <tr><td>Bellekteki indeks</td><td>Kapanınca kaybolur, her seferinde yeniden ücret</td><td>Kalıcı vektör veri tabanı</td></tr>
+  </table></div>
+
+  <div class="card mark">
+    <p class="eyebrow">Derste söylenmeyen: kaç sonuç alacaksın</p>
+    <p style="margin-top:4px"><code>k=5</code> her zaman 5 sonuç demek, 3'ü alakasız olsa bile. Hafta 3'te bu 5 parça LLM'e context olarak gidecek. Alakasız parça, Ders 2'nin dersine göre iki kez zarar: <strong>token parası</strong> ve <strong>kötü context → kötü cevap</strong>. Gerçek sistemlerde bir <strong>eşik</strong> konur: "uzaklığı şundan büyükse gönderme." Eşiği nereye koyacağın bir kurgu kararı; modelden modele değişir, ölçerek bulunur.</p>
+  </div>
+
+  <div class="card water">
+    <p class="eyebrow">⬆ İleri · merdivende neredesin</p>
+    <p style="margin-top:4px">Hâlâ <strong>L4 · Bağlam &amp; bilgi</strong>, ama artık <button type="button" class="terim" data-t="retrieval">retrieval</button>'in iki yarısı da elinde: <strong>ölçmek</strong> (Ders 3) ve <strong>saklayıp bulmak</strong> (Ders 4). Eksik tek halka, bulunanı LLM'e verip cevap ürettirmek: RAG, Hafta 3. Proje hattın da burada açılıyor: mevzuatı madde madde parçala, her maddeyi yönetmelik adı, madde no ve yürürlük tarihi metadata'sıyla sakla, soruya en yakın maddeleri getir.</p>
+  </div>
+
+  <div class="btnrow">
+    <button class="btn" data-go="quiz">Okudum, quiz'e geç</button>
   </div>
 </section>
 </section>
@@ -1882,6 +2640,14 @@ if st.button("cevapla"):
         <button class="mode" data-x="ders2" data-needs-ai hidden>
           <span class="mt">Ders 2 çevresi</span>
           <span class="md">API çağrısı, prompt, context — pratikte hemen çarpacağın şeyler</span>
+        </button>
+        <button class="mode" data-x="ders3" data-needs-ai hidden>
+          <span class="mt">Ders 3 çevresi</span>
+          <span class="md">Embedding, benzerlik ölçüleri, embedding modelleri — derste değinilmeyen komşu kavramlar</span>
+        </button>
+        <button class="mode" data-x="ders4" data-needs-ai hidden>
+          <span class="mt">Ders 4 çevresi</span>
+          <span class="md">Vektör DB, indeksler, hibrit arama — derste değinilmeyen komşu kavramlar</span>
         </button>
         <button class="mode" data-x="ileri" data-needs-ai hidden>
           <span class="mt">Bir sonraki basamak</span>
@@ -2722,7 +3488,7 @@ async function gocDene(durum){
 }
 
 /* ═══════════ görünüm ═══════════ */
-const STEPS = ["d1ozet", "d1quiz", "d1defter", "d1test", "d2ozet", "d2quiz", "d2defter", "d2test"];
+const STEPS = ["d1ozet", "d1quiz", "d1defter", "d1test", "d2ozet", "d2quiz", "d2defter", "d2test", "d3ozet", "d3quiz", "d3defter", "d3test", "d4ozet", "d4quiz", "d4defter", "d4test"];
 function asamaSay(){ return STEPS.filter(function(k){ return progress[k]; }).length; }
 
 function paint(){
@@ -3416,6 +4182,450 @@ const DERS_VERI = [
     "aciklama": "Her basışta script 1. satırdan itibaren yeniden çalışıyor — yani sayac = 0 her seferinde yeniden yürüyor. Rerun modeli bu: değişkenler basıştan basışa yaşamaz. Kalıcı olması gereken şey st.session_state'e konur. Aynı sebeple ilk uygulamanda konuşma geçmişi de yok: hafıza kendiliğinden gelmiyor, kurulması gerekiyor."
    }
   ]
+ },
+ {
+  "id": "d3",
+  "no": 3,
+  "ad": "Ders 3",
+  "alt": "Embedding: Word2Vec, statik ve bağlamsal vektörler",
+  "sekme": "ders3",
+  "ekstra_ad": "Ders 3 çevresi",
+  "icerik": "DERS 3 — EMBEDDING (Hafta 2, 1. gün; days_03 + days_04 aynı ders; 2. gün vektör veri tabanları).\n- Embedding: LLM metin/ses/görüntüden anlamaz, sayıdan anlar; embedding anlamı sayıya çevirir. Kedi [0.12,-0.45,0.88], köpek [0.10,-0.40,0.83] → yakın anlam = yakın vektör.\n- Anlam uzayı: benzer kelimeler yakın kümelenir (hayvanlar, taşıtlar, yiyecekler, kraliyet). Boyutlar ÖĞRENİLMİŞ, adları yok.\n- Keyword search = kelime eşleşmesi (Kangal→Kangal). Semantik search = anlam eşleşmesi (Kangal→köpek, kurt, Sivas). Özgür'ün alanı: \"ifraz\" ↔ \"parselin bölünmesi\".\n- Kullanım: RAG (anlamca en yakın doküman), vektör veri tabanı (vektörleri sakla, benzerini hızla bul), LLM uygulamaları.\n- NLP neden geç kaldı: MNIST 28x28 → 784 sayı, resim zaten sayı; metinde hazır sayı yok.\n- Bag of Words / TF-IDF: sayıya çevirir ama anlam yok; her kelime ayrı sütun, dog ile cat arasında yakınlık yok.\n- Word2Vec (Google 2013): anlam çevredeki kelimelerden öğrenilir (çay/kahve aynı komşular). Kod: gensim api.load(\"word2vec-google-news-300\") 1.6GB; model[\"king\"] → numpy (300,), hazır TABLODAN okunur. most_similar(\"king\") → kings .714, queen .651, monarch .641.\n- Vektör aritmetiği: similar_by_vector(king-man+woman) çıktısında 1. sıra KING .845, queen .730 — çünkü similar_by_vector girdi kelimelerini dışlamaz. most_similar(positive=[king,woman], negative=[man]) → queen .712. Tahtada \"≈queen\" yazıyor; ders: slayta değil çıktıya bak. Paris+Germany-France → Berlin .763.\n- GloVe (Stanford 2014, birlikte geçme istatistiği), FastText (FAIR 2016, alt kelime parçaları → bilinmeyen kelimeye de vektör). model[\"kadastro\"] → KeyError (sözlükte yok).\n- Statik embedding (Word2Vec/GloVe/FastText): her kelimeye tek sabit vektör. \"money in the bank\" ile \"river bank\" aynı vektör (benzerlik 1.0). Apple şirket ≠ Apple meyve ayrılamaz.\n- Bağlamsal (context) embedding: BERT, GPT. Vektör cümle modelden geçirilip HESAPLANIR, token çevresine bakarak güncellenir. Bedeli: yavaş, GPU.\n- Kod 02: AutoTokenizer.from_pretrained(\"bert-base-multilingual-cased\"); tokenize(\"Yapay zeka çok hızlı gelişiyor.\") → 13 token ['Ya','##pa','##y','ze','##ka','çok','h','##ızlı','gel','##iş','##iyo','##r','.']; ## = önceki parçanın devamı (subword). tokenizer(text) → 15 id, başa [CLS]=101 sona [SEP]=102.\n  AutoModel.from_pretrained; return_tensors=\"pt\" (PyTorch tensörü); with torch.no_grad() (eğitmiyoruz, kullanıyoruz); model(**inputs) bağlamın vektöre girdiği yer; last_hidden_state shape [1,15,768] = 1 cümle, 15 token, token başına 768 sayı.\n  bank deneyi: tokens.index(\"bank\") (8 ve 6), token_embeddings[bank_index] → o cümledeki bank vektörü.\n- Notebook'un eksiği: ilk 10 değeri basıp bitiyor; KOSİNÜS BENZERLİĞİ hesaplanmamış. Gerçek değerler: para↔nehir .628; aynı anlamdakiler .734 (para↔kredi) ve .771 (nehir↔nehir); kredi↔nehir .52-.54.\n- Doc2Vec: Word2Vec kelimeyi, Doc2Vec dokümanı vektöre çevirir. \"The cat sat on the mat\" ~ \"A kitten rested on the rug\". Kullanım: haber sınıflandırma, öneri, intihal, semantik arama. Bugün pratikte cümle embedding modelleri (sentence-transformers, OpenAI embedding API).\n- AYNI MODEL KURALI (derste söylenmedi): soru ve dokümanlar aynı embedding modeliyle çevrilmeli; farklı modellerin uzayları farklı (300 vs 768). Farklı projeksiyonu dönüşümsüz üst üste koymak gibi.\n- my-first-app.py tekrar: model artık gpt-5.6-luna, load_dotenv(override=True). Streamlit rerun + 1.6GB model → @st.cache_resource şart.\n- Basamak: L4 altyapısı. Sıradaki: vektör DB → RAG. Proje: mevzuat maddesi → vektör → sakla → soru vektörü → en yakın madde.",
+  "sorular": [
+   {
+    "id": "d3-01",
+    "k": "Embedding nedir",
+    "t": "tanım",
+    "q": "Bir LLM uygulamasında embedding neden gerekiyor?",
+    "o": [
+     "Model metin, ses ya da görüntüden değil sayıdan anlar; embedding anlamı sayıya çevirir",
+     "Metni sıkıştırıp token maliyetini düşürmek için",
+     "Metni modelin anladığı İngilizceye çevirmek için",
+     "Modelin cevap üretmesini hızlandırmak için"
+    ],
+    "a": 0,
+    "w": "Tahtadaki zincir: LLM'ler metinden anlamaz → sayısal verilerden anlar → embedding veriyi sayısal temsile çevirir. Üstelik anlamca yakın şeyler sayıca da yakın düşer."
+   },
+   {
+    "id": "d3-02",
+    "k": "Semantik arama",
+    "t": "neden",
+    "q": "İmar yönetmeliğinde \"ifraz\" diye arıyorsun. Aradığın madde \"parselin bölünmesi\" diye yazılmış. Hangi arama bulur?",
+    "o": [
+     "Semantik arama; iki ifadenin vektörü uzayda birbirine yakın düşer",
+     "Keyword arama; iki ifade aynı yönetmelikte geçiyor",
+     "İkisi de bulamaz; eş anlamlılar için elle sözlük yazmak gerekir",
+     "İkisi de bulur; arama motorları eş anlamlıları zaten bilir"
+    ],
+    "a": 0,
+    "w": "Keyword arama birebir kelime eşleşmesine bakar, \"ifraz\" metinde geçmiyorsa bulamaz. Semantik arama anlamın eşleşmesine bakar. Projende kuracağın sistemin varlık sebebi bu fark."
+   },
+   {
+    "id": "d3-03",
+    "k": "Bag of Words",
+    "t": "neden",
+    "q": "Bag of Words tablosunda \"dog\" ve \"cat\" neden birbirine yakın görünmüyor?",
+    "o": [
+     "Her kelime ayrı bir sütun; sütunlar arasında hiçbir anlam ilişkisi kurulmuyor",
+     "\"dog\" cümlelerde daha sık geçtiği için ağırlığı farklı",
+     "Bag of Words yalnızca İngilizce için çalışıyor",
+     "Değerler 0 ve 1 olduğu için fark çok küçük kalıyor"
+    ],
+    "a": 0,
+    "w": "Bag of Words kelimeyi sayıya çevirir ama anlamı yakalamaz. dog ile cat sadece iki farklı sütun. Word2Vec'in çözdüğü problem tam bu."
+   },
+   {
+    "id": "d3-04",
+    "k": "Word2Vec",
+    "t": "tanım",
+    "q": "Word2Vec bir kelimenin anlamını nereden öğreniyor?",
+    "o": [
+     "Milyonlarca cümlede o kelimenin yanında geçen kelimelerden",
+     "Sözlükteki tanımlarından",
+     "Kelimenin harflerinden ve hecelerinden",
+     "İnsanların kelimelere verdiği etiketlerden"
+    ],
+    "a": 0,
+    "w": "\"Sabahları çay, öğlenleri kahve içerim.\" Çay ve kahve aynı komşularla (içmek, fincan, sabah) geçtiği için uzayda yan yana düşer. Kimse modele \"çay bir içecektir\" demedi."
+   },
+   {
+    "id": "d3-05",
+    "k": "Word2Vec",
+    "t": "ne olurdu",
+    "q": "word2vec_model[\"kadastro\"] yazsan ne olur?",
+    "o": [
+     "KeyError; kelime Google News sözlüğünde yok ve statik model yeni kelimeye vektör üretemez",
+     "En yakın kelimenin (örneğin \"cadastre\") vektörünü döndürür",
+     "300 sıfırdan oluşan bir vektör döndürür",
+     "Model kelimeyi o an öğrenip yeni bir vektör üretir"
+    ],
+    "a": 0,
+    "w": "Senin modelinde denendi: KeyError. Word2Vec'te vektör hesaplanmaz, hazır tablodan okunur; tabloda yoksa yoktur. FastText kelimeyi parçalara bölerek, BERT de ## parçalarıyla bu sorunu çözüyor."
+   },
+   {
+    "id": "d3-06",
+    "k": "Vektör aritmetiği",
+    "t": "neden",
+    "q": "similar_by_vector(king − man + woman) çıktısının 1. sırası queen değil, king (0,845). Sebep ne?",
+    "o": [
+     "similar_by_vector girdi kelimelerini listeden çıkarmıyor; ortaya çıkan nokta hâlâ king'e çok yakın",
+     "Model yanlış eğitilmiş; queen'in vektörü bozuk",
+     "İşlem sırası yanlış; önce woman eklenip sonra man çıkarılmalıydı",
+     "Word2Vec cinsiyet bilgisini taşımıyor, bu yüzden analoji çalışmıyor"
+    ],
+    "a": 0,
+    "w": "most_similar(positive=[\"king\",\"woman\"], negative=[\"man\"]) girdi kelimelerini dışlar ve 1. sıraya queen (0,712) gelir. Toplama sırası sonucu değiştirmez. Ders: slayta değil çıktıya bak."
+   },
+   {
+    "id": "d3-07",
+    "k": "Statik vs bağlamsal",
+    "t": "neden",
+    "q": "\"I deposited money in the bank.\" ve \"I sat near the river bank.\" Word2Vec'te iki \"bank\"ın vektörü nasıl?",
+    "o": [
+     "Birebir aynı; vektör cümleye bakılmadan hazır tablodan okunuyor",
+     "Farklı; her cümle için ayrı hesaplanıyor",
+     "Benzer ama biraz farklı; çevredeki kelimeler vektörü hafifçe kaydırıyor",
+     "İkinci cümlede bulunamaz, çünkü \"river bank\" ayrı bir kelime"
+    ],
+    "a": 0,
+    "w": "Statik embedding'de her kelimenin tek bir sabit vektörü var. Banka ile nehir kıyısı ayırt edilemez, benzerlik 1,000. Bu duvar bağlamsal embedding'i doğurdu."
+   },
+   {
+    "id": "d3-08",
+    "k": "Statik vs bağlamsal",
+    "t": "neden",
+    "q": "BERT aynı kelimeye iki cümlede nasıl farklı vektör verebiliyor?",
+    "o": [
+     "Cümle modelden geçiyor ve her token çevresindeki token'lara bakarak kendi vektörünü güncelliyor",
+     "Her kelime için birkaç hazır vektör saklıyor, cümleye göre birini seçiyor",
+     "Kelimeleri harf harf okuduğu için her seferinde farklı sonuç çıkıyor",
+     "Cümleyi önce İngilizceye çevirip sonra vektör üretiyor"
+    ],
+    "a": 0,
+    "w": "Kodda karşılığı model(**inputs) satırı. Vektör tablodan okunmuyor, o cümle için hesaplanıyor. Bedeli: her seferinde model çalışır, daha yavaş ve GPU ister."
+   },
+   {
+    "id": "d3-09",
+    "k": "Tokenizer",
+    "t": "tanım",
+    "q": "\"Yapay\" kelimesi ['Ya', '##pa', '##y'] olarak bölündü. \"##\" ne anlama geliyor?",
+    "o": [
+     "Önceki parçanın devamı; tokenizer tanımadığı kelimeyi bildiği parçalardan kuruyor",
+     "Yorum satırı; model bu parçaları yok sayıyor",
+     "Hatalı ya da bilinmeyen karakter işareti",
+     "Büyük harfle başlayan kelime işareti"
+    ],
+    "a": 0,
+    "w": "Alt kelime (subword) bölme. 5 kelimelik Türkçe cümle 13 token oldu. Bu sayede BERT'te Word2Vec'teki KeyError yaşanmıyor."
+   },
+   {
+    "id": "d3-10",
+    "k": "Tokenizer",
+    "t": "neden",
+    "q": "tokenize() 13 token verdi, tokenizer(text)[\"input_ids\"] 15 id. Aradaki 2 ne?",
+    "o": [
+     "Başa [CLS] (101), sona [SEP] (102) özel işaretleri ekleniyor",
+     "Cümle sonundaki nokta iki kez sayılıyor",
+     "Türkçe karakterler (ç, ı) ikişer id'ye bölünüyor",
+     "Kelimeler arasındaki boşluklar da id alıyor"
+    ],
+    "a": 0,
+    "w": "tokenize() sadece böler. tokenizer() modele verilecek paketi hazırlar ve cümlenin başını ve sonunu işaretler. last_hidden_state'in 15 satırlı olmasının sebebi de bu."
+   },
+   {
+    "id": "d3-11",
+    "k": "Tensör şekli",
+    "t": "tanım",
+    "q": "last_hidden_state.shape → [1, 15, 768]. Bu üç sayı ne?",
+    "o": [
+     "1 cümle, 15 token, her token için 768 sayılık vektör",
+     "1 katman, 15 kelime, 768 karakter",
+     "1 model, 15 katman, 768 cümle",
+     "1 vektör, 15 boyut, 768 token"
+    ],
+    "a": 0,
+    "w": "Batch (aynı anda kaç metin) · token sayısı ([CLS] + 13 + [SEP]) · vektör boyutu. Word2Vec'te bir kelime 300 sayıydı; bu BERT modelinde bir token 768 sayı."
+   },
+   {
+    "id": "d3-12",
+    "k": "Benzerlik ölçüsü",
+    "t": "ne olurdu",
+    "q": "Notebook iki \"bank\" vektörünün ilk 10 değerini basıp bitiyor. Modelin iki anlamı ayırt ettiğini göstermek için ne gerekir?",
+    "o": [
+     "Kosinüs benzerliği hesaplayıp aynı anlamdaki \"bank\"larla karşılaştırmak",
+     "Hiçbir şey; ilk 10 değer farklıysa anlam da farklıdır",
+     "768 değerin hepsini ekrana basıp gözle karşılaştırmak",
+     "İki vektörün boyutuna bakmak; boyut farklıysa anlam farklıdır"
+    ],
+    "a": 0,
+    "w": "Gerçek sonuç: para ↔ nehir 0,628, ama aynı anlamdakiler 0,734 ve 0,771. Tek bir karşılaştırma yetmez, referans gerekir. Yarın vektör DB'nin \"en yakını bul\" dediği hesap da bu."
+   },
+   {
+    "id": "d3-13",
+    "k": "Aynı model kuralı",
+    "t": "ne olurdu",
+    "q": "Dokümanları Word2Vec ile, kullanıcının sorusunu BERT ile vektöre çevirip karşılaştırırsan ne olur?",
+    "o": [
+     "Sonuç anlamsız olur; iki model farklı uzaylar (300 ve 768 boyut, farklı eksenler) üretiyor",
+     "Sonuç iyileşir; en azından soru daha iyi bir modelle temsil ediliyor",
+     "Sadece yavaşlar; sonuç aynı kalır",
+     "Kütüphane vektörleri otomatik olarak ortak uzaya dönüştürür"
+    ],
+    "a": 0,
+    "w": "Soru ve dokümanlar aynı embedding modeliyle çevrilmeli. Farklı projeksiyondaki iki katmanı dönüşüm yapmadan üst üste koymak gibi. RAG'de en sık yapılan kurgu hatası."
+   },
+   {
+    "id": "d3-14",
+    "k": "Streamlit / rerun",
+    "t": "ne olurdu",
+    "q": "my-first-app.py'nin başına api.load(\"word2vec-google-news-300\") eklesen, önbellek olmadan ne olur?",
+    "o": [
+     "Her tıklamada script baştan çalıştığı için 1,6 GB'lık model her seferinde yeniden yüklenir",
+     "Model sadece uygulama ilk açıldığında bir kez yüklenir",
+     "Streamlit büyük nesneleri kendiliğinden hafızada tutar",
+     "Model kullanıcının tarayıcısına indirilir"
+    ],
+    "a": 0,
+    "w": "Ders 2-v2'nin rerun modeli: her etkileşimde her şey baştan çalışır. @st.cache_resource ağır kaynağı bir kez yükleyip sonraki rerun'larda hazır olanı verir."
+   },
+   {
+    "id": "d3-15",
+    "k": "Token & maliyet",
+    "t": "neden",
+    "q": "\"Yapay zeka çok hızlı gelişiyor.\" 5 kelime, 13 token çıktı. Bu Ders 2'deki API faturasını nasıl etkiler?",
+    "o": [
+     "Fatura token üzerinden kesilir; eklemeli dillerde aynı içerik daha çok token, yani daha pahalı",
+     "Etkilemez; API faturayı kelime sayısına göre keser",
+     "Etkilemez; sadece output token'ları ücretlendirilir",
+     "Token sayısı sadece süreyi etkiler, maliyeti değil"
+    ],
+    "a": 0,
+    "w": "input_tokens ve output_tokens ayrı sayılıyor ve ayrı fiyatlanıyor (Ders 2). Kelime değil token sayılır. Türkçe metin İngilizcesinden genelde daha çok token tutar."
+   }
+  ],
+  "tahminler": []
+ },
+ {
+  "id": "d4",
+  "no": 4,
+  "ad": "Ders 4",
+  "alt": "Vektör veri tabanları: semantik arama, FAISS, hibrit arama",
+  "sekme": "ders4",
+  "ekstra_ad": "Ders 4 çevresi",
+  "icerik": "DERS 4 — VEKTÖR VERİ TABANLARI (Hafta 2, 2. gün; days_04: 01-Keyword-Search, 02-Semantic-Search, 03-Vector-DB).\n- Yapılandırılmış veri (tablo, SQL) vs yapılandırılmamış (PDF, metin, görüntü, ses, video). Özgür'ün alanı: parsel tablosu vs imar yönetmeliği PDF'i.\n- 01 Keyword: sqlite3.connect(\":memory:\") (bellekte, kapanınca silinir); cursor; CREATE TABLE dokumanlar(id, icerik TEXT); executemany(\"INSERT … VALUES (?)\") — ? yer tutucu = SQL injection savunması.\n  5 kayıt: Aracım çalışmıyor / Otomobilim marş basmıyor / Yeni arabamı aldım çok memnunum / Bilgisayarım açılmıyor / Vasıtam servise gitti.\n  LIKE '%araba bozuldu%' → 0 sonuç. LIKE '%araba%' → 1 sonuç ve o da MEMNUNİYET cümlesi (arıza değil). 3 arıza kaçtı. Keyword = harf eşleştirme, anlam yok.\n- 02 Semantic: SentenceTransformer(\"paraphrase-multilingual-MiniLM-L12-v2\") lokal, cümle başına TEK vektör, 384 boyut. encode(metinler) → (5,384). Soru aynı modelle encode.\n  model.similarity = kosinüs, BÜYÜK = yakın. np.argsort(-skorlar)[:3] en iyi 3.\n  Sonuç: .570 Otomobilim · .426 Aracım · .389 Yeni arabamı (memnuniyet!) · .310 Vasıtam (arıza, 4. sırada) · .263 Bilgisayarım. Büyük iyileşme ama kusursuz değil.\n- Embedding üretimi: OpenAI embedding (API, 1536, ücretli, veri dışarı çıkar, .env anahtar) vs Sentence Transformer (lokal, açık kaynak, 384, ücretsiz, veri çıkmaz).\n- SQL vektörü VECTOR(768)/FLOAT[] olarak saklar ama anlamını bilmez: performans sorunu, vektör işlemi yok, ölçeklenemez.\n- Vektör DB ekstraları: HNSW/LSH indeks (benzerleri yakın yerleştirir), kosinüs/öklit/k-NN yerleşik, YAKLAŞIK arama (hız karşılığı küçük doğruluk kaybı), sparse vektörleri verimli saklama.\n  Sparse [0,0,0.8,0,0,0.3,0] → indices [2,5], values [0.8,0.3]. Embedding vektörleri dense.\n- NoSQL 2005 (JSON, XML). GenAI iki ihtiyaç: saklamak + anlam benzerliğiyle aramak. Redis RediSearch, MongoDB Atlas vektör eklentisi.\n- Hibrit: vektör benzerliği + metadata filtresi (tarih, kategori, etiket, görüntülenme) + sıralama/limit. pgvector: embedding <=> :query_vector AS distance … WHERE category='science' AND publish_date>… ORDER BY distance ASC LIMIT 10.\n  Özgür'ün alanı: PostgreSQL+PostGIS zaten CBS standardı; pgvector ile mekânsal filtre + anlam araması tek sorguda.\n- Seçim: küçük deney/yerel RAG → FAISS (Meta 2017), Chroma; mevcut DB → pgvector, MongoDB Vector; büyük ölçek → Qdrant, Weaviate, Milvus (açık kaynak, lokal+bulut), Pinecone (2021, sadece bulut).\n- 03 FAISS: get_embedding → client.embeddings.create(input, model=\"text-embedding-3-small\") → response.data[0].embedding (1536). Her cümle ayrı API çağrısı (6 istek); input liste alabilir.\n  np.array varsayılan float64 → astype(\"float32\") (FAISS içeride float32; bellek yarı; bu sürüm float64'ü de sessizce çeviriyor).\n  faiss.IndexFlatL2(1536): Flat = kaba kuvvet, kesin; L2 = öklit. add, ntotal=6. search(query.reshape(1,-1), k=5) → distances, indices. Metin FAISS'te değil, text_chunks[idx] ile listeden.\n  \"Menekşeler ne renktir?\" → 0.596 Menekşeler mavidir · 1.250 Gökyüzü mavidir · 1.339 Dondurma lezzetlidir · 1.411 Güneş parlıyor · 1.431 Güller kırmızıdır.\n  UZAKLIK: KÜÇÜK = yakın (02'deki benzerliğin tersi). IndexFlatL2 KARE öklit döndürür; OpenAI vektörleri birim uzunlukta → kosinüs ≈ 1 − d/2 (0.70, 0.37, 0.33, 0.29, 0.28).\n- Bootcamp'in atladıkları: skor yönü karışıklığı; k sabit → alakasız sonuç da gelir, eşik gerekir (RAG'de token + kötü context); FAISS kalıcı değil (bellekte), metin ve metadata saklamaz; iki farklı model (384 vs 1536) aynı indekste kullanılamaz (aynı model kuralı); dokümanlar bir kez çevrilip saklanmalı.\n- RAG ön hattı: PDF → parçala → embedding → vektör DB (+metadata); soru → aynı modelle embedding → en yakın k → (Hafta 3) LLM'e context.\n- Basamak: L4. Retrieval'in iki yarısı tamam (ölç + sakla/bul). Sıradaki: RAG.",
+  "sorular": [
+   {
+    "id": "d4-01",
+    "k": "Keyword search",
+    "t": "ne olurdu",
+    "q": "Beş şikâyet kaydında LIKE '%araba%' araması tek bir kayıt buldu. Hangisini?",
+    "o": [
+     "\"Yeni arabamı geçen hafta aldım, çok memnunum.\" — arıza bile değil",
+     "\"Aracım çalışmıyor, motor garip sesler çıkarıyor.\"",
+     "Dört arıza kaydının hepsini",
+     "Hiçbirini; LIKE Türkçe eklerle çalışmaz"
+    ],
+    "a": 0,
+    "w": "LIKE harf dizisi eşleştirir. \"Aracım\", \"Otomobilim\", \"Vasıtam\" içinde \"araba\" geçmiyor, \"arabamı\"da geçiyor. Sonuç: üç arıza kaçtı, bulunan tek kayıt da yanlış. Anahtar kelime araması hem eksik hem yanlış bulabiliyor."
+   },
+   {
+    "id": "d4-02",
+    "k": "Keyword search",
+    "t": "neden",
+    "q": "Anahtar kelime aramasının temel sınırı ne?",
+    "o": [
+     "Harf dizisini eşleştirir; aynı anlamı farklı kelimeyle yazan kaydı göremez",
+     "Çok yavaştır; binlerce kayıtta çalışmaz",
+     "Sadece İngilizce metinlerde çalışır",
+     "Büyük-küçük harf farkını ayırt edemez"
+    ],
+    "a": 0,
+    "w": "SQL veri tabanları hızlıdır, sorun hız değil. Metin onun için sadece bir harf dizisi; anlamını bilmiyor. \"ifraz\" ile \"parselin bölünmesi\" onun gözünde tamamen farklı iki şey."
+   },
+   {
+    "id": "d4-03",
+    "k": "Semantik arama",
+    "t": "neden",
+    "q": "Semantik aramada \"araba bozuldu\" sorusuna \"Yeni arabamı aldım, çok memnunum\" 3. sırada geldi, gerçek arıza \"Vasıtam servise gitti\" 4. sırada. Bundan ne çıkar?",
+    "o": [
+     "Semantik arama da kusursuz değil; kelime benzerliği hâlâ sıralamayı etkiliyor",
+     "Model bozuk; memnuniyet cümlesi hiç listede olmamalıydı",
+     "Semantik arama anahtar kelime aramasından daha kötü çalışıyor",
+     "Sıralama rastgele; her çalıştırmada değişir"
+    ],
+    "a": 0,
+    "w": "Skorlar 0,389 ve 0,310. \"araba\" kelimesine yakınlık, memnuniyet cümlesini yukarı çekti. İlk 3'ü alan bir sistem bir yanlış kayıt alıp bir arızayı kaçırır. Büyük iyileşme, ama sonucu kontrol etmek hâlâ senin işin."
+   },
+   {
+    "id": "d4-04",
+    "k": "Embedding modeli",
+    "t": "tanım",
+    "q": "paraphrase-multilingual-MiniLM-L12-v2 ile Ders 3'teki BERT arasındaki temel fark ne?",
+    "o": [
+     "Bütün cümleye tek vektör veriyor; BERT her token'a ayrı vektör veriyordu",
+     "Sadece İngilizce çalışıyor",
+     "İnternete bağlanıp OpenAI'dan vektör alıyor",
+     "Kelimeleri hazır tablodan okuyor, Word2Vec gibi"
+    ],
+    "a": 0,
+    "w": "encode(5 cümle) → (5, 384): cümle başına tek vektör. Arama için gereken tam bu, çünkü token değil doküman karşılaştırıyoruz. Dün tahtadaki Doc2Vec'in bugünkü karşılığı."
+   },
+   {
+    "id": "d4-05",
+    "k": "Embedding modeli",
+    "t": "neden",
+    "q": "Kadastro/malik verisi üzerinde arama kuracaksın. Sentence Transformer'ı OpenAI embedding'e tercih etmek için en güçlü gerekçe hangisi?",
+    "o": [
+     "Lokal çalışır; hassas veri kurum dışına çıkmaz",
+     "Her zaman daha doğru sonuç verir",
+     "Daha büyük vektör üretir (1536'ya karşı 384)",
+     "Kurulum gerektirmez"
+    ],
+    "a": 0,
+    "w": "Sentence Transformer bilgisayarında çalışır, veri hiçbir yere gitmez, API ücreti yoktur. Boyutu küçüktür (384). Doğruluk karşılaştırması veriye göre değişir; mahremiyet ise kesin bir fark. Ders 1'deki hocanın tezi de buydu."
+   },
+   {
+    "id": "d4-06",
+    "k": "SQL vs vektör DB",
+    "t": "neden",
+    "q": "Vektörü SQL tablosunda VECTOR(768) sütunu olarak saklayabiliyorsun. O hâlde vektör veri tabanına neden gerek var?",
+    "o": [
+     "SQL sayıları saklar ama anlamını bilmez; en yakını bulmak için her satırla hesap yapar, ölçekte çöker",
+     "SQL 768 sayılık listeyi saklayamaz",
+     "SQL veri tabanları yapay zekâ verisini şifreler",
+     "Vektör veri tabanları SQL'den daha ucuzdur"
+    ],
+    "a": 0,
+    "w": "Tahtadaki üç sorun: performans, vektör işlemi yapamaması, ölçeklenebilirlik. Vektör DB bunları özel indeks (HNSW), yerleşik ölçüler (kosinüs, öklit, k-NN) ve yaklaşık aramayla çözüyor."
+   },
+   {
+    "id": "d4-07",
+    "k": "Yaklaşık arama",
+    "t": "neden",
+    "q": "Vektör veri tabanları \"kesin en yakın\" yerine \"yaklaşık en yakın\"ı bulur. Bu takas RAG'de neden kabul edilebilir?",
+    "o": [
+     "Milyonlarca vektörde çok daha hızlı; 1. yerine 2. en iyi parçanın gelmesi cevabı nadiren bozar",
+     "Kabul edilemez; RAG her zaman kesin sonuç ister",
+     "Yaklaşık arama daha doğrudur",
+     "Yaklaşık arama API ücretini düşürür"
+    ],
+    "a": 0,
+    "w": "HNSW gibi indeksler her şeye bakmak yerine yakın komşuluğa bakar. IndexFlatL2 ise kaba kuvvet: kesin ama her soruda tüm vektörleri tarar. 6 cümlede fark yok; bir ülkenin tüm mevzuatında var."
+   },
+   {
+    "id": "d4-08",
+    "k": "Sparse vs dense",
+    "t": "tanım",
+    "q": "[0, 0, 0.8, 0, 0, 0.3, 0] vektörünün sparse gösterimi nedir?",
+    "o": [
+     "indices = [2, 5], values = [0.8, 0.3]",
+     "[0.8, 0.3]",
+     "indices = [3, 6], values = [0.8, 0.3]",
+     "[1, 1] — sadece sıfır olmayanların sayısı"
+    ],
+    "a": 0,
+    "w": "Sadece sıfır olmayanların yeri ve değeri saklanır; sıra 0'dan başlar. 30 bin sütunlu Bag of Words vektöründe büyük tasarruf. Embedding modellerinin vektörleri ise dense: 384 sayının hepsi dolu."
+   },
+   {
+    "id": "d4-09",
+    "k": "FAISS",
+    "t": "ne olurdu",
+    "q": "FAISS aramasında \"Uzaklık: 0,596 — Menekşeler mavidir\", \"Uzaklık: 1,431 — Güller kırmızıdır\" çıktı. Hangisi soruya daha yakın?",
+    "o": [
+     "0,596 olan; bu bir uzaklık, küçük olan daha yakın",
+     "1,431 olan; büyük sayı daha yüksek benzerlik demek",
+     "İkisi eşit; FAISS sadece sıralar, sayı anlamsız",
+     "Karşılaştırılamaz; farklı cümleler"
+    ],
+    "a": 0,
+    "w": "02'deki model.similarity benzerlikti (büyük = yakın), 03'teki IndexFlatL2 uzaklık (küçük = yakın). İkisi ters yönlü. Karıştırırsan sistem en alakasız dokümanı seçer ve hata da vermez."
+   },
+   {
+    "id": "d4-10",
+    "k": "FAISS",
+    "t": "neden",
+    "q": "index.search sıra numarası döndürüyor, metni ise text_chunks[idx] ile senin listenden çekiyorsun. Bu tasarım neyi riske atıyor?",
+    "o": [
+     "Liste sırası indeksle uyuşmazsa FAISS doğru numarayı verir ama yanlış metin gösterilir",
+     "Hiçbir şeyi; FAISS metni de kendi içinde saklar",
+     "Arama hızını yarıya düşürür",
+     "Liste 1536 elemandan uzun olamaz"
+    ],
+    "a": 0,
+    "w": "FAISS bir kütüphane: metni ve metadata'yı saklamaz, sadece vektör ve numara tutar. Chroma, Qdrant ya da pgvector metni ve metadata'yı vektörle birlikte tutar; eşleştirme hatası o yüzden olmaz."
+   },
+   {
+    "id": "d4-11",
+    "k": "FAISS",
+    "t": "ne olurdu",
+    "q": "Notebook'u kapatıp ertesi gün açtın. FAISS indeksine ne olur?",
+    "o": [
+     "Gider; bellekte duruyordu. Yeniden kurmak 6 API çağrısını baştan yapmak demek",
+     "Diskte durur, kaldığı yerden devam eder",
+     "OpenAI sunucusunda saklanır, oradan geri gelir",
+     "Sadece metinler kaybolur, vektörler kalır"
+    ],
+    "a": 0,
+    "w": "IndexFlatL2 RAM'de yaşıyor, sqlite \":memory:\" gibi. Kalıcılık ayrı bir adım (diske yazmak ya da kalıcı bir vektör DB). Vektör DB'nin varlık sebebi tam bu: dokümanları bir kez çevir, sakla, tekrar ödeme."
+   },
+   {
+    "id": "d4-12",
+    "k": "Hibrit arama",
+    "t": "neden",
+    "q": "\"2024 sonrası, bilim kategorisinde, yapay zekâya benzeyen ilk 10 doküman\" isteğinde vektör araması hangi parçayı çözer?",
+    "o": [
+     "Sadece \"yapay zekâya benzeyen\" kısmını; tarih ve kategori metadata filtresidir",
+     "Hepsini; vektör tarihi ve kategoriyi de içerir",
+     "Sadece \"ilk 10\" kısmını",
+     "Hiçbirini; bu tamamen bir SQL sorgusu"
+    ],
+    "a": 0,
+    "w": "Anlam benzerliği vektörden, kesin koşullar metadata'dan gelir. pgvector örneğinde ikisi tek sorguda: WHERE ile çit çekilir, ORDER BY distance ile anlam sıralanır. Senin alanında: mekânsal filtre (PostGIS) + anlam araması (pgvector)."
+   },
+   {
+    "id": "d4-13",
+    "k": "Aynı model kuralı",
+    "t": "ne olurdu",
+    "q": "Dokümanları 02'deki MiniLM ile (384), soruyu 03'teki OpenAI modeliyle (1536) vektöre çevirip aynı indekste aratırsan?",
+    "o": [
+     "Çalışmaz; boyutlar tutmaz. Tutsaydı bile iki modelin uzayı farklı olduğu için sonuç anlamsız olurdu",
+     "Çalışır; OpenAI daha iyi olduğu için sonuç iyileşir",
+     "FAISS boyutları otomatik eşitler",
+     "Sadece hız düşer"
+    ],
+    "a": 0,
+    "w": "IndexFlatL2(384) 1536 boyutlu soruyu kabul etmez; hata anında görünür. Daha sinsi olanı aynı boyutlu iki farklı model: hata vermez, sessizce yanlış sonuç döner. Soru ve dokümanlar aynı modelle çevrilir (Ders 3)."
+   },
+   {
+    "id": "d4-14",
+    "k": "Token & maliyet",
+    "t": "neden",
+    "q": "get_embedding liste içinde her cümle için ayrı çağrılıyor: 6 cümle, 6 API isteği. 10.000 maddelik bir mevzuatta bu neden önemli?",
+    "o": [
+     "Her istek ücret ve bekleme demek; input'a liste verip toplu göndermek ve sonucu saklamak gerekir",
+     "Önemli değil; embedding API ücretsiz",
+     "OpenAI aynı cümleyi hatırlayıp ikinci seferde ücret almaz",
+     "Sadece ilk çağrı ücretli, sonrakiler bedava"
+    ],
+    "a": 0,
+    "w": "Embedding de token üzerinden ücretlenir (Ders 2). Dokümanlar bir kez çevrilip saklanmalı, her soruda sadece soru çevrilmeli. İndeks bellekte kalırsa her açılışta hepsi yeniden ödenir."
+   },
+   {
+    "id": "d4-15",
+    "k": "Context / grounding",
+    "t": "ne olurdu",
+    "q": "k=5 ile arıyorsun ama soruyla gerçekten ilgili sadece 1 doküman var. Bu 5 sonucu RAG'de LLM'e context olarak verirsen ne olur?",
+    "o": [
+     "4 alakasız parça da gider: boşa token harcanır ve model yanlış bağlama dayanabilir",
+     "LLM alakasız olanları otomatik atar, sorun olmaz",
+     "FAISS alakasız sonuçları zaten döndürmez",
+     "Sadece cevap uzar, doğruluk değişmez"
+    ],
+    "a": 0,
+    "w": "FAISS k kadar sonuç verir, alakasız olsa bile (\"Menekşeler ne renktir?\" → 3. sırada \"Dondurma lezzetlidir\"). Ders 2: kötü context → kötü cevap. Çözüm bir uzaklık eşiği: \"şundan uzaksa gönderme\"."
+   }
+  ],
+  "tahminler": []
  }
 ];
 const ICERIK = {};
