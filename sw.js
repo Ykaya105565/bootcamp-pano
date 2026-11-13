@@ -1,6 +1,6 @@
 /* Cevrimdisi onbellek — pano sinyal olmadan da acilsin.
    SURUM her yayinda degisir, eski onbellek otomatik silinir. */
-const SURUM = "bootcamp-fc80c10d4f5b";
+const SURUM = "bootcamp-563946745cbf";
 const DOSYALAR = ["./", "./index.html", "./veri.js", "./manifest.json", "./icon.svg"];
 
 self.addEventListener("install", e => {
