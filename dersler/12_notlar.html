@@ -1,0 +1,403 @@
+<h2>12 · Day08 – AI Agent Mimarileri</h2>
+<p><strong>Bu derste ne var:</strong> Chatbot ile ajan (agent) arasındaki fark ve yapay zekâ sistemlerinin dört seviyesi anlatıldı. LangChain'in <code>create_agent</code> fonksiyonuyla ilk ajan kuruldu ve ajana Tavily web arama aracı (tool) bağlandı. Ardından LangGraph ile state, düğüm (node), kenar (edge) ve bellek (checkpointer, thread_id) kavramları uygulandı. Son olarak iki temel ajan mimarisi kodlandı: <strong>chain</strong> (SQL üret → açıkla) ve <strong>router</strong> (sağlık kayıtları / sigorta belgeleri arasında yönlendirmeli RAG).</p>
+<hr>
+<h3>Ana kavramlar</h3>
+<ul>
+<li><strong>Chatbot:</strong> Girdi → çıktı. Düşünmez, araç kullanmaz. <em>Önemi:</em> LLM'in güncel ve özel veriyi bilememesi sınırını gösterir.</li>
+<li><strong>Ajan (agent):</strong> Görev alır → düşünür → plan yapar → gerekirse araç kullanır → görevi tamamlar. <em>Önemi:</em> LLM'e aksiyon alma yeteneği kazandırır.</li>
+<li><strong>AI sistem seviyeleri:</strong>
+  1. Sadece LLM (pasif beyin; kavanozdaki beyin),
+  2. Araç destekli LLM (beyne "el" verilir),
+  3. AI Asistan (araç kullanır ama önemli kararlarda <strong>insandan onay</strong> ister; ör. GitHub Copilot),
+  4. AI Agent (görevi alt görevlere bölüp alt ajanlara dağıtır, geri bildirimle döngüsel kontrol eder).</li>
+<li><strong>Araç (tool):</strong> Ajanın dış dünyaya eriştiği fonksiyon (web arama, hava durumu, spor skoru…). <code>@tool</code> dekoratörü ile tanımlanır. <em>Önemi:</em> Ajan aracı, <strong>fonksiyon adı + docstring</strong>'e bakarak seçer.</li>
+<li><strong>Tavily:</strong> Ajanlar için web arama API'si. Ücretsiz kotası (aylık ≈1000 kredi) ders için yeterli.</li>
+<li><strong>LangChain vs LangGraph:</strong> LangChain = basit, tek yönlü akış (Kullanıcı → LLM → Cevap). LangGraph = graf tabanlı, döngü kurulabilen, durumu kaydeden, kompleks ajanlar için.</li>
+<li><strong>Node (düğüm):</strong> Grafın bir adımı; sıradan bir Python fonksiyonu. <code>state</code> alır, güncellenecek alanları <code>dict</code> olarak döndürür.</li>
+<li><strong>Edge (kenar):</strong> Düğümler arası bağlantı; veri kenarlardan akar.</li>
+<li><strong>Conditional edge (koşullu kenar):</strong> Bir fonksiyonun döndürdüğü değere göre hangi düğüme gidileceğini seçer (router'ın kalbi).</li>
+<li><strong>START / END:</strong> LangGraph'ta hazır gelen başlangıç ve bitiş düğümleri; ayrıca tanımlanmaz.</li>
+<li><strong>State:</strong> Ajanın hafızası; graf boyunca akan verinin alanları. <code>TypedDict</code> / <code>MessagesState</code> / Pydantic ile tiplenir. <em>Önemi:</em> Tiplemek ajanın yanlış veri tipi üretip uygulamayı "patlatmasını" önler, token tasarrufu sağlar.</li>
+<li><strong><code>add_messages</code> + <code>Annotated</code>:</strong> Mesajların listeye üzerine yazılmadan <strong>eklenmesini</strong> sağlayan reducer. <code>MessagesState</code> bunu hazır içerir.</li>
+<li><strong>Checkpointer (<code>InMemorySaver</code>):</strong> State'i her adımda kaydeder → konuşma hafızası. Üretimde PostgreSQL/MySQL gibi kalıcı veritabanları kullanılabilir.</li>
+<li><strong>thread_id:</strong> Her oturum (konuşma) için ayrı bellek. Aynı thread hatırlar, farklı thread hatırlamaz.</li>
+<li><strong>Kaldığı yerden devam:</strong> LangGraph sonuçları sakladığı için 7. adımda hata çıkınca, düzeltildikten sonra baştan değil kaldığı yerden devam eder → sağlamlık ve kontrol.</li>
+<li><strong>ReAct mimarisi:</strong> START → Agent ⇄ Tools → END. Ajan düşünür, gerekirse araç çağırır, sonucu değerlendirir, yeterli bilgi toplayınca cevap verir.</li>
+<li><strong>Chain mimarisi:</strong> Adımlar <strong>sırayla</strong> çalışır (ör. bilgi topla → metni yaz → kontrol et → paylaş).</li>
+<li><strong>Router mimarisi:</strong> İsteğe göre <strong>uygun bir yol seçilir</strong> (ör. "şifremi unuttum" → teknik destek ajanı).</li>
+<li><strong>Uzman ajan fikri:</strong> Bir işi tek LLM'e yaptırmak yerine her adım için ayrı rol/sistem mesajı ve ayar (temperature) kullanan "uzman" ajanlar → daha iyi sonuç.</li>
+<li><strong>Temperature:</strong> Rastgelelik. 0 = kararlı, kesin (SQL üretimi); ~0.7 = daha serbest (açıklama metni).</li>
+<li><strong><code>reasoning_effort="none"</code>:</strong> Modelin düşünme (reasoning) adımını kapatır; hocaya göre GPT-6 Luna'da <code>temperature</code> kullanabilmek için gerekli.</li>
+<li><strong>input_schema / output_schema:</strong> Grafın dışarıdan ne alıp ne döndüreceğini sınırlar; iç state daha geniş olabilir.</li>
+<li><strong>Structured output (<code>with_structured_output</code>):</strong> Model çıktısını bir Pydantic şemasına (ör. <code>Literal["records","insurance"]</code>) zorlar; router kararının iki değerden biri olmasını garanti eder.</li>
+<li><strong>Retriever:</strong> Sorguyu embedding'e çevirir → vektör DB'de arar → en benzer <code>k</code> belgeyi getirir (varsayılan 4; derste <code>k=2</code>).</li>
+</ul>
+<hr>
+<h3>Akış / mimari</h3>
+<p><strong>Ajan seviyeleri – 3. seviye (asistan):</strong></p>
+<pre><code>Dosyaları inceler → Hatayı bulur → Çözüm önerir → Onay ister → Değişikliği uygular
+</code></pre>
+<p><strong>4. seviye (çoklu ajan):</strong></p>
+<pre><code>&quot;Websitesi yap&quot; → Yönetici ajan → [Backend | Frontend | QA Tester | Technical Writer] → geri bildirim döngüsü → Nihai cevap
+</code></pre>
+<p><strong>ReAct (LangGraph):</strong></p>
+<pre><code>START → Agent ⇄ Tools
+          ↓
+         END
+</code></pre>
+<p><strong>LangGraph'ta her zaman sıra:</strong></p>
+<pre><code>State tanımla → Model tanımla → Düğüm fonksiyonları → add_node → add_edge / add_conditional_edges → compile(checkpointer=...) → invoke(input, config)
+</code></pre>
+<p><strong>Chain (4_chain):</strong></p>
+<pre><code>START → generate_sql (sql_model, T=0) → explain_sql (explain_model, T=0.7) → END
+</code></pre>
+<p><strong>Router (5_router):</strong></p>
+<pre><code>START → router ──records──→ retrieve_records ───┐
+               └─insurance→ retrieve_insurance ─┴→ generate_answer → END
+</code></pre>
+<hr>
+<h3>Kod / uygulama</h3>
+<h4>1) LangChain ajanı + araç (<code>2_langchain.ipynb</code>)</h4>
+<pre><code class="language-python">from dotenv import load_dotenv
+load_dotenv(override=True)
+</code></pre>
+<ul>
+<li><code>.env</code> içindeki <code>OPENAI_API_KEY</code>, <code>TAVILY_API_KEY</code> ortam değişkenlerine aktarılır.</li>
+<li><code>override=True</code>: Terminalde daha önce set edilmiş aynı isimli bir anahtar varsa <code>.env</code>'dekinin onu <strong>ezmesini</strong> sağlar (derste yaşanan hatanın çözümü).</li>
+</ul>
+<pre><code class="language-python">from langchain.agents import create_agent
+agent = create_agent(model=&quot;openai:gpt-6-luna&quot;)
+</code></pre>
+<ul>
+<li><code>"sağlayıcı:model"</code> formatında model verilerek tek satırda ajan oluşturulur.</li>
+</ul>
+<pre><code class="language-python">from langchain.messages import HumanMessage
+question = HumanMessage(content=&quot;Bugün gram altın kaç TL?&quot;)
+response = agent.invoke({&quot;messages&quot;: [question]})
+print(response['messages'][-1].content)
+</code></pre>
+<ul>
+<li>Girdi her zaman <code>{"messages": [...]}</code> sözlüğü.</li>
+<li><code>response['messages']</code> tüm mesaj zinciridir; <code>[-1]</code> son mesaj = ajanın cevabı.</li>
+</ul>
+<pre><code class="language-python">from langchain.tools import tool
+from typing import Dict, Any
+from tavily import TavilyClient
+
+tavily_client = TavilyClient()          # TAVILY_API_KEY'i ortamdan okur
+
+@tool                                   # fonksiyonu LangChain aracına çevirir
+def web_search(query: str) -&gt; Dict[str, Any]:   # tip ipuçları → ajan için şema
+    &quot;&quot;&quot;Search the web for information&quot;&quot;&quot;        # ajan bu açıklamaya bakarak aracı seçer
+    return tavily_client.search(query)
+
+web_search.invoke(&quot;Bugün gram altın kaç TL?&quot;)  # aracı ajansız, tek başına test etmek
+</code></pre>
+<pre><code class="language-python">agent = create_agent(model=&quot;openai:gpt-6-luna&quot;, tools=[web_search])
+...
+print(response['messages'][-1].text)
+</code></pre>
+<ul>
+<li><code>tools=[...]</code>: birden fazla araç verilebilir.</li>
+<li><code>.text</code>: yeni modellerde <code>content</code> bir bileşen listesi dönebiliyor; <code>.text</code> yalnızca cevap metnini verir.</li>
+</ul>
+<h4>2) LangGraph: state, düğüm, bellek (<code>3_langgraph.ipynb</code>)</h4>
+<pre><code class="language-python">class State(TypedDict):
+    messages: Annotated[list, add_messages]
+</code></pre>
+<ul>
+<li><code>messages</code> bir liste; <code>add_messages</code> yeni mesajları <strong>ekler</strong>. <code>Annotated</code> = tip + güncelleme kuralı.</li>
+</ul>
+<pre><code class="language-python">builder = StateGraph(State)                 # grafın iskeleti, hafızası State
+model = ChatOpenAI(model=&quot;gpt-6-luna&quot;)      # ajanın beyni
+
+def chatbot(state: State):
+    response = model.invoke(state[&quot;messages&quot;])   # tüm geçmiş modele gider
+    return {&quot;messages&quot;: [response]}              # cevap state'e eklenir
+
+builder.add_node(&quot;chatbot&quot;, chatbot)        # (&quot;düğüm adı&quot;, fonksiyon)
+builder.add_edge(START, &quot;chatbot&quot;)
+builder.add_edge(&quot;chatbot&quot;, END)
+graph = builder.compile()                   # derle
+</code></pre>
+<pre><code class="language-python">checkpointer = InMemorySaver()
+graph = builder.compile(checkpointer=checkpointer)   # bellekli derleme
+
+config = {&quot;configurable&quot;: {&quot;thread_id&quot;: &quot;conversation-1&quot;}}
+result = graph.invoke({&quot;messages&quot;: [HumanMessage(content=&quot;Merhaba, benim adım Evren.&quot;)]}, config=config)
+result = graph.invoke({&quot;messages&quot;: [HumanMessage(content=&quot;Benim adım ne?&quot;)]}, config=config)  # → &quot;Adın Evren.&quot;
+</code></pre>
+<ul>
+<li><code>config</code> olmadan bellekli graf hangi thread'e yazacağını bilemez; her çağrıda verilmeli.</li>
+<li><code>config_2</code> (farklı thread) ile aynı soru → "bilmiyorum".</li>
+</ul>
+<pre><code class="language-python">snapshot = graph.get_state(config)
+for message in snapshot.values[&quot;messages&quot;]:
+    print(message.type, &quot;:&quot;, message.content)
+</code></pre>
+<ul>
+<li>Thread'in tüm geçmişini (metadata ve token bilgileriyle) okur; döngü yalnızca tip:içerik yazdırır.</li>
+</ul>
+<p><strong>Kısa yol:</strong> <code>StateGraph(MessagesState)</code>; <code>MessagesState</code>, elle yazılan <code>State</code> sınıfının hazır hâli.</p>
+<h4>3) Chain (<code>4_chain.ipynb</code>)</h4>
+<pre><code class="language-python">sql_model     = ChatOpenAI(model=&quot;gpt-6-luna&quot;, reasoning_effort=&quot;none&quot;, temperature=0)
+explain_model = ChatOpenAI(model=&quot;gpt-6-luna&quot;, reasoning_effort=&quot;none&quot;, temperature=0.7)
+</code></pre>
+<ul>
+<li>Aynı model, iki farklı "kişilik": kesin SQL / daha serbest açıklama.</li>
+</ul>
+<pre><code class="language-python">class State(MessagesState):
+    user_query: str
+    sql_query: str
+    sql_explanation: str
+
+class ChainInput(TypedDict):  user_query: str
+class ChainOutput(TypedDict): sql_query: str; sql_explanation: str
+</code></pre>
+<ul>
+<li>İç state geniş, dış arayüz dar: kullanıcı yalnızca <code>user_query</code> verir, yalnızca SQL + açıklama alır.</li>
+</ul>
+<pre><code class="language-python">def generate_sql(state: State) -&gt; dict:
+    question = HumanMessage(state[&quot;user_query&quot;])
+    res = sql_model.invoke([SQL_PROMPT, *state[&quot;messages&quot;], question])  # sistem rolü + geçmiş + soru
+    return {&quot;sql_query&quot;: res.text, &quot;messages&quot;: [question, res]}         # iki alan birden güncellenir
+</code></pre>
+<pre><code class="language-python">def explain_sql(state: State) -&gt; dict:
+    instruction = HumanMessage(
+    f&quot;Kullanıcının sorusu: {state['user_query']}\n\n&quot;
+    f&quot;Üretilen sorgu:\n{state['sql_query']}\n\n&quot;      # 1. düğümün çıktısı state'ten okunur
+    f&quot;Bu sorgunun ne yaptığını açıkla.&quot; )
+    res = explain_model.invoke([EXPLAIN_PROMPT, instruction])
+    return {&quot;sql_explanation&quot;: res.text, &quot;messages&quot;: [res]}
+</code></pre>
+<ul>
+<li>Zincir mantığı: 2. düğüm, 1. düğümün state'e yazdığı alanı kullanır.</li>
+</ul>
+<pre><code class="language-python">graph = StateGraph(State, input_schema=ChainInput, output_schema=ChainOutput)
+graph.add_edge(START, &quot;generate_sql&quot;); graph.add_edge(&quot;generate_sql&quot;, &quot;explain_sql&quot;); graph.add_edge(&quot;explain_sql&quot;, END)
+display(Image(graph.compile().get_graph().draw_mermaid_png()))   # mimariyi çiz
+</code></pre>
+<pre><code class="language-python">DATABASE_SCHEMA = &quot;&quot;&quot;
+Table: sales
+Columns:
+- product_name TEXT
+- sales_amount NUMERIC
+&quot;&quot;&quot;
+SQL_PROMPT = SystemMessage(f&quot;&quot;&quot;... Use ONLY the following schema. Do not invent tables or columns:
+{DATABASE_SCHEMA}&quot;&quot;&quot;)
+</code></pre>
+<ul>
+<li>Şema verilmeden model tablo/sütun <strong>uydurdu</strong> ("ürünler ve satışlar tabloları olduğunu varsayarsak"). Şema + "uydurma" talimatı ile doğru sorgu: <code>product_name</code>'e göre grupla, <code>SUM(sales_amount)</code> ile azalan sırala, <code>LIMIT 5</code>.</li>
+</ul>
+<h4>4) Router (<code>5_router.ipynb</code>)</h4>
+<pre><code class="language-python">embeddings = OpenAIEmbeddings(model=&quot;text-embedding-3-small&quot;)
+medical_store   = InMemoryVectorStore.from_documents(documents=medical_documents,   embedding=embeddings)
+insurance_store = InMemoryVectorStore.from_documents(documents=insurance_documents, embedding=embeddings)
+medical_retriever   = medical_store.as_retriever(search_kwargs={&quot;k&quot;: 2})
+insurance_retriever = insurance_store.as_retriever(search_kwargs={&quot;k&quot;: 2})
+</code></pre>
+<ul>
+<li>Her alan için <strong>ayrı</strong> vektör deposu → router hangi depoda aranacağını seçer.</li>
+<li><code>InMemoryVectorStore</code> RAM'de çalışır; benzerlik hesabı için <strong>numpy</strong> gerekir.</li>
+</ul>
+<pre><code class="language-python">class State(TypedDict):
+    user_query: str
+    domain: Literal[&quot;records&quot;, &quot;insurance&quot;]   # yalnızca iki değer
+    documents: list[Document]
+    answer: str
+
+class RouteDecision(BaseModel):
+    domain: Literal[&quot;records&quot;, &quot;insurance&quot;]
+
+router_model = model.with_structured_output(RouteDecision, method=&quot;function_calling&quot;)
+</code></pre>
+<ul>
+<li>Router'ın serbest metin değil, şemaya uyan bir karar döndürmesi garanti edilir.</li>
+</ul>
+<pre><code class="language-python">def router(state):  ... return {&quot;domain&quot;: decision.domain}         # LLM karar verir
+def select_retriever(state) -&gt; Literal[&quot;retrieve_records&quot;,&quot;retrieve_insurance&quot;]:
+    return &quot;retrieve_records&quot; if state[&quot;domain&quot;] == &quot;records&quot; else &quot;retrieve_insurance&quot;   # karar → düğüm adı
+</code></pre>
+<ul>
+<li><code>router</code> düğümü state'i günceller; <code>select_retriever</code> ise düğüm değil, <strong>koşullu kenarın yön fonksiyonu</strong>dur.</li>
+</ul>
+<pre><code class="language-python">def generate_answer(state):
+    context = &quot;\n\n&quot;.join(f&quot;Kaynak: {d.metadata['source']}\n{d.page_content}&quot; for d in state[&quot;documents&quot;])
+    # Sistem: &quot;Yalnızca verilen bağlamı kullan; yeterli bilgi yoksa açıkça belirt.&quot; → halüsinasyon önleme
+    ...
+    return {&quot;answer&quot;: response.content}
+</code></pre>
+<pre><code class="language-python">builder.add_edge(START, &quot;router&quot;)
+builder.add_conditional_edges(&quot;router&quot;, select_retriever)   # dallanma
+builder.add_edge(&quot;retrieve_records&quot;, &quot;generate_answer&quot;)
+builder.add_edge(&quot;retrieve_insurance&quot;, &quot;generate_answer&quot;)
+builder.add_edge(&quot;generate_answer&quot;, END)
+</code></pre>
+<ul>
+<li>Sonuçlar: "Reçeteli ilaçların tamamını sigorta karşılıyor mu?" → <code>insurance</code>, "%80'i karşılanır, %20 sigortalıya ait". "Son muayenede hangi teşhis?" → <code>records</code>, "10 Haziran 2026, mevsimsel alerji".</li>
+</ul>
+<hr>
+<h3>Hocanın vurguları &amp; pratik kurallar</h3>
+<ul>
+<li>AI mühendisi genelde model eğitmez, sıfırdan araç yazmaz; <strong>hazır LLM ve araçları API ile</strong> kullanır. API anahtarı yönetimi (<code>.env</code> + <code>python-dotenv</code>) temel beceridir.</li>
+<li><strong>Araç / düğüm fonksiyonlarının adı ve docstring'i çok önemli</strong>; ajan bunlara bakarak karar verir. Mümkünse <strong>İngilizce</strong> yazın.</li>
+<li>Tip ipuçları ve şemalar (TypedDict, Literal, Pydantic, input/output schema) uygulamanın patlamasını önler, ajanı kontrol altında tutar.</li>
+<li>LangGraph'ta sıra hep aynı: <strong>düğümleri oluştur → kenarları oluştur → bağla → derle</strong>.</li>
+<li>Basit ajan için LangChain, döngü/hafıza/dallanma gerekiyorsa LangGraph.</li>
+<li>Uzman ajanlar: her adıma ayrı rol (sistem mesajı) ve ayrı temperature.</li>
+<li>Kesin çıktı (SQL, kod) → temperature 0; serbest metin → ~0.7.</li>
+<li>Text-to-SQL'de <strong>veritabanı şemasını mutlaka verin</strong> ve "tablo/sütun uydurma" deyin; yoksa model varsayım yapar.</li>
+<li>RAG cevabında "yalnızca bağlamı kullan, bilgi yoksa söyle" sistem talimatı → halüsinasyonu azaltır.</li>
+<li>Basit uygulamada <code>InMemoryVectorStore</code>; büyüdükçe Chroma/FAISS, kompleks projede Pinecone/Qdrant; konuşma belleği için PostgreSQL/MySQL; Supabase'de metin + metadata + embedding birlikte tutulur.</li>
+<li>Hazır sohbet araçları (Claude, ChatGPT) aynı işi yapar ama çok token harcar ve esnek değildir; kendi sistemini kurmak kontrolü size verir.</li>
+<li><strong>Yerel model önerisi:</strong> Qwen ~27B (ve 35B) iyi; 0.8B–2B gibi küçük modeller araç çağırmayı bile güvenilir yapamıyor.</li>
+<li><strong>VRAM kaba hesap:</strong> parametre(B)/2 + bunun ~¼'ü → 27B ≈ 18–19 GB. Yetmezse RAM'e taşar ama yavaşlar.</li>
+<li>İyi bağlam (context) verirseniz modeller çok iyi sonuç verir; asıl fark modeli verimli kullanabilmektir (bootcamp'in amacı).</li>
+<li><strong>Kariyer:</strong> Tek kişinin frontend/backend/DevOps işlerini yapay zekâyla yapabildiği bir döneme giriliyor ("tek kişilik şirket"). Çok proje yap → CV'de göster. Final projesi kendi alanınızda bir RAG/ajan projesi olsun; basit başlayıp derslerle büyütün (ör. RAG → agentic RAG). Arayüz için Streamlit (kompleks ise Next.js).</li>
+<li><strong>Ödev (duyurulan):</strong> Chain (text-to-SQL) ve router uygulamalarını Streamlit arayüzüne çevirmek.</li>
+</ul>
+<hr>
+<h3>Sık hatalar / karşılaşılan sorunlar</h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Sorun</th>
+<th>Neden</th>
+<th>Çözüm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OpenAI <code>AuthenticationError</code> / yanlış API key</td>
+<td>Anahtar hatalı ya da terminalde başka bir anahtar set edilmiş</td>
+<td>Yeni anahtar al; <code>load_dotenv(override=True)</code> kullan</td>
+</tr>
+<tr>
+<td><code>.env</code>'e yeni anahtar eklendi ama çalışmıyor</td>
+<td>Ortam yeniden yüklenmedi</td>
+<td><code>load_dotenv</code> hücresini tekrar çalıştır</td>
+</tr>
+<tr>
+<td>Tavily kayıtta kart / adres soruyor, kredi 0 görünüyor</td>
+<td>Ücretli plan akışı</td>
+<td>"Free / ücretsiz devam et" seçeneği; olmazsa farklı hesapla (GitHub vb.) giriş</td>
+</tr>
+<tr>
+<td>Ajan cevabında çok fazla bileşen (token, bağlam) geliyor</td>
+<td>Yeni modelde <code>content</code> yapısı değişmiş</td>
+<td><code>response['messages'][-1].text</code> kullan</td>
+</tr>
+<tr>
+<td><code>Node 'chatbot' already present</code></td>
+<td><code>add_node</code> hücresi iki kez çalıştırıldı</td>
+<td>Kernel restart → Run All (builder'ı yeniden oluştur)</td>
+</tr>
+<tr>
+<td>İkinci soruda ajan adı hatırlamıyor</td>
+<td>Checkpointer yok ya da farklı <code>thread_id</code></td>
+<td><code>compile(checkpointer=InMemorySaver())</code> + aynı <code>config</code></td>
+</tr>
+<tr>
+<td>Router testinde numpy hatası</td>
+<td><code>InMemoryVectorStore</code> benzerlik için numpy ister</td>
+<td><code>uv add numpy</code> → kernel restart → Run All</td>
+</tr>
+<tr>
+<td>Text-to-SQL'de uydurma tablo/sütun</td>
+<td>Şema verilmedi</td>
+<td>Sistem mesajına şema + "Use ONLY…"</td>
+</tr>
+<tr>
+<td>Yerel küçük modelde araç çağrılmıyor</td>
+<td>Model kapasitesi düşük</td>
+<td>≥27B model kullan</td>
+</tr>
+</tbody>
+</table></div>
+<hr>
+<h3>Kendini test et</h3>
+<ol>
+<li>Chatbot ile ajan arasındaki temel fark nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Chatbot girdiye doğrudan çıktı üretir. Ajan ise görevi alır, düşünür, plan yapar, gerektiğinde araç kullanır ve görevi tamamlar; dış dünyada aksiyon alabilir.</p>
+</details>
+<ol start="2">
+<li>AI sistemlerinin 3. ve 4. seviyesini ayıran özellik nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<ol start="3">
+<li>seviye (asistan) araç kullanır ama önemli kararlarda insandan onay ister (ör. Copilot). 4. seviye (agent) görevi alt görevlere bölüp alt ajanlara dağıtır, geri bildirim döngüsüyle süreci kendisi yönetir.</li>
+</ol>
+</details>
+<ol start="3">
+<li>Bir Python fonksiyonu LangChain aracına nasıl çevrilir ve ajan bu aracı neye bakarak seçer?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>@tool</code> dekoratörüyle. Ajan aracı fonksiyon adına, tip ipuçlarına ve özellikle docstring açıklamasına bakarak seçer.</p>
+</details>
+<ol start="4">
+<li><code>Annotated[list, add_messages]</code> ne işe yarar?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>messages</code> alanının liste olduğunu ve yeni mesajların üzerine yazılmak yerine listeye eklenmesi gerektiğini belirtir. Konuşma geçmişi bu sayede birikir. <code>MessagesState</code> bunu hazır sunar.</p>
+</details>
+<ol start="5">
+<li>Checkpointer eklendiği hâlde ajan adınızı hatırlamıyorsa olası iki sebep nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>(a) <code>invoke</code> çağrısında <code>config</code> (thread_id) verilmemiş ya da farklı bir thread_id kullanılmıştır; (b) graf checkpointer'sız derlenmiş bir sürümle çağrılıyordur.</p>
+</details>
+<ol start="6">
+<li>LangGraph'ın, hata durumunda normal bir programa göre avantajı nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Her adımın sonucu state'te kaydedildiği için hata düzeltildikten sonra baştan değil kaldığı yerden devam edebilir. Bu sağlamlık ve kontrol sağlar.</p>
+</details>
+<ol start="7">
+<li>Chain uygulamasında neden iki ayrı model nesnesi (<code>sql_model</code>, <code>explain_model</code>) kullanıldı?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Her biri ayrı bir alanda uzman ajan olsun diye: SQL için temperature 0 (kesin), açıklama için 0.7 (daha serbest). Ayrıca her birine farklı sistem mesajı (rol) verildi.</p>
+</details>
+<ol start="8">
+<li><code>input_schema</code> ve <code>output_schema</code> neden verildi?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Grafın dışarıdan yalnızca <code>user_query</code> almasını ve yalnızca <code>sql_query</code> + <code>sql_explanation</code> döndürmesini sağlamak, yani girdi ve çıktıyı kontrol altında tutup modelin "kafasına göre" alan üretmesini önlemek için.</p>
+</details>
+<ol start="9">
+<li>Router uygulamasında <code>router</code> düğümü ile <code>select_retriever</code> fonksiyonunun görev farkı nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>router</code> bir düğümdür: LLM'e (structured output ile) soruyu sınıflandırtır ve state'e <code>domain</code> yazar. <code>select_retriever</code> ise düğüm değildir; <code>add_conditional_edges</code>'e verilen yön fonksiyonudur ve <code>domain</code> değerini gidilecek düğümün adına çevirir.</p>
+</details>
+<ol start="10">
+<li>Router'da <code>with_structured_output(RouteDecision)</code> kullanılmasaydı ne riski olurdu?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Model serbest metin döndürebilir ("Bu soru sigortayla ilgili görünüyor…"). <code>domain</code> "records" ya da "insurance" dışında bir değer olur ve yönlendirme bozulurdu. <code>Literal</code> şeması kararı iki değerle sınırlar.</p>
+</details>
+<hr>
+<h3>Hocaya sorulacaklar / belirsiz kalanlar</h3>
+<ul>
+<li><code>reasoning_effort="none"</code> gerçekten GPT-6 Luna'da <code>temperature</code> kullanabilmek için şart mı, yoksa yalnızca hız/maliyet için mi?</li>
+<li><code>3_langgraph.ipynb</code>'deki bir hücrede <code>graph.invoke(... "Benim adım Evren.")</code> sonucu <code>result</code>'a atanmıyor; ardından <code>print(result...)</code> önceki cevabı yazdırıyor. Bu kasıtlı mı? (Not: kaynak dosyada görülen durum.)</li>
+<li>Chain'de <code>explain_sql</code>, <code>state["messages"]</code> geçmişini modele vermiyor; çok turlu konuşmada bunun eklenmesi gerekir mi?</li>
+<li>Tavily <code>search()</code> varsayılan sonuç sayısı: hoca ~10 saydı [belirsiz]; <code>max_results</code> ile nasıl ayarlanır?</li>
+<li>"Loop mühendisliği" [transkriptte "lup mühendişi"] ifadesiyle tam olarak neyi kastettiği.</li>
+<li>Önerilen yerel Qwen modelinin tam sürümü (transkriptte "Qwen 3.6 27B" / "35B" olarak okundu [belirsiz]) ve VRAM formülünün kaynağı.</li>
+<li>Bahsedilen yeni Google embedding modelinin adı ("Gemma 2 / EmbeddingGemma" [belirsiz]).</li>
+<li>Final projesi örnekleri için paylaşılan GitHub reposunun adı/linki (transkriptte geçmiyor).</li>
+<li>Model bilgi kesim tarihi yanıtı ("Haziran 2024" olarak okundu [belirsiz]) ve ajanın döndürdüğü gram altın fiyatı (≈6.540 TL, alış/satış rakamları altyazıda karışık).</li>
+</ul>

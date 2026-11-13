@@ -1,0 +1,607 @@
+<h2>11 · Day07 – RAG Query &amp; AI Agentlara Giriş — Ders Metni (ayıklanmış)</h2>
+<blockquote>
+<p>Kaynak: canlı ders kaydının otomatik Türkçe transkripti + hocanın ders dosyaları (<code>3_rag_queries.ipynb</code>, <code>1_Drawing AI-Agents.png</code>, <code>2_docs.zip</code>). Kodlar notebook'taki gerçek halleriyle verilmiştir. Zaman aralıkları yaklaşıktır.</p>
+<p><strong>Kayıtta boşluklar:</strong> ≈00:57–01:16 (ara, müzik), ≈01:43–01:45 (ses neredeyse yok; RAG Fusion anlatımının başı kayıp), ≈01:58–02:35 (ikinci ara + ses yok; AI agent girişinin başı kayıp — o kısım hocanın çiziminden tamamlandı ve öyle işaretlendi).</p>
+</blockquote>
+<hr>
+<h3>Açılış: Sektörden bir örnek — yapay zekâ ile kod incelemesi (≈00:00–00:05)</h3>
+<p>Ders, sektörde çalışan bir öğrencinin deneyimleriyle ilgili kısa bir sohbetle açıldı. Konuşulan, ders içeriğiyle bağlantılı iki nokta:</p>
+<ul>
+<li><strong>Dijital ikiz (digital twin):</strong> Fabrika gibi, manuel ilerleyen ve sürekli veri akışı olan süreçlerin dijital bir kopyasını oluşturup cihaz verilerini gerçek zamanlı işleyerek anomali yakalayan, öngörücü (predictive) bir yapı. Hoca bu alanda çalışmadığını, ilgiyle takip ettiğini söyledi.</li>
+<li><strong>CI/CD'de yapay zekâ:</strong> Öğrencinin ekibi, <em>pre-commit</em> aşamasında yazılan kodu (ör. SQL script'leri) yapay zekâya inceletiyor: SQL injection var mı, hatalı sorgu var mı; ayrıca linter'larla kod standardı kontrolü yapılıyor. Gözlenen sorun: aynı kod için LLM bir seferinde "doğru", bir seferinde "hatalı" diyebiliyor; yani <strong>tutarlılık</strong> sorunu var. Doğrudan production seviyesinde değil, daha kontrollü bir aşamada denemeye devam ediyorlar.</li>
+</ul>
+<hr>
+<h3>Öğrenci projesi: Streamlit ile RAG uygulaması (≈00:08–00:15)</h3>
+<p>Geçen hafta verilen ödev, "Streamlit ile bir RAG uygulaması yapın" idi. Bir öğrencinin gönderdiği uygulama derste çalıştırılarak incelendi.</p>
+<p><strong>Çalıştırma:</strong> Uygulama klasöründe <code>streamlit run app.py</code> komutuyla açılıyor. <em>(Dosya adı transkriptte "hep nokta pay" diye geçiyor; <code>app.py</code> olması muhtemel.)</em></p>
+<p>İlk denemede uygulama "PostgreSQL'e bağlanamadı" hatası verdi. Sebep: vektör veritabanı Docker içinde çalışıyor ve Docker açılmamıştı. Docker Desktop açılıp geçen derste ayağa kaldırılan <strong>pgvector container</strong>'ı çalıştırılınca bağlantı sağlandı. (Hoca öğrencilere de Docker'ı açmalarını söyledi.)</p>
+<p><strong>Uygulamanın özellikleri (yan menü):</strong>
+- OpenAI API anahtarı girişi
+- PostgreSQL bağlantı adresi ve <strong>koleksiyon (collection) adı</strong>
+- LLM seçimi (ör. "GPT-5.6 luna") ve embedding modeli seçimi
+- <strong>Chunk size</strong> ve <strong>chunk overlap</strong> ayarı (geçen derste söylendiği gibi bunlar metnin türüne göre ayarlanır)
+- RAG tekniği seçimi: Basic RAG, Rewrite-Retrieve-Read, Multi-Query, RAG Fusion, HyDE (bu dersin konuları)
+- Doküman yükleme → <strong>indeksleme</strong> → sohbet; koleksiyonu temizleme menüsü</p>
+<p>Örnek olarak bir fatura PDF'i yüklenip indekslendi, sohbet ekranında "Fatura kim adına kesildi?" diye soruldu; model doğru cevabı verdi ve <strong>cevabın hangi kaynaklardan geldiğini</strong> de gösterdi.</p>
+<p><strong>Hocanın vurguları:</strong>
+- Kullanıcıya sadece cevabı değil, <strong>kaynakları (sources)</strong> da göstermek isteriz.
+- Bu tür projeleri yapıp GitHub'a koyun, sosyal medyada / LinkedIn'de paylaşın, CV'nize ekleyin.
+- Sadece dinlemekle öğrenilmiyor; "ellerinizi kirletmeniz" gerekiyor. Günde 2–3 saat ayırmak lazım.
+- Konular birbirine bağlı: ileride <strong>Agentic RAG</strong> projesi yapılacak; RAG'i anlamazsanız Agentic RAG'i, agent'ları ve <strong>MCP</strong>'yi anlamazsanız ileri agent projelerini yapamazsınız.</p>
+<hr>
+<h3>Neden gelişmiş sorgu (query) teknikleri? (≈00:15–00:20)</h3>
+<p><strong>Klasik RAG'in hatırlatması:</strong>
+1. Dokümanlarımızı bir <strong>vektör veritabanına</strong> yüklüyoruz.
+2. Kullanıcı soru sorduğunda <strong>retriever</strong> soruyu alıyor, <strong>embedding</strong>'e çeviriyor.
+3. Vektör veritabanında bu embedding'e <strong>en yakın parçaları (chunk)</strong> buluyor.
+4. Bulunan dokümanlar + soru <strong>bağlam (context)</strong> olarak LLM'e veriliyor.
+5. LLM bu bağlama bakarak cevap üretiyor.</p>
+<p>Temiz bağlam → temiz çıktı (<em>garbage in, garbage out</em>). Geçen derste hep temiz, düzgün sorgular verdik. Ancak production ortamında sorgular her zaman temiz olmaz:
+- Soru <strong>eksik</strong> olabilir,
+- Soru <strong>çok genel</strong> olabilir,
+- Sorguda <strong>yazım hatası</strong> olabilir,
+- Kullanıcı <strong>birden fazla konuyu tek soruda</strong> sorabilir.</p>
+<p>Bu durumlarda retriever yanlış chunk'ları, yani yanlış bağlamı getirir; yanlış bağlamla da LLM yanlış cevap üretir.</p>
+<p><strong>Bu derste görülecek 4 RAG sorgu tekniği:</strong>
+1. <strong>Rewrite-Retrieve-Read:</strong> Sorguyu LLM'e yeniden yazdırıp öyle arama yapmak.
+2. <strong>Multi-Query Retrieval:</strong> Soruyu çoğaltmak (aynı sorunun farklı versiyonları), hepsiyle arama yapıp sonuçları birleştirmek.
+3. <strong>RAG Fusion:</strong> Multi-Query gibi birden fazla sorgu; ama gelen chunk'ları <strong>sıralamak</strong> — en çok tekrar eden chunk en üste konur, model en üsttekine daha çok dikkat eder.
+4. <strong>HyDE (Hypothetical Document Embeddings):</strong> Soruya önce varsayımsal bir cevap ürettirip o cevapla arama yapmak.</p>
+<hr>
+<h3>Ortam ve klasik RAG pipeline'ının yeniden kurulması (≈00:20–00:45)</h3>
+<p>Geçen dersin klasörü (önceki dersler için "05-06" diye oluşturulan klasör) VS Code ile açıldı. Ders dosyaları Skool'a yüklendi; <code>docs</code> klasörü <code>docs.zip</code> olarak ayrıca paylaşıldı. Klasörde <code>rag_queries.ipynb</code> adında yeni bir notebook oluşturuldu, kernel olarak geçen derste uv ile kurulan sanal ortam seçildi. Kütüphanelerde sorun varsa <code>uv sync</code> ile <code>uv.lock</code>'taki paketler yeniden yüklenebilir.</p>
+<p><em>(Windows'ta Docker için sanallaştırmanın / WSL'in açık olması gerektiği, bazı öğrencilerde Docker'ın geç kalktığı konuşuldu.)</em></p>
+<h4>1. Ortam değişkenleri ve doküman yükleme</h4>
+<pre><code class="language-python">from dotenv import load_dotenv
+
+load_dotenv()
+</code></pre>
+<pre><code class="language-python">from pathlib import Path
+from langchain_core.documents import Document
+
+file_path = Path(&quot;docs/antik-yunan-gunluk-yasam.txt&quot;)
+
+text = file_path.read_text(encoding=&quot;utf-8&quot;)
+
+raw_documents = [
+    Document(
+        page_content=text,
+        metadata={&quot;source&quot;: str(file_path)},
+    )
+]
+</code></pre>
+<p><code>Path</code> ile dosya yolu alınıyor, <code>read_text</code> ile okunuyor ve LangChain'in <code>Document</code> sınıfına çevriliyor. <code>Document</code> sınıfının avantajı <strong>metadata takibi</strong>: hangi chunk'ın hangi kaynaktan geldiğini sonradan görebiliyoruz.</p>
+<h4>2. Parçalama (chunking)</h4>
+<pre><code class="language-python">from langchain_text_splitters import RecursiveCharacterTextSplitter
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=600,
+    chunk_overlap=80
+)
+
+documents = text_splitter.split_documents(raw_documents)
+</code></pre>
+<p><strong>Neden chunk'lara ayırıyoruz?</strong>
+- LLM'e fazla token vermek <strong>maliyeti artırır</strong>.
+- Gereksiz token/chunk vermek <strong>LLM'in kafasını karıştırır</strong>.
+- Sadece ilgili kısımları bağlam olarak verirsek bağlam iyi olur, LLM de iyi cevap üretir.</p>
+<p><code>RecursiveCharacterTextSplitter</code> hocanın "çok sevdiğimiz" dediği sınıf. Küçük metinler için <strong>chunk_size = 600</strong> alınabileceğini daha önce söylemişti. <strong>Overlap = 80</strong>: iki chunk'ın üst üste geldiği kısım; chunk'lar arasındaki bağlantıyı (anlam sürekliliğini) korur.</p>
+<h4>3. Embedding modeli</h4>
+<pre><code class="language-python">from langchain_openai import OpenAIEmbeddings
+embeddings_model = OpenAIEmbeddings(model=&quot;text-embedding-3-small&quot;)
+</code></pre>
+<p>Embedding için açık kaynak modeller, Google modelleri veya OpenAI modelleri kullanılabilir — fark etmez. Hoca, düşük donanımlı bilgisayarlarda da çalışsın diye OpenAI'ın küçük modelini seçti; her chunk'ı yaklaşık 1500 küsür boyutlu bir vektöre çeviriyor. <em>(Not: text-embedding-3-small'ın varsayılan boyutu 1536'dır.)</em></p>
+<h4>4. Vektör veritabanına kaydetme (PGVector)</h4>
+<pre><code class="language-python">from langchain_postgres.vectorstores import PGVector
+
+connection = &quot;postgresql+psycopg://ai:ai@localhost:6024/ai_db&quot;
+
+db = PGVector.from_documents(
+    documents=documents,
+    embedding=embeddings_model, 
+    connection=connection,
+    collection_name=&quot;rag-antik-yunan-2-cohort-demo-01&quot;,
+    use_jsonb=True,
+    pre_delete_collection=False
+)
+</code></pre>
+<p>PostgreSQL, Docker üzerinde çalışıyor. Bağlantı adresi, chunk'lar, embedding modeli ve <strong>koleksiyon adı</strong> veriliyor. Hoca bu kodu daha önce çalıştırdığı için, <strong>aynı chunk'lar aynı koleksiyona ikinci kez eklenmesin diye koleksiyon adını değiştirdi</strong> (aynı koleksiyona tekrar yüklerseniz aynı chunk'lar birden fazla gelir). Siz de kendi koleksiyon adınızı verebilirsiniz.</p>
+<h4>5. Retriever</h4>
+<pre><code class="language-python">retriever = db.as_retriever(search_kwargs={&quot;k&quot;: 2})
+</code></pre>
+<p>Retriever üç iş yapar: (1) sorguyu alıp embedding'e çevirir, (2) vektör veritabanında bu embedding'e en yakın değerleri bulur, (3) en yakın chunk'ları döndürür. Burada <code>k=2</code> → en yakın 2 chunk.</p>
+<h4>6. "Kirli" bir sorgu</h4>
+<pre><code class="language-python">query = &quot;&quot;&quot;
+    Bugün uyandıktan sonra dişlerimi fırçaladım ve haberleri okumaya başladım.
+    Ancak ocakta yemek olduğunu unuttum.
+    Antik Yunan felsefesi tarihinin öne çıkan isimleri kimlerdir?
+&quot;&quot;&quot;
+</code></pre>
+<p>Asıl soru son cümle; öncesi "kalabalık". Gerçek kullanıcılar böyle yazabilir. Amaç bu gürültüyü temizlemek — Rewrite-Retrieve-Read tam olarak bunu yapacak.</p>
+<pre><code class="language-python">docs = retriever.invoke(query)
+
+print(docs[0].page_content)
+</code></pre>
+<p>Bu sorguya en yakın chunk yazdırıldı. Burada doğru chunk geldi; ancak production'da retriever "diş fırçalama", "haber okuma", "ocaktaki yemek" gibi kısımlara benzeyen alakasız chunk'lar getirebilir. Bu, modeli yanlış yöne çeker. Sorudaki <strong>özü</strong> almamız gerekiyor.</p>
+<h4>7. Prompt</h4>
+<pre><code class="language-python">from langchain_core.prompts import ChatPromptTemplate
+
+SYSTEM_PROMPT = (&quot;&quot;&quot;Answer the question based only on the following context:\n{context}&quot;&quot;&quot;)
+
+prompt = ChatPromptTemplate([(&quot;system&quot;, SYSTEM_PROMPT), (&quot;human&quot;, &quot;{question}&quot;),])
+</code></pre>
+<p>Sistem prompt'u: "Soruyu yalnızca aşağıdaki bağlama göre cevapla." Hoca demo olduğu için basit tuttu; geliştirmek için örneğin "bilgi bulamazsan <em>bilmiyorum</em> de" veya "şu alanda uzmansın" gibi roller/kurallar eklenebilir. <code>system</code> kısmına sistem prompt'u, <code>human</code> kısmına soru gidiyor.</p>
+<h4>8. Model</h4>
+<pre><code class="language-python">from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(model_name=&quot;gpt-5.6-luna&quot;,)
+</code></pre>
+<p>Hoca "GPT-6 luna"nın da çıktığını, en yeni modeli kullanabileceğimizi ama 5.6 luna'nın da yeteceğini söyledi; buradaki bağlam küçük olduğu için küçük modeller de bilgiyi rahatça yakalar.</p>
+<h4>9. RAG pipeline'ı: <code>@chain</code> dekoratörü</h4>
+<pre><code class="language-python">from langchain_core.runnables import chain
+
+@chain
+def qa(input):
+    # ilgili dokümanları getir
+    docs = retriever.invoke(input)
+
+    # prompt'u formatla
+    formatted = prompt.invoke({
+        &quot;context&quot;: docs,
+        &quot;question&quot;: input
+    })
+
+    # yanıt üret
+    answer = llm.invoke(formatted)
+
+    return answer
+</code></pre>
+<p>Adımlar: retriever ile en yakın dokümanları bul → <code>context</code> ve <code>question</code> ile prompt'u formatla → formatlı prompt'u LLM'e ver → cevabı döndür.</p>
+<p><strong>Dekoratör nedir?</strong> Bir fonksiyona ekstra özellik kazandırır. <code>@chain</code> ile fonksiyonumuza bir LangChain zinciri (Runnable) özelliği kazandırıyoruz; böylece <code>.invoke()</code> ile çağrılabilir ve pipe'lara bağlanabilir hale geliyor. İleride <code>@tool</code> dekoratörüyle de fonksiyonları <strong>araca (tool)</strong> çevireceğiz.</p>
+<pre><code class="language-python">result = qa.invoke(query)
+print(result.content)
+</code></pre>
+<p><strong>Sonuç:</strong> Model; Sokrates öncesi düşünürler, Thales, Anaksimandros, Demokritos (maddenin bölünemez küçük parçalardan oluştuğunu savunan atomcu görüş) gibi isimleri saydı. <strong>Ama</strong> cevabın sonunda "ocaktaki yemeği kontrol etmeyi unutmayın" diye bir hatırlatma da yaptı! Sorguya gereksiz detay verdiğimiz için model buna da tepki verdi. Bunu istemiyoruz → Rewrite-Retrieve-Read.</p>
+<hr>
+<h3>Teknik 1: Rewrite-Retrieve-Read (≈00:45–00:57)</h3>
+<p><strong>Akış:</strong> Sorguyu al → LLM'e yeniden yazdır → yeni sorguyla ilgili dokümanları getir → modele ver → cevabı al.</p>
+<h4>Sorguyu yeniden yazan prompt</h4>
+<pre><code class="language-python">rewrite_prompt = ChatPromptTemplate.from_template(&quot;&quot;&quot;
+    Provide a better search query for vector search to answer the given question.
+    Remove irrelevant details.
+    Return only the improved search query.
+
+    Question: {x}
+
+    Improved search query:&quot;&quot;&quot;
+)
+</code></pre>
+<p>Modele şunu söylüyoruz: "Verilen soruyu cevaplamak için vektör araması için daha iyi bir arama sorgusu üret, alakasız detayları kaldır, sadece iyileştirilmiş sorguyu döndür." Prompt Türkçe de yazılabilir. Prompt'la modeli bu şekilde yönlendirmek "çok kolay, hiç zor değil."</p>
+<h4>Çıktıyı temizleyen fonksiyon</h4>
+<pre><code class="language-python">def parse_rewriter_output(message):
+    return message.content.strip('&quot;').strip(&quot;**&quot;).strip()
+</code></pre>
+<p>Model cevabında bazen tırnak işaretleri, <code>**</code> (yıldızlar) gibi işaretler geliyor (geçen derste bir öğrencinin sorduğu konu). Bunları boşu boşuna modele göndermek, fazladan token harcamak istemiyoruz; o yüzden temizliyoruz.</p>
+<h4>Rewriter zinciri (LCEL pipe)</h4>
+<pre><code class="language-python">rewriter = rewrite_prompt | llm | parse_rewriter_output
+</code></pre>
+<p>LangChain'de pipe (<code>|</code>) bir adımın çıktısını bir sonrakine girdi olarak verir: önce prompt yeniden yazılır, LLM'e gider, sonra çıktı temizlenir.</p>
+<pre><code class="language-python">new_query = rewriter.invoke(query)
+print(new_query)
+</code></pre>
+<p>Sonuç: kalabalık sorgu temizlendi; "Antik Yunan felsefesinin önde gelen filozofları, düşünürleri, okulları…" gibi daha iyi bir arama sorgusuna dönüştü.</p>
+<h4>Birleşik zincir</h4>
+<pre><code class="language-python">@chain
+def qa_rrr(input):
+    # sorguyu yeniden yaz
+    new_query = rewriter.invoke(input)
+
+    print(&quot;Rewritten query:&quot;, new_query)
+
+    # yeniden yazılmış sorguyla ilgili dokümanları getir
+    docs = retriever.invoke(new_query)
+
+    # prompt'u orijinal soru ve getirilen context ile formatla
+    formatted = prompt.invoke({
+        &quot;context&quot;: docs,
+        &quot;question&quot;: input
+    })
+
+    # yanıt üret
+    answer = llm.invoke(formatted)
+
+    return answer
+</code></pre>
+<pre><code class="language-python">result = qa_rrr.invoke(query)
+print(result.content)
+</code></pre>
+<p>Yeniden yazılan sorgu ekrana basıldı ("Antik Yunan felsefesinin önde gelen filozofları kimlerdir?" gibi), ardından model Sokrates öncesi isimleri (Thales, Anaksimandros, … Demokritos) içeren temiz bir cevap üretti. <strong>Sorguyu iyileştirip en yakın chunk'ları bulduğumuzda model daha iyi cevap üretti.</strong></p>
+<p><strong>Derste yaşanan hata:</strong> Bir öğrenci <code>ChatPromptTemplate</code> hücresinde hata aldı; sebebi import hücresinin çalıştırılmamasıydı ("ChatPromptTemplate import edilmemiş"). Notebook'ta hücreleri sırayla çalıştırmak gerekiyor.</p>
+<p><em>(≈00:57–01:16 ara)</em></p>
+<hr>
+<h3>Teknik 2: Multi-Query Retrieval — kavram (≈01:17–01:22)</h3>
+<p>Normalde kullanıcı tek bir soru sorar; soru embedding'e çevrilir, retriever en yakın parçaları bulur. Ama <strong>tek soru her zaman gerekli bilgiyi içermeyebilir</strong>; bu tek soruyla iyi bir bağlam oluşturamayabiliriz.</p>
+<p><strong>Örnek:</strong> "Antik Yunan felsefesindeki önemli kişiler kimlerdir?" sorusuna en yakın chunk'lar Sokrates, Platon, Aristoteles ile ilgili olabilir. Soruyu genişletirsek daha iyi bağlam elde ederiz:
+- "Antik Yunan felsefesinin kurucuları kimlerdir?"
+- "Antik Yunan düşüncesine katkı sağlayan filozoflar kimlerdir?"
+- "Sokrates öncesi filozoflar kimlerdir?"</p>
+<p>Aynı sorunun farklı versiyonlarını üretmeye <strong>Multi-Query Retrieval</strong> denir.</p>
+<p><strong>Akış:</strong></p>
+<pre><code>Soru → (LLM) Soru 1, Soru 2, Soru 3 … → her biri embedding → vektör DB'den yakın dokümanlar
+     → tüm dokümanları birleştir (tekrarları at) → context olarak LLM'e ver → cevap
+</code></pre>
+<p>"Bağlam ne kadar iyi olursa cevap o kadar iyi olur; bizim için bağlam çok çok önemli."</p>
+<hr>
+<h3>Multi-Query Retrieval — uygulama (≈01:22–01:43)</h3>
+<h4>Retriever'ı genişletme</h4>
+<pre><code class="language-python">retriever = db.as_retriever(search_kwargs={&quot;k&quot;: 5})
+</code></pre>
+<p>Varsayılan olarak retriever 4 chunk döndürür; burada 5 yapıldı.</p>
+<h4>Sorgu üreten prompt</h4>
+<pre><code class="language-python">from langchain_core.prompts import ChatPromptTemplate
+
+perspectives_prompt = ChatPromptTemplate.from_template(&quot;&quot;&quot;
+    You are an AI language model assistant. 
+    Your task is to generate five different versions of the given user question 
+    to retrieve relevant documents from a vector database.
+
+    By generating multiple perspectives on the user question, your goal is to help the user overcome some of the limitations of distance-based similarity search.
+
+    Provide these alternative questions separated by newlines.
+
+    Original question: {question}
+&quot;&quot;&quot;)
+</code></pre>
+<p>Modele: "Sen bir asistansın; kullanıcının sorusunun beş farklı versiyonunu üret; mesafe tabanlı benzerlik aramasının sınırlarını aşmaya yardım et; soruları alt alta yaz."</p>
+<h4>Çıktıyı satırlara ayırma, model ve zincir</h4>
+<pre><code class="language-python">def parse_queries_output(message):
+    return message.content.split(&quot;\n&quot;)
+</code></pre>
+<pre><code class="language-python">from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(model_name=&quot;gpt-5.6-luna&quot;,)
+</code></pre>
+<pre><code class="language-python">query_gen = perspectives_prompt | llm | parse_queries_output
+</code></pre>
+<p>Birden fazla sorgu üretildiği için her birini ayrı ayrı almak istiyoruz → çıktıyı satır satır bölüyoruz. Model kodlarda bütünlük olsun diye yeniden tanımlandı.</p>
+<pre><code class="language-python">question = &quot;Antik Yunan felsefesinin önemli isimleri kimlerdir?&quot;
+
+
+queries = query_gen.invoke({&quot;question&quot;: question})
+
+print(queries)
+</code></pre>
+<p>Model 5 farklı soru üretti; örn. "Sokrates, Platon ve Aristoteles dışında Antik Yunan'da hangi önemli düşünürler vardı?" Hocanın açıklaması: Her soru embedding uzayında <strong>farklı bir noktaya düşer</strong>; o noktanın yakınındaki chunk'lar getirildiği için her sorunun yakaladığı chunk'lar farklıdır.</p>
+<h4>Tekrar eden dokümanları temizleme</h4>
+<p>Sorular aynı chunk'ları da getirebilir; aynı chunk'ı modele iki kez vermek istemeyiz. Örnek:</p>
+<pre><code>document_lists = [
+    [doc1, doc2],
+    [doc2, doc3],
+    [doc1, doc4]
+]
+
+[doc1, doc2, doc2, doc3, doc1, doc4] -&gt; [doc1, doc2, doc3, doc4]
+</code></pre>
+<p>Önce iç içe listeler tek listeye <strong>düzleştirilir (flatten)</strong>, sonra tekrar edenler kaldırılır.</p>
+<pre><code class="language-python">def get_unique_union(document_lists):
+    # Liste içindeki listeleri düzleştirir ve tekrar eden dokümanları kaldırır
+    deduped_docs = {
+        doc.page_content: doc
+        for sublist in document_lists
+        for doc in sublist
+    }
+
+    # Benzersiz dokümanları liste olarak döndürür
+    return list(deduped_docs.values())
+</code></pre>
+<h4>Adım adım çalıştırma</h4>
+<pre><code class="language-python">question = &quot;Antik Yunan felsefesinin önemli isimleri kimlerdir?&quot;
+
+# 1. Birden fazla alternatif sorgu oluştur
+queries = query_gen.invoke({&quot;question&quot;: question})
+
+print(&quot;Üretilen sorgular:&quot;)
+
+for i, query in enumerate(queries, start=1):
+    print(f&quot;{i}. {query}&quot;)
+</code></pre>
+<pre><code class="language-python">document_lists = []
+
+for query in queries:
+    documents = retriever.invoke(query)
+    document_lists.append(documents)
+
+    print(f&quot;\nSorgu: {query}&quot;)
+    print(f&quot;Bulunan doküman sayısı: {len(documents)}&quot;)
+</code></pre>
+<p>Her sorgu için 5'er doküman bulundu.</p>
+<pre><code class="language-python">unique_documents = get_unique_union(document_lists)
+
+print(&quot;Tekrarlar kaldırılmadan önce:&quot;, sum(len(x) for x in document_lists))
+print(&quot;Benzersiz doküman sayısı:&quot;, len(unique_documents))
+</code></pre>
+<p>Sonuç: <strong>Tekrarlar kaldırılmadan önce 45 chunk, temizlendikten sonra 13 benzersiz chunk.</strong> Hoca burada RAG Fusion'a köprü kurdu: "Bir chunk ne kadar çok tekrar ediyorsa soruyla o kadar alakalıdır. RAG Fusion'da tekrar eden chunk'ları en üste getireceğiz; LLM üstte olana daha çok dikkat eder."</p>
+<pre><code class="language-python">for i, document in enumerate(unique_documents, start=1):
+    print(f&quot;\n{'=' * 60}&quot;)
+    print(f&quot;DOKÜMAN {i}&quot;)
+    print(f&quot;{'=' * 60}&quot;)
+
+    print(document.page_content)
+
+    print(&quot;\nMetadata:&quot;)
+    print(document.metadata)
+</code></pre>
+<p><code>enumerate</code> her elemana bir indeks verir. Her dokümanın içeriği ve <strong>metadata'sı (kaynağı)</strong> yazdırıldı — kaynağı görmek önemli. Tüm chunk'lar aynı dosyadan geliyor ama her biri farklı içerikte (ör. "Antik Yunan toplumu polis adı verilen bağımsız şehir devletlerinde örgütlenmişti…"). <em>(Ekranda ilk anda sadece 3 doküman görünüp hoca "13 olması lazım" diye şaşırdı; sonra 13'ünün de yazdırıldığı görüldü — muhtemelen çıktı penceresinin kırpılmasıydı [belirsiz].)</em></p>
+<p><strong>Hocanın tavsiyesi:</strong> <code>for</code> döngüsü gibi kodları eskiden tek tek düşünerek yazıyorduk; artık yapay zekâ bunları rahatça yazıyor. Sizin için <strong>genel olarak ne ifade ettiklerini bilmeniz</strong> yeterli.</p>
+<h4>Retrieval zinciri ve cevap</h4>
+<pre><code class="language-python">retrieval_chain = query_gen | retriever.batch | get_unique_union
+</code></pre>
+<p>Sorgu üret → her sorgu için retriever'ı toplu (<code>batch</code>) çalıştır → benzersizleri al.</p>
+<pre><code class="language-python">prompt = ChatPromptTemplate.from_template(&quot;&quot;&quot;
+Answer the following question based on this context:
+
+{context}
+
+Question: {question}
+&quot;&quot;&quot;)
+</code></pre>
+<pre><code class="language-python">from langchain_core.runnables import chain
+
+@chain
+def multi_query_qa(input):
+    # İlgili dokümanları getir
+    docs = retrieval_chain.invoke(input)
+
+    # Prompt'u formatla
+    formatted = prompt.invoke({
+        &quot;context&quot;: docs,
+        &quot;question&quot;: input
+    })
+
+    # LLM ile cevap üret
+    answer = llm.invoke(formatted)
+
+    return answer
+</code></pre>
+<pre><code class="language-python">result = multi_query_qa.invoke(
+    &quot;Antik Yunan felsefe tarihindeki önemli isimlerden bazıları kimlerdir??&quot;
+)
+
+print(result.content)
+</code></pre>
+<p>Akış: 5 sorgu üretiliyor → her birine yakın chunk'lar bulunuyor → modele veriliyor. Cevap: Sokrates, Platon, Aristoteles, Demokritos…</p>
+<p><strong>Derste yaşanan sorun (VS Code notebook):</strong> Bir öğrencide "Run All" sonrası hücreler takılıyor, kopyala-yapıştırdan sonra garip hatalar çıkıyordu. Ekran paylaşılarak bakıldı:
+- Hücre ekleme butonuna yanlış yerden basınca yeni hücre en üste ekleniyordu; aşağıdaki "+ Code" butonu kullanılmalı.
+- Asıl sebep: PGVector hücresi <strong>Docker'daki PostgreSQL'e bağlanamadığı için bekliyordu</strong>; Docker düzgün çalışmayınca tablo oluşmuyor, sonraki hücreler de çalışmıyor.
+- Python'da kopyala-yapıştırda <strong>girinti (indentation)</strong> bozulabilir; dikkat.
+- Hocanın gönderdiği notebook'ta çıktıların görünmesi, kodun öğrencinin bilgisayarında çalıştığı anlamına gelmiyor; o çıktılar hocanın çalıştırmasından kalma.</p>
+<hr>
+<h3>Teknik 3: RAG Fusion (≈01:43–01:46 ve ≈01:52–01:53)</h3>
+<p><em>(Anlatımın başı kayıtta yok; aşağıdakiler kayıttaki kısım + notebook'tan.)</em></p>
+<p>RAG Fusion'da da Multi-Query gibi birden fazla sorgu üretilir ve her biri için dokümanlar getirilir. Fark: gelen dokümanlar <strong>yeniden sıralanır</strong>. En çok tekrar eden doküman en üste alınır, çünkü "çok tekrar ediyorsa soruyla daha alakalıdır." Model de ilk gelene "demek ki daha önemli" diye öncelik vererek cevap üretir.</p>
+<pre><code>Soru → çoklu sorgu → her sorgu için vektör DB'den dokümanlar → dokümanları puanla &amp; sırala
+     (en çok/en üstte tekrar eden en üste) → context olarak LLM'e → cevap
+</code></pre>
+<p>Bu teknik derste canlı kodlanmadı; hoca notebook'u ödev olarak çalıştırmamızı istedi ("Bu akşam kendiniz çalıştırın, hata alırsanız beraber değerlendiririz"). Notebook'taki kod:</p>
+<pre><code class="language-python">prompt_rag_fusion = ChatPromptTemplate.from_template(&quot;&quot;&quot;
+    You are a helpful assistant that generates multiple search queries based on a single input query.
+
+    Generate multiple search queries related to: {question}
+
+    Output 4 queries, each on a new line:
+&quot;&quot;&quot;)
+</code></pre>
+<pre><code class="language-python">def parse_queries_output(message):
+    return message.content.split(&quot;\n&quot;)
+</code></pre>
+<pre><code class="language-python">llm = ChatOpenAI(model=&quot;gpt-6-luna&quot;,)
+</code></pre>
+<pre><code class="language-python">query_gen = prompt_rag_fusion | llm | parse_queries_output
+</code></pre>
+<pre><code class="language-python">def reciprocal_rank_fusion(results, k=60):
+
+    scores = {}
+    documents = {}
+
+    for doc_list in results:
+        for rank, doc in enumerate(doc_list):
+            content = doc.page_content
+
+            # Dokümanı ilk gördüğümüzde sakla
+            if content not in documents:
+                documents[content] = doc
+
+            # Sırasına göre puan hesapla ve toplamına ekle
+            point = 1 / (k + rank + 1)
+            scores[content] = scores.get(content, 0) + point
+
+    # Doküman metinlerini toplam puana göre sırala
+    sorted_contents = sorted(
+        scores,
+        key=scores.get,
+        reverse=True
+    )
+
+    # Sıralanmış doküman listesini oluştur
+    ranked_docs = []
+
+    for content in sorted_contents:
+        ranked_docs.append(documents[content])
+
+    return ranked_docs
+</code></pre>
+<blockquote>
+<p>Notebook notu: Multi-Query'de farklı sorgularla arama yapıp tekrarları kaldırıyorduk. RAG Fusion'da ise sonuçları ayrıca puanlayıp sıralıyoruz.</p>
+</blockquote>
+<pre><code class="language-python">retrieval_chain = query_gen | retriever.batch | reciprocal_rank_fusion
+</code></pre>
+<pre><code class="language-python">prompt = ChatPromptTemplate.from_template(&quot;&quot;&quot;
+    Answer the following question based on this context:
+
+    {context}
+
+    Question: {question}
+&quot;&quot;&quot;)
+</code></pre>
+<pre><code class="language-python">@chain
+def rag_fusion_qa(input):
+    # RAG-Fusion ile ilgili dokümanları getir
+    docs = retrieval_chain.invoke(input)
+
+    # Prompt'u context ve soru ile formatla
+    formatted = prompt.invoke({
+        &quot;context&quot;: docs,
+        &quot;question&quot;: input
+    })
+
+    # LLM ile cevap üret
+    answer = llm.invoke(formatted)
+
+    return answer
+</code></pre>
+<pre><code class="language-python">result = rag_fusion_qa.invoke(
+    &quot;Antik Yunan felsefe tarihindeki önemli isimlerden bazıları kimlerdir?&quot;
+)
+
+print(result.content)
+</code></pre>
+<p>Hocanın notebook üzerinden özeti: birden fazla sorgu üret → satırlara ayır → modeli al, zinciri kur → getirilen dokümanları en çok tekrar edeni en üste alan fonksiyondan geçir → sorgu üretme + doküman getirme + yeniden sıralamayı tek zincir yap → prompt'u yaz → cevabı üreten fonksiyonu yaz → çalıştır.</p>
+<hr>
+<h3>Teknik 4: HyDE — Hypothetical Document Embeddings (≈01:46–01:54)</h3>
+<p><strong>Klasik RAG:</strong> Soru → embedding → en yakın chunk'lar → context → cevap.</p>
+<p><strong>Sorun:</strong> Kullanıcının sorusu her zaman asıl cevaba yeterince yakın olmayabilir; soru embedding'i asıl chunk'ı bulamayabilir.</p>
+<p><strong>HyDE'de:</strong> Kullanıcının sorusu önce LLM'e verilir ve <strong>kısa, varsayımsal bir cevap</strong> ürettirilir. Sonra bu cevap embedding'e çevrilir; vektör veritabanında bu cevaba benzer chunk'lar aranır; bulunan chunk'lar context olarak modele verilir ve nihai cevap üretilir.</p>
+<p><strong>Örnek:</strong> "Antik Yunan felsefesindeki önemli kişiler kimlerdir?" → LLM'in varsayımsal cevabı: "Antik Yunan felsefesinde Sokrates, Platon ve Aristoteles en önemli figürler arasında yer alır…" Bu cümle soruya göre çok daha <strong>zengin bir sorgu</strong>dur: daha fazla anahtar kelime içerir, dolayısıyla daha zengin bir bağlam elde edilir.</p>
+<pre><code>Soru → (LLM) varsayımsal kısa cevap → embedding → vektör DB'de benzer chunk'lar → context + soru → LLM → cevap
+</code></pre>
+<p><strong>Ne zaman kullanılır?</strong>
+- Soru <strong>çok kısaysa</strong> (kullanıcı tek kelime/çok kısa bir şey yazdıysa),
+- Soru <strong>belirsizse</strong>,
+- Soru ile doküman arasında <strong>ifade farkı</strong> varsa (soru dokümandan farklı bir dille sorulmuşsa).</p>
+<p><strong>Soru:</strong> ChatGPT, Claude gibi araçlar da bu tekniği kullanıyor mu?
+<strong>Cevap:</strong> Büyük olasılıkla evet. Bu araçlar kullanıcının prompt'unu doğrudan modele göndermiyor; eski konuşmalara bakıp soruyu tekrar yazıyor, zenginleştiriyor, sonra modele gönderiyor. Bu, onlar için de token ve hesaplama tasarrufu sağlıyor.</p>
+<p>Notebook'taki kod:</p>
+<pre><code class="language-python">prompt_hyde = ChatPromptTemplate.from_template(&quot;&quot;&quot;
+    Please write a passage to answer the question.
+
+    Question: {question}
+
+    Passage:
+&quot;&quot;&quot;)
+</code></pre>
+<pre><code class="language-python">from langchain_core.output_parsers import StrOutputParser
+
+llm = ChatOpenAI(temperature=0)
+
+generate_doc = (
+    prompt_hyde
+    | llm
+    | StrOutputParser()
+)
+</code></pre>
+<pre><code class="language-python">retrieval_chain = generate_doc | retriever
+</code></pre>
+<pre><code class="language-python">prompt = ChatPromptTemplate.from_template(&quot;&quot;&quot;
+Answer the following question based on this context:
+
+{context}
+
+Question: {question}
+&quot;&quot;&quot;)
+</code></pre>
+<pre><code class="language-python">@chain
+def qa(input):
+    # HyDE retrieval chain ile ilgili dokümanları getir
+    docs = retrieval_chain.invoke(input)
+
+    # Context ve soruyu prompt'a yerleştir
+    formatted = prompt.invoke({
+        &quot;context&quot;: docs,
+        &quot;question&quot;: input
+    })
+
+    # LLM ile nihai cevabı üret
+    answer = llm.invoke(formatted)
+
+    return answer
+</code></pre>
+<pre><code class="language-python">result = qa.invoke(
+    &quot;Who are some key figures in the ancient greek history of philosophy?&quot;
+)
+
+print(result.content)
+</code></pre>
+<p>Hocanın özeti: önce prompt template, sonra prompt'u LLM ile birleştir, çıktıyı <code>StrOutputParser</code> ile düz metne çevir → varsayımsal dokümanı retriever'a ver → chat prompt template → cevabı üreten zincir fonksiyonu → çalıştır.</p>
+<hr>
+<h3>Dört tekniğin özeti ve maliyet/değerlendirme sorusu (≈01:54–01:58)</h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Teknik</th>
+<th>Ne yapıyor?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rewrite-Retrieve-Read</td>
+<td>Soruyu yeniden yazıp temizliyor.</td>
+</tr>
+<tr>
+<td>Multi-Query Retrieval</td>
+<td>Soruyu çoğaltıyor (3, 5 …), yakın dokümanları bulup birleştiriyor (tekrarları atıyor).</td>
+</tr>
+<tr>
+<td>RAG Fusion</td>
+<td>Multi-Query mantığı + dokümanları sıralıyor; en çok tekrar eden en üstte. Model üsttekine öncelik veriyor.</td>
+</tr>
+<tr>
+<td>HyDE</td>
+<td>Soruya kısa varsayımsal cevap ürettirip onunla arama yapıyor.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Bu teknikler birbirine benziyor; hepsinin amacı <strong>daha iyi sorgu → daha benzer dokümanlar → daha iyi bağlam</strong>.</p>
+<p><strong>Soru:</strong> Maliyet açısından bunların hepsini mi yapmak lazım? Bir yapay zekâ aracı "optimum yol: hepsini yapmaya gerek yok, biri yeterli sonucu verdiyse diğerlerine gerek yok" demişti. Performans nasıl ölçülür?
+<strong>Cevap:</strong> Hepsini denemek güzel ama çok token harcar. Performansı ölçmek için <strong>değerlendirme (evaluation)</strong> teknikleri var: örneğin bir veri seti oluşturup (soru + gerçek cevap), aynı soruyu kendi uygulamamıza sorup cevabını gerçek cevapla karşılaştırmak; bu karşılaştırmayı da bir LLM yapabiliyor. Bu konular son haftada (evaluation haftası) anlatılacak; "LLM-as-a-judge" gibi teknikler kullanılacak. <em>(Transkriptte "model diye, çok eze elelem" diye geçiyor; LLM-as-a-judge olduğu tahmin ediliyor [belirsiz].)</em></p>
+<p><em>(≈01:58–02:35 ara / kayıt yok)</em></p>
+<hr>
+<h3>AI Agent'lara giriş (≈02:35–02:41; başı kayıtta yok)</h3>
+<p><em>(Bu bölümün başı kayıtta yok. Hocanın çiziminde bulunan giriş kısmı, "çizimden" diye işaretlenerek eklendi.)</em></p>
+<p><strong>Çizimden — Chatbot'tan agent'a:</strong>
+- LLM tabanlı <strong>chatbot</strong>: Girdi → Chatbot → Çıktı. Çevreleriyle iletişime geçemiyorlar, sadece eğitildikleri verilere göre cevap veriyorlar → <strong>güncel soruları bilemiyorlar</strong> ve <strong>halüsinasyon</strong> görebiliyorlar.
+- <strong>AI agent'lar:</strong> Kendi kendine hareket eden otonom sistemler. Görev alır → <strong>düşünür → plan yapar → araç kullanır</strong> → görevi yapar.
+- Claude, ChatGPT, Gemini artık sadece chatbot değil, <strong>AI agent araçları</strong>: internette araştırma yapabiliyor, kod yazabiliyor, e-posta hazırlayabiliyor, takviminizi kontrol edebiliyor. Bir sistem sadece sorularınıza cevap veriyorsa, o LLM tabanlı bir chatbottur.
+- Agent döngüsü: düşünüyor → plan yapıyor → araç seçiyor → birden fazla adımlı iş yapıyor.</p>
+<h4>AI agent seviyeleri</h4>
+<p><strong>1. Seviye — Doğrudan LLM kullanma.</strong> <em>(Çizim: kavanozdaki beyin.)</em> AI agent'ın beyni büyük dil modelleridir; bu beyin <strong>zekidir ama pasiftir</strong>. Metin üretebilir, kod yazabilir, kavramları açıklayabilir. Ama <strong>güncel bilgilere ulaşamaz</strong>: "Bugün hava nasıl?" sorusuna cevap veremez. <strong>Bilgisi donuktur.</strong></p>
+<p><strong>2. Seviye — Araç destekli LLM.</strong> LLM'leri dış dünyaya açmak için <strong>araçlar (tools)</strong> kullanılır; bu, sisteme "el" vermek gibidir. "Bugünün hava durumu nedir?" sorusunda model bir <strong>hava durumu aracı</strong> kullanır, yani bir <strong>API</strong>'ye sorar; API'den gelen bilgiye göre cevap üretir.</p>
+<pre><code>Soru → Model ⇄ API (araç) → Cevap
+</code></pre>
+<p><em>(Çizimden: web araması, görsel oluşturma, kod çalıştırma gibi birçok araç var.)</em></p>
+<p><strong>3. Seviye — AI Asistan.</strong> Asistanlar da araç kullanır ve düşünür; ama ikinci seviyeden farkı, <strong>önemli kararlar için kullanıcıdan onay ister</strong>.</p>
+<pre><code>Kullanıcı: &quot;Projedeki hatayı bul&quot; → Asistan dosyaları inceler → hatayı bulur → çözüm önerir
+→ kullanıcıdan onay ister → onay gelirse değişikliği uygular
+</code></pre>
+<p>Sistem kullanıcının görevini yapar ama <strong>kontrol çoğunlukla kullanıcıdadır</strong>. Örnekler: <strong>GitHub Copilot Chat</strong> (ilk zamanlarında kodu inceleyip "şunları düzelteyim mi?" diye soruyordu), doküman düzenleme asistanları, araştırma asistanları.</p>
+<p><strong>4. Seviye — AI Agent.</strong> Kullanıcı bir görev verir (ör. "Bana bir web sitesi yap"). Agent:
+1. <strong>Düşünür</strong>, görevi <strong>alt görevlere böler</strong>.
+2. Örneğin backend'i bir <strong>backend agent</strong>'a, frontend'i bir <strong>frontend agent</strong>'a verir.
+3. Onlardan <strong>geri bildirim</strong> alır, tekrar aksiyona geçer: "Backend ve frontend tamam, artık test edebiliriz" → bir <strong>QA tester agent</strong> testleri çalıştırır; dokümantasyon için bir <strong>technical writer agent</strong> kullanır.
+4. Gelen geri bildirimlere göre değerlendirir; <strong>elde ettiği sonuçlara göre planı değiştirir</strong>, bir sonraki adımda ne yapacağına karar verir.
+5. "İşim bitti" dediğinde <strong>nihai cevabı</strong> üretir.</p>
+<p><strong>Asistan vs. Agent:</strong> Asistanlar daha çok kullanıcıya soru sorar, onay bekleyerek ilerler. Agent'lar ise kendi başına ilerler: düşünür, karar verir ve o karara göre hareket eder.</p>
+<p><em>(Çizimden: bir agent'ın özellikleri — hedefi anlaması, plan oluşturması, düşünmesi, birden fazla adımı yapması, sonuçları değerlendirmesi, gerekirse planını değiştirmesi.)</em></p>
+<p>Hoca ardından "LangChain framework'üyle bir uygulama yapalım" dedi; ancak gelen sorular üzerine ders sohbetle devam etti ve uygulama yapılmadı. Çizimdeki <strong>"Agentlar nasıl düşünür?" (Algıla → Planla → Harekete geç → Öğren/Değerlendir)</strong>, <strong>ReAct mimarisi</strong> ve <strong>LangChain vs LangGraph</strong> kısımları bu kayıtta anlatılmadı (bkz. Ders Notları'nda "çizimden" bölümü). Hoca, agent geliştirmek için ileride daha çok <strong>LangGraph</strong> kullanılacağını söyledi.</p>
+<hr>
+<h3>Soru-cevap ve sektör sohbeti: agent'lar gerçek hayatta (≈02:41–03:02)</h3>
+<p><strong>Soru:</strong> Major sürüm geçişleri (migration) gibi, aynı işlemin çok sayıda yerde tekrarlandığı, aylarca süren manuel işler agent'larla otomatikleştirilebilir mi? Hangi framework?
+<strong>Cevap:</strong> Evet, orada agent'lar kullanılabilir; böyle bir sistem kurulabilir. Hoca bu tür bir proje yapmadığı için ayrıntı veremedi; ancak derste ağırlıklı kullanılacak <strong>LangGraph</strong> ile kurulabileceğini düşünüyor. Asıl mesaj: "Ben temelleri gösteriyorum; siz bunları <strong>kendi alanınıza</strong> uygulayacaksınız. Kodu artık yapay zekâ yazıyor; <strong>alan bilgisi (domain knowledge)</strong> olan öne çıkıyor."</p>
+<p><strong>Soru/itiraz:</strong> Agent'ları production sistemlerinde kullanmaya çekince var; olası bir yanlış işlem tüm süreci etkileyebilir.
+<strong>Cevap:</strong> Sistemi iyi kurarsanız hatalar minimize edilebilir. Tek agent değil, <strong>birden fazla agent</strong> çalıştırırsınız ve birbirlerini kontrol ederler: bir agent aksiyon alır, başka bir agent kontrol eder. İleride gösterilecek <strong>Reflection</strong> mimarisinde agent kendi cevabını tekrar tekrar kontrol eder ve gerekirse yeniden üretir. İnsan da hata yapar; agent'ın çıktısı ise tekrar tekrar kontrol edilebilir. Ayrıca agent bir <strong>görevi</strong> yapar, bir <strong>mesleği</strong> değil; o görevi yönetecek, takip edecek, kontrol edecek <strong>insana ihtiyaç var</strong>.</p>
+<p><em>(Öğrencilerden gelen görüşler: Yazılım tarafında otomasyon çok ilerledi ama sistem/DevOps tarafında modeller hâlâ çok hata yapıyor; bulut ortamında bir agent gereksiz kaynak ayağa kaldırırsa fatura şoku yaşanabilir, yetkisi varsa veri silebilir. Bazı kurumlar KVKK nedeniyle verileri dışarı göndermemek için on-prem GPU'larda küçük açık kaynak modellerle (ör. Qwen 3, 8B/16B [belirsiz]) benchmark yaparak ilerliyor.)</em></p>
+<p><strong>Hocanın cevabı (gelişim hızı):</strong> Agent'lar da gelişiyor. Örneğin bir yeni GPT sürümünün testlerinde "şunları yapma" denildiğinde görev dışına çıkmadığı görülmüş; önceki modeller daha çok görev dışına çıkıyordu. Bir yıl önce "kodlama bitmez" deniyordu; bugün bazı yazılımcılar "bir yıldır kod yazmıyorum" diyor. Bu alanda hiçbir şey hakkında <strong>kesin konuşmamak</strong> gerekiyor.</p>
+<p><strong>Öğrenci görüşü + hocanın onayı:</strong> Her şeyi yapay zekâyla yapmaya gerek yok. Rutin işler <strong>kodla</strong> (deterministik) yapılabiliyorsa kodla yapılmalı — hem <strong>maliyet</strong> hem <strong>güvenlik</strong> açısından; gerçekten yapay zekâ gerektiren işler yapay zekâyla yapılmalı. Her agent bir maliyet merkezi gibi düşünülmeli (ne kadar harcadığı değil, verimliliğine göre ne kadar harcadığı önemli) ve <strong>her agent'a ne kadar yetki verileceği</strong> (ör. bordro verisini görebilecek mi?) ciddi bir tasarım sorusu.</p>
+<p><strong>Hocanın kariyer tavsiyesi:</strong> Bir videodan aktardığı fikir: Yapay zekâ bir işi tamamen almayacak; bir işin belki 100 görevi var, belki 50'sini agent'a devredebiliriz ama 50'sini insan yapmak zorunda. <strong>Alan bilgisi + agent geliştirme bilgisi</strong> olan kişi çok güçlü ve çok aranan biri olur: angarya işi yapay zekâ yapar, siz karar veren, agent'ları yöneten kişi olursunuz.</p>
+<p><strong>Kıdemli vs. yeni başlayan (senior/junior):</strong> Hoca okuduğu bir araştırmaya göre şirketlerde senior alımlarının arttığını, junior alımlarının ise pek artmadığını söyledi. Senior'lar alanı bildikleri için agent'ları çok daha iyi yönetebiliyor; junior'lar konulara hâkim olmadıkları için zorlanıyor. Öğrencilerin işaret ettiği risk: junior yetiştirilmezse, senior'lar emekli olduğunda yerine kim gelecek?</p>
+<p><strong>MCP ve yeni araçlar:</strong> Bir öğrenci MCP'leri uzmanlık alanlarına göre gelişen küçük SaaS platformları gibi gördüğünü söyledi; hoca katıldı. Hoca ayrıca yerelde çalışıp kendi kendine karar veren küçük agent ürünlerinin çıktığını, kendisinin henüz denemediğini belirtti. MCP'de doğrudan bir araca bağlanıp oradan bilgi çekiyoruz.</p>
+<p><strong>Genel gündem:</strong> ABD daha hızlı aksiyon alıyor, Avrupa regülasyon nedeniyle daha yavaş; Çin'den gelen açık kaynak modeller rekabeti hızlandırıyor. "Açık kaynak modeller bizim işimize yarıyor, ama işler çok hızlı ilerliyor."</p>
+<p>Ders burada sona erdi.</p>

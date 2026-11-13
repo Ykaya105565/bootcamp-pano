@@ -1,0 +1,358 @@
+<h2>15 · HuggingFace ile Çalışmak</h2>
+<p><strong>Bu derste ne var:</strong> HuggingFace Hub'ı (Models, Datasets, Spaces, model kartı) tanıyıp <code>transformers.pipeline</code> ile birkaç satırda metin duygu analizi, görüntüden duygu ve yaş tahmini yapıldı; Gradio ile basit bir arayüz kuruldu. Dersin ikinci yarısında deployment (canlıya alma) projesine başlandı: Supabase'de proje açıldı, SQL ile RLS korumalı bir tablo oluşturuldu ve Python'dan bağlanıp veriler okundu.</p>
+<hr>
+<h3>Ana kavramlar</h3>
+<ul>
+<li><strong>HuggingFace</strong> — Açık kaynak modeller, veri setleri ve demo uygulamaları için merkezi platform ve uçtan uca ML framework'ü (2017'de chatbot şirketi olarak kuruldu). <em>Neden önemli:</em> 3M+ model, 1M+ veri seti; açık modellerle çalışmanın fiili standardı (Ollama ile birlikte).</li>
+<li><strong><code>transformers</code> kütüphanesi</strong> — Transformer tabanlı modelleri indirip çalıştırmayı kolaylaştıran kütüphane; artık ağırlıklı olarak PyTorch üzerine (TensorFlow desteği kaldırıldı, JAX var).</li>
+<li><strong>Framework vs kütüphane</strong> — Hiyerarşi: modül → kütüphane → framework. Framework birden fazla kütüphaneyi kapsar.</li>
+<li><strong><code>pipeline</code></strong> — Görev (task) + model adı verilince <strong>modeli ve tokenizer'ını</strong> birlikte indirip kullanıma hazırlayan üst düzey API. <em>Neden önemli:</em> Her modelin kendi tokenizer'ı var; pipeline eşleştirmeyi sizin yerinize yapar. Model verilmezse görevin varsayılan modeli iner.</li>
+<li><strong>Task (görev)</strong> — text-classification, image-classification, object detection, image segmentation, video classification, text-to-video vb. Hub'da modeller görevlere göre filtrelenir.</li>
+<li><strong>Model kartı (Model Card)</strong> — Modelin açıklaması, kullanım kodu, dosyaları ve <code>config.json</code>'ı. <em>Neden önemli:</em> Modelin hangi etiketleri tahmin ettiğini ve nasıl girdi beklediğini buradan öğrenirsiniz.</li>
+<li><strong><code>config.json</code></strong> — Model ayarları: etiketler (<code>id2label</code>), model tipi, aktivasyon fonksiyonu, girdi beklentileri.</li>
+<li><strong>safetensors vs <code>.bin</code></strong> — Ağırlık dosya formatları; safetensors HuggingFace'in geliştirdiği yeni format, <code>.bin</code> eski PyTorch formatı. Model indirmek = <strong>ağırlıkları</strong> indirmek.</li>
+<li><strong>BERT / DistilBERT</strong> — Transformer'ın encoder kısmından (Google, 2018) gelen, sınıflandırma için kullanılan model; DistilBERT onun küçük versiyonu. GPT ise decoder tabanlıdır (metin üretimi).</li>
+<li>Not: DistilBERT knowledge distillation ile küçültülmüştür (hoca "quantize hali gibi" benzetmesini yaptı).</li>
+<li><strong>Spaces</strong> — HuggingFace'te barındırılan demo uygulamalar (Gradio/Streamlit); kodları açık, GitHub gibi katkı yapılabilir.</li>
+<li><strong>Gradio</strong> — Notebook içinde bile birkaç satırla arayüz kuran kütüphane; Streamlit'ten daha basit.</li>
+<li><strong>CUDA</strong> — NVIDIA'nın matematiksel işlemleri GPU'da çalıştırmayı sağlayan platformu; PyTorch'un GPU'lu sürümü için gerekli. Mac'te karşılığı <strong>MPS</strong>.</li>
+<li><strong>HF önbelleği (cache)</strong> — <code>~/.cache/huggingface/hub</code>; model bir kez iner, sonra yeniden kullanılır. Zamanla büyür (hocada 29 GB).</li>
+<li><strong>Deployment (canlıya alma)</strong> — Uygulamayı herkesin erişebileceği şekilde yayınlamak.</li>
+<li><strong>Supabase</strong> — PostgreSQL tabanlı bulut veritabanı; <strong>pgvector</strong> eklentisiyle vektör veritabanı olarak da kullanılabilir. Ücretsiz plan küçük projelere yeter.</li>
+<li><strong>RLS (Row Level Security, satır düzeyi güvenlik)</strong> — Tablo satırlarına kimin erişebileceğini policy'lerle kısıtlar. Bu derste sadece <code>service_role</code> erişebiliyor.</li>
+<li><strong>Publishable key vs Secret key</strong> — Supabase'de publishable key (<code>sb_publishable_...</code>) istemci tarafı içindir ve RLS'e takılır; secret key (<code>sb_secret_...</code>) backend/servis rolüdür. Backend kodunda secret key kullanıldı.</li>
+<li><strong>LangSmith</strong> — LangChain ekosisteminde uygulamaları izleme/tracing aracı (projede kullanılacak).</li>
+</ul>
+<h3>Akış / mimari</h3>
+<p><strong>HuggingFace ile model kullanma akışı</strong></p>
+<pre><code>Hub → Task filtresi → model seç (indirme sayısı/beğeni/yükleyen) → model kartı + config.json oku
+    → pipeline(task, model) → girdiyi modele uygun hale getir (örn. RGB) → tahmin
+</code></pre>
+<p><strong>Görüntü sınıflandırma (duygu/yaş)</strong></p>
+<pre><code>Image.open(yol) → .convert(&quot;RGB&quot;) → pipeline(&quot;image-classification&quot;, model) → [{label, score}, ...]
+</code></pre>
+<p><strong>Gradio arayüzü</strong></p>
+<pre><code>fonksiyon (transform_image) → gr.Interface(fn, inputs, outputs) → demo.launch() → (isteğe bağlı) HF Spaces
+</code></pre>
+<p><strong>Deployment projesi yol haritası (bu ders başlandı, sonraki derste devam)</strong></p>
+<pre><code>Kurulum (uv init, paketler, .env) → Supabase (proje, tablo, RLS, bağlantı) → LangSmith (izleme)
+  → Vektör DB (pgvector) → Tool → LangGraph agent → İzleme → Streamlit arayüzü → Deploy
+</code></pre>
+<p>Model: OpenAI · Vektör DB: Supabase · Agent: LangGraph · İzleme: LangSmith.</p>
+<p><strong>Vektör aramasının mantığı (gelecek ders)</strong></p>
+<pre><code>Metin → token → vektör (embedding) → Supabase'e kaydet → sorgu vektörüne en yakın vektörleri bul
+</code></pre>
+<p><strong>Supabase bağlantısı</strong></p>
+<pre><code>.env (SUPABASE_URL, SUPABASE_SECRET_KEY, DATABASE_URL) → load_dotenv() → create_client() → table().select().order().execute()
+</code></pre>
+<h3>Kod / uygulama</h3>
+<h4>1) GPU kontrolü</h4>
+<pre><code class="language-python">import torch
+
+print(torch.cuda.is_available())
+print(torch.version.cuda)
+print(torch.cuda.get_device_name(0))
+</code></pre>
+<ul>
+<li><code>torch.cuda.is_available()</code> → PyTorch GPU'yu görüyor mu? <code>False</code> ise CPU sürümü kurulmuş olabilir.</li>
+<li><code>torch.version.cuda</code> → PyTorch'un derlendiği CUDA sürümü.</li>
+<li><code>get_device_name(0)</code> → ilk GPU'nun adı. (Mac'te CUDA yok; MPS kullanılır.)</li>
+</ul>
+<p>Ortam (Conda ile):</p>
+<pre><code class="language-bash">conda create -n genai python=3.11
+conda activate genai
+nvidia-smi
+</code></pre>
+<h4>2) Metin duygu analizi</h4>
+<pre><code class="language-python">from transformers import pipeline
+
+classifier = pipeline(
+    'text-classification',
+    model=&quot;distilbert/distilbert-base-uncased-finetuned-sst-2-english&quot;
+)
+classifier(&quot;I really enjoyed this movie.&quot;)
+</code></pre>
+<ul>
+<li><code>'text-classification'</code> → görev; pipeline'a ne tür ön/son işlem yapacağını söyler.</li>
+<li><code>model=...</code> → Hub'daki model kimliği (<code>kullanıcı/model</code>). Verilmezse varsayılan model iner.</li>
+<li>Model SST-2 (İngilizce film yorumu duygu veri seti) üzerinde fine-tune edilmiş → çıktı <code>POSITIVE</code>/<code>NEGATIVE</code> + skor. Sonuç: <code>POSITIVE ≈ 0.99</code>.</li>
+</ul>
+<h4>3) Gradio ile siyah-beyaz dönüştürücü</h4>
+<pre><code class="language-python">from skimage.color import rgb2gray
+
+def transform_image(img):
+    return rgb2gray(img)
+
+import gradio as gr
+
+demo = gr.Interface(
+    fn=transform_image,
+    inputs=gr.Image(),
+    outputs=&quot;image&quot;
+)
+demo.launch()
+</code></pre>
+<ul>
+<li><code>rgb2gray</code> → RGB diziyi gri tonlamaya çevirir; burada model yok, saf görüntü işleme.</li>
+<li><code>gr.Interface</code> → fonksiyonu girdi/çıktı bileşenleriyle sarar.</li>
+<li><code>inputs=gr.Image()</code> → kullanıcıdan resim yükleme alanı; resmi NumPy dizisi olarak fonksiyona verir.</li>
+<li><code>outputs="image"</code> → dönen diziyi resim olarak gösterir.</li>
+<li><code>demo.launch()</code> → notebook içinde ve yerel linkte arayüzü başlatır.</li>
+</ul>
+<h4>4) Görüntüden duygu analizi</h4>
+<pre><code class="language-python">from transformers import pipeline
+from PIL import Image
+
+emotion = pipeline(
+    task=&quot;image-classification&quot;,
+    model=&quot;dima806/facial_emotions_image_detection&quot;)
+
+img = Image.open(&quot;C:/Users/PC/Desktop/Day11/docs/01.png&quot;).convert(&quot;RGB&quot;)
+preds = emotion(img)
+print(preds[:5])
+</code></pre>
+<ul>
+<li><code>Image.open(...)</code> → resmi PIL nesnesi olarak açar. Windows'ta yolu <code>/</code> ile yazın.</li>
+<li><code>.convert("RGB")</code> → 3 kanala çevirir (PNG'ler 4 kanallı RGBA veya tek kanallı olabilir); model 3 kanal bekliyor.</li>
+<li><code>emotion(img)</code> → etiket–skor listesi döner (skora göre sıralı).</li>
+<li><code>preds[:5]</code> → ilk 5 tahmin. Sonuç: happy ≈ 0.92, surprise ≈ 0.04, neutral ≈ 0.01.</li>
+<li><code>display(image)</code> (IPython) → resmi notebook'ta göstermek için.</li>
+</ul>
+<h4>5) Görüntüden yaş tahmini</h4>
+<pre><code class="language-python">age_classifier = pipeline(
+    task=&quot;image-classification&quot;,
+    model=&quot;nateraw/vit-age-classifier&quot;
+)
+img = Image.open(&quot;docs/evren.png&quot;).convert(&quot;RGB&quot;)
+age_classifier(img)
+</code></pre>
+<ul>
+<li>ViT (Vision Transformer) tabanlı, yaşı aralık sınıfları olarak tahmin eden model (≈343 MB, <code>.bin</code>).</li>
+<li>Göreli yol <code>docs/...</code> → notebook'un çalıştığı dizine göre çözülür; yanlış klasörde açarsanız dosya bulunamaz.</li>
+<li>Sonuç: 40–49 (1.), 30–39 (2.).</li>
+</ul>
+<h4>6) HuggingFace CLI</h4>
+<pre><code class="language-bash">uv pip install huggingface_hub
+hf auth login
+hf auth whoami
+hf download &lt;model_id&gt;
+</code></pre>
+<ul>
+<li><code>login</code> → token ile giriş; model/Space yüklemek için gerekir. İndirme için çoğu açık modelde gerekmez.</li>
+<li><code>download</code> → modeli önbelleğe indirir; <code>pipeline</code> aynı önbelleği kullanır.</li>
+</ul>
+<h4>7) Supabase bağlantı testi (<code>2_test_supabase.py</code>)</h4>
+<pre><code class="language-python">import os
+from dotenv import load_dotenv
+from supabase import create_client
+
+load_dotenv()
+
+supabase = create_client(
+    os.environ[&quot;SUPABASE_URL&quot;],
+    os.environ[&quot;SUPABASE_SECRET_KEY&quot;],
+)
+
+response = (
+    supabase.table(&quot;students&quot;)
+    .select(&quot;id, name, course&quot;)
+    .order(&quot;id&quot;)
+    .execute()
+)
+
+for student in response.data:
+    print(f&quot;{student['id']} | {student['name']} | {student['course']}&quot;)
+</code></pre>
+<ul>
+<li><code>load_dotenv()</code> → <code>.env</code>'deki anahtarları <code>os.environ</code>'a yükler; anahtarlar koda gömülmez.</li>
+<li><code>os.environ["..."]</code> → köşeli parantezle erişim: değişken yoksa hemen <code>KeyError</code> verir (sessizce <code>None</code> ile devam etmez).</li>
+<li><code>create_client(url, key)</code> → Supabase istemcisi; <strong>secret key</strong> ile RLS policy'sindeki <code>service_role</code> olarak bağlanır.</li>
+<li><code>.table("students").select(...)</code> → <code>SELECT id, name, course FROM students</code>.</li>
+<li><code>.order("id")</code> → <code>ORDER BY id</code>.</li>
+<li><code>.execute()</code> → sorguyu gönderir; satırlar <code>response.data</code> içinde liste/sözlük olarak gelir.</li>
+<li><code>for ...</code> → her satırı <code>id | name | course</code> biçiminde yazdırır.</li>
+</ul>
+<p>Çalıştırma: <code>uv run supabase.py</code></p>
+<p>SQL tarafında yapılanlar (kod ders dosyalarında yok, anlatımdan): <code>public.students</code> tablosu (<code>id</code> otomatik artan primary key, <code>name</code> text, <code>course</code> text not null) → 3 örnek kayıt <code>INSERT</code> → <code>enable row level security</code> → yalnızca <code>service_role</code> için policy.</p>
+<h3>Hocanın vurguları &amp; pratik kurallar</h3>
+<ul>
+<li><strong>Birkaç satırla büyük model:</strong> <code>pipeline</code> HuggingFace'in en güçlü yanı; önce onu kullanın.</li>
+<li><strong>Model seçerken</strong> indirme sayısına, beğeniye ve yükleyene bakın. Aynı isimli kopyalar hatalı olabilir (45 indirmeli kopya hata verdi, 150 bin indirmeli orijinal çalıştı).</li>
+<li><strong>Model kartını ve <code>config.json</code>'ı okuyun:</strong> etiketler ve beklenen girdi formatı orada.</li>
+<li><strong>Girdiyi modele uydurun:</strong> görüntüde <code>.convert("RGB")</code>.</li>
+<li><strong>Kopyala → çalıştır → anla → değiştir → yayınla:</strong> Spaces'teki açık kaynak uygulamalardan öğrenin; kendi versiyonunuzu GitHub/HF/CV'ye koyun.</li>
+<li><strong>Kaggle:</strong> haftalık 30 saat ücretsiz GPU; Expert/Master/Grandmaster unvanları ve yarışmalar işe alımda fark yaratıyor.</li>
+<li><strong>Colab:</strong> güçlü bilgisayarı olmayanlar için; GPU seçmeyi unutmayın (A100 iyi).</li>
+<li><strong>Conda vs uv:</strong> uv daha hızlı (Rust); Conda'yı da bilin. Her proje için ayrı sanal ortam.</li>
+<li><strong>PyTorch kurulumu:</strong> pytorch.org'dan OS + pip + CUDA seçin; Windows'ta <code>pip3</code> → <code>pip</code>; GPU'lu sürümün kurulduğunu doğrulayın.</li>
+<li><strong>Donanım:</strong> Mac 32 GB birleşik bellek bu kurs için yeterli (27B model bile çalışır, ama NVIDIA'dan yavaş). Ciddi iş için RTX 5090.</li>
+<li><strong>Önbelleği arada temizleyin</strong> (hocada 29 GB).</li>
+<li><strong>AI ile geliştirme:</strong> Planı güçlü modelle (Opus), kodlamayı ucuz modelle yaptırın; tasarımı önce kendiniz şablonlayın (Canva/Figma) ki sonuç "slop" olmasın.</li>
+<li><strong>Agent'larla araştırma:</strong> Bir agent yapsın, başka bir agent/model denetlesin; ama ne yapıldığını mutlaka anlayın ve kendi ifadelerinizle yazın.</li>
+<li><strong>Supabase:</strong> Bölgeyi yakın seçin; DB şifresini saklayın; backend'de <strong>secret key</strong>; RLS'i SQL ile açın.</li>
+<li><strong>Bitirme projesi:</strong> Gelecek cumartesiye kadar; önerilen listeden ya da derste yapılanı geliştirerek (örn. Streamlit arayüzü ekleyerek). Proje = başarı sertifikası.</li>
+</ul>
+<h3>Sık hatalar / karşılaşılan sorunlar</h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Sorun</th>
+<th>Neden</th>
+<th>Çözüm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Duygu modelinde index/aralık hatası</td>
+<td>Görüntü modelin beklediği formatta değil</td>
+<td><code>.convert("RGB")</code> ile 3 kanala çevir</td>
+</tr>
+<tr>
+<td><code>Image</code> tanımlı değil</td>
+<td>Kernel yeniden başladı</td>
+<td>Import hücrelerini tekrar çalıştır</td>
+</tr>
+<tr>
+<td>Resim bulunamıyor</td>
+<td>Yanlış klasörde çalışma / göreli yol</td>
+<td>VS Code'u proje klasöründe aç; mutlak yol kullan</td>
+</tr>
+<tr>
+<td>Windows'ta yol hatası</td>
+<td><code>\</code> kaçış karakteri olarak yorumlanıyor</td>
+<td><code>/</code> kullan (veya ham string <code>r"..."</code> — Not: bu ikincisi kendi eklemem)</td>
+</tr>
+<tr>
+<td>"Invalid model index"</td>
+<td>Aynı isimli, hatalı yüklenmiş kopya model</td>
+<td>İndirme sayısı yüksek orijinal modeli seç</td>
+</tr>
+<tr>
+<td>Kernel üç kez öldü</td>
+<td>Belirlenemedi (model ≈343 MB)</td>
+<td>Restart; sorun sürerse bellek/Colab</td>
+</tr>
+<tr>
+<td><code>pip3</code> komutu Windows'ta</td>
+<td>PyTorch sitesi <code>pip3</code> üretiyor</td>
+<td><code>pip</code> olarak düzelt</td>
+</tr>
+<tr>
+<td>Inference widget kredi istiyor</td>
+<td>HF politika değişikliği</td>
+<td>Modeli lokalde/Colab'da çalıştır</td>
+</tr>
+<tr>
+<td>SQL editöründe syntax error</td>
+<td>Sohbetten kopyalanan görünmez karakterler</td>
+<td>Bozuk karakterleri sil / temiz kopyala</td>
+</tr>
+<tr>
+<td>Bağlantı başarılı ama liste boş</td>
+<td><strong>Publishable key</strong> kullanılmış, RLS satırları gizliyor</td>
+<td><code>sb_secret_...</code> ile başlayan <strong>secret key</strong>'i al</td>
+</tr>
+<tr>
+<td>"Non-printable character"</td>
+<td><code>print</code> satırı başında görünmez boşluk</td>
+<td>Satırı yeniden yaz</td>
+</tr>
+<tr>
+<td>Değişiklik yansımıyor</td>
+<td><code>.env</code>/<code>.py</code> kaydedilmemiş</td>
+<td>Kaydet / Auto Save aç</td>
+</tr>
+<tr>
+<td><code>DATABASE_URL</code> çalışmıyor</td>
+<td><code>[YOUR-PASSWORD]</code> köşeli parantezleri bırakılmış</td>
+<td>Şifreyi yaz, parantezleri kaldır</td>
+</tr>
+<tr>
+<td>Türkçe karakter hatası</td>
+<td>Proje adı/yolunda Türkçe karakter</td>
+<td>Derste çözülmedi; ASCII isim kullan (Not: önerim)</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Kendini test et</h3>
+<ol>
+<li><code>pipeline</code> kullanmanın, modeli elle yüklemeye göre iki temel kolaylığı nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Modeli ve o modele ait tokenizer'ı birlikte indirir/eşleştirir; görev için gerekli ön-işleme ve son-işlemeyi (etiket + skor çıktısı) otomatik yapar. Model verilmezse görevin varsayılan modelini kullanır.</p>
+</details>
+<ol start="2">
+<li>BERT ile GPT, Transformer mimarisinin hangi parçalarından gelir ve tipik kullanımları nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>BERT encoder tabanlıdır (metin sınıflandırma gibi anlama görevleri); GPT decoder tabanlıdır (metin üretimi). DistilBERT, BERT'in küçültülmüş versiyonudur.</p>
+</details>
+<ol start="3">
+<li>Görüntüyü modele vermeden önce neden <code>.convert("RGB")</code> yapıldı ve modelin ne beklediğini nereden öğrenirsiniz?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Model 3 kanallı girdi bekler; resim gri (1 kanal) ya da RGBA (4 kanal) olabilir. Beklenen formatı model kartındaki Files → <code>config.json</code> (ve preprocessor ayarları) gösterir.</p>
+</details>
+<ol start="4">
+<li>Yaş modelinde "Invalid model index" hatası neden alındı, model seçerken neye dikkat etmeli?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Aynı isimli, başka bir kullanıcının yüklediği (45 indirmeli) hatalı bir kopya seçildi. İndirme sayısı, beğeni ve yükleyen hesaba bakarak orijinal modeli (≈150 bin indirme) seçmek gerekir.</p>
+</details>
+<ol start="5">
+<li>HuggingFace modelleri nereye iner, <code>hf download</code> ile indirmek zorunlu mu?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>~/.cache/huggingface/hub</code> önbelleğine iner ve tekrar kullanılır. Zorunlu değil; <code>pipeline</code> modeli kendisi indirir. <code>hf auth login</code> da çoğu açık model için gerekmez, yükleme (upload) için gerekir.</p>
+</details>
+<ol start="6">
+<li><code>gr.Interface</code>'in üç temel parametresi nedir ve bu örnekte neyi temsil eder?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>fn</code> (çalışacak fonksiyon: <code>transform_image</code>), <code>inputs</code> (girdi bileşeni: <code>gr.Image()</code>), <code>outputs</code> (çıktı tipi: <code>"image"</code>). <code>demo.launch()</code> arayüzü başlatır.</p>
+</details>
+<ol start="7">
+<li>Supabase'e bağlanmak için <code>.env</code>'de hangi üç değişken oluşturuldu, her biri nereden alınır?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>SUPABASE_URL</code> (Connect → Project URL), <code>SUPABASE_SECRET_KEY</code> (Project Settings → API Keys → secret key, <code>sb_secret_...</code>), <code>DATABASE_URL</code> (Connect → Direct → Session pooler connection string; <code>[YOUR-PASSWORD]</code> yerine şifre, köşeli parantezsiz).</p>
+</details>
+<ol start="8">
+<li>Bağlantı başarılı olduğu halde <code>response.data</code> boş geliyorsa en olası neden nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Publishable key kullanılmıştır. RLS açık ve policy yalnızca <code>service_role</code> için tanımlı olduğundan publishable key satırları göremez. Secret key kullanılmalı. (Ayrıca dosyanın kaydedildiği kontrol edilmeli.)</p>
+</details>
+<ol start="9">
+<li>RLS nedir, bu derste nasıl yapılandırıldı?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Satır düzeyi güvenlik; tablo satırlarına erişimi policy'lerle sınırlar. <code>students</code> tablosunda RLS açıldı ve sadece backend rolü <code>service_role</code> için erişim policy'si tanımlandı.</p>
+</details>
+<ol start="10">
+<li>Deployment projesinin bileşenleri ve sırası nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Kurulum → Supabase (DB + bağlantı) → LangSmith (izleme) → vektör DB (pgvector) → tool → LangGraph agent → izleme → Streamlit arayüzü. Model OpenAI, vektör DB Supabase.</p>
+</details>
+<h3>Hocaya sorulacaklar / belirsiz kalanlar</h3>
+<ul>
+<li>PyTorch kurulumunun devamı ve hangi CUDA sürümünün seçildiği (transkriptte ≈00:38–00:52 eksik). Hocanın GPU modeli/VRAM'i de net değil.</li>
+<li>Model kartı örneği tam olarak hangi modeldi? ("Facebook'un ResNet-50'si" dendi; anlatılan özellikler <code>facebook/detr-resnet-50</code>'ye uyuyor.)</li>
+<li>Duygu modelindeki ilk hatanın kesin nedeni (RGB dönüşümü mü, başka bir şey mi) — hoca "araştırmak lazım" dedi.</li>
+<li>Supabase tablo/RLS SQL'inin tam hali (ders dosyalarında yok) ve projenin <code>uv add</code> komutunun tam listesi.</li>
+<li>Türkçe karakter kaynaklı bağlantı hatasının çözümü.</li>
+<li>LoRA/QLoRA fine-tuning notebook'u paylaşılacak mı?</li>
+<li>Hocanın araştırmada kullandığı agent aracı ve Qwen model sürümü (transkriptte anlaşılmıyor).</li>
+<li>"HuggingFace NVIDIA tarafından satın alındı" bilgisi hocanın aktarımı; doğrulanmadı.</li>
+</ul>

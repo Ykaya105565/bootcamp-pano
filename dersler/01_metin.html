@@ -1,0 +1,327 @@
+<h2>01 · AI Engineer Yol Haritası — Ders Metni (ayıklanmış)</h2>
+<blockquote>
+<p>Kaynak: Evren Özkip'in YouTube'daki ~36 dakikalık kayıtlı anlatımı (canlı ders değil). Transkript YouTube otomatik altyazısından alınmıştır. Kanal tanıtımı, Skool topluluğu reklamı ve "abone ol / beğen" kısımları çıkarılmıştır. Zaman aralıkları videodaki yaklaşık dakikalardır.
+Hocanın anlatırken üzerinden geçtiği çizim: <code>gorseller/01_konu_00.jpg … 01_konu_10.jpg</code>.</p>
+</blockquote>
+<hr>
+<h3>Giriş: ChatGPT anı ve AI Engineering'in doğuşu (≈00:00–00:02)</h3>
+<p>Hoca daha önce veri bilimi, makine öğrenmesi, derin öğrenme ve doğal dil işleme (NLP) için yol haritası videoları yaptığını hatırlatarak başlıyor. Bu alanlar bir dönem çok popülerdi; ardından "ChatGPT anı" geldi. ChatGPT'nin piyasaya çıkmasıyla büyük dil modelleri (LLM) öne çıktı ve artık her problem için sıfırdan model eğitilmiyor. İşte bu noktada <strong>yapay zekâ mühendisliği (AI Engineering)</strong> alanı doğdu: AI mühendisleri Claude, GPT, Qwen veya DeepSeek gibi önceden eğitilmiş modelleri alıp bunların üzerine uygulama geliştiriyor.</p>
+<p>Alan son dönemde çok popüler hâle geldi; hocanın ifadesiyle bazı şirketlerde AI mühendisleri yıllık 300.000 doların üzerinde kazanıyor.</p>
+<p>Yol haritası <strong>dört aşamadan</strong> oluşuyor:</p>
+<ol>
+<li>Temel konular</li>
+<li>Büyük dil modelleri (LLM'ler)</li>
+<li>AI sistemleri geliştirmek</li>
+<li>İş bulmak — network kurmak, görünür olmak</li>
+</ol>
+<h3>AI Engineer nedir? (≈00:02–00:04)</h3>
+<p>Alan yeni olduğu için veri bilimi ve makine öğrenmesiyle karıştırılıyor. Hocanın ayrımı şöyle:</p>
+<ul>
+<li><strong>Veri bilimciler</strong> genellikle sıfırdan model eğitir ve model geliştirir.</li>
+<li><strong>Makine öğrenmesi mühendisleri</strong> eğitilmiş modelleri alıp uçtan uca projeler geliştirir.</li>
+<li><strong>AI mühendisleri</strong> büyük dil modellerini (Claude, GPT ya da Qwen gibi açık kaynaklı modeller) alır ve bunlarla uygulama geliştirir.</li>
+</ul>
+<p>Bu uygulamaları geliştirirken pek çok teknoloji kullanırlar: API'ler, araçlar (tools), son dönemde trend olan MCP, AI ajanları (AI agents) ve RAG sistemleri. Geliştirdikleri uygulamayı canlı ortama (production) alırlar; ama iş orada bitmez. Ardından uygulamayı izlerler: güvenliğine, maliyetine ve doğru çalışıp çalışmadığına, iyi sonuç verip vermediğine bakarlar.</p>
+<p>Özetle: <strong>AI mühendisi model geliştirmez; modelin etrafındaki AI sistemini geliştirir.</strong></p>
+<h3>1. Aşama — Temeller: Python (≈00:05–00:07)</h3>
+<p>AI uygulaması yapmak için önce bir programlama dili gerekir; bu alanda en çok kullanılan dil <strong>Python</strong>'dır ve yapay zekâda geniş bir ekosistemi vardır. Öğrenmesi kolaydır ("sanki İngilizce yazıyormuş gibi") ve kaynağı boldur.</p>
+<p>Python'da öğrenilmesi gerekenler:</p>
+<ul>
+<li>Değişkenler</li>
+<li>Veri yapıları: sayısal tipler, string'ler, listeler, sözlükler (bunlar yeterli)</li>
+<li>Fonksiyonlar — bir fonksiyonun nasıl yazıldığı</li>
+<li>Sınıflar — Python nesne tabanlı bir dil olduğu için</li>
+<li>Hata yakalama</li>
+<li>Dosyalarla çalışma</li>
+<li>Sanal ortam (virtual environment) oluşturma — son dönemde çıkan <strong>uv</strong> gibi araçlarla sanal ortam kurmak ve proje yönetmek çok kolaylaştı.</li>
+</ul>
+<p>Bu konuları ayrıntılı bilmek gerekmiyor; temel seviye yeterli. Öğrenirken yapay zekâdan da yardım alınabilir.</p>
+<p><strong>Hocanın vurgusu:</strong> Sadece video izleyerek öğrenmeyin; en iyi öğrenme yaparak öğrenmedir. Önerdiği küçük proje sırası:</p>
+<ul>
+<li>Hesap makinesi gibi basit uygulamalar yazın.</li>
+<li>Bir API'den veri çekin, veriyi JSON formatında kaydedin.</li>
+<li>Ardından bu veriyi analiz edin: veri ön işleme için <strong>pandas</strong>, görselleştirme için <strong>matplotlib</strong>, çok boyutlu dizi işlemleri için <strong>NumPy</strong>.</li>
+</ul>
+<h3>1. Aşama — SQL, veritabanı ve Supabase (≈00:07–00:09)</h3>
+<p>Python'dan sonra <strong>SQL</strong> önerisi geliyor. Gerekçe: verilerin, özellikle şirket verilerinin çoğu veritabanlarında saklanır; gerektiğinde oradan veri almamız ya da oraya veri yazmamız gerekir.</p>
+<p>SQL zor bir dil değil; bilinmesi gereken temel komutlar:</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Amaç</th>
+<th>Komut</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Veri seçmek</td>
+<td><code>SELECT</code></td>
+</tr>
+<tr>
+<td>Filtrelemek</td>
+<td><code>WHERE</code></td>
+</tr>
+<tr>
+<td>Birleştirmek</td>
+<td><code>JOIN</code></td>
+</tr>
+<tr>
+<td>Gruplamak</td>
+<td><code>GROUP BY</code></td>
+</tr>
+<tr>
+<td>Veri eklemek</td>
+<td><code>INSERT</code></td>
+</tr>
+<tr>
+<td>Güncellemek</td>
+<td><code>UPDATE</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>MySQL, PostgreSQL gibi pek çok veritabanı kullanılabilir. Hocanın AI projeleri için tavsiyesi <strong>Supabase</strong>: PostgreSQL tabanlı, bulutta çalışan bir veritabanı.</p>
+<h3>1. Aşama — Git ve GitHub (≈00:09–00:10)</h3>
+<p>Uygulamalar bir süreçten geçer: önce 1. sürüm, sonra 2. sürüm çıkar; son sürümden sonra da ara ara güncellenir. Bu sürümleri takip etmek için <strong>Git</strong> bilmek gerekir.</p>
+<p>Git ile GitHub sık karıştırılır:</p>
+<ul>
+<li><strong>Git</strong> sürüm takibini sağlayan araçtır.</li>
+<li><strong>GitHub</strong> projelerin saklandığı yerdir; geliştirilen projeler GitHub'a yüklenir.</li>
+</ul>
+<p>İkisi de ekip hâlinde çalışmak için çok faydalıdır; temel seviyede bilinmeleri gerekir.</p>
+<h3>1. Aşama — API (≈00:10)</h3>
+<p>Son temel konu <strong>API</strong>. Uygulamalarımızı servislere API'ler üzerinden bağlarız: uygulamaya model eklemek ya da onu dış dünyaya bağlamak için araç (tool) eklemek istediğimizde API kullanırız. Bilinmesi gereken temel kavramlar:</p>
+<ul>
+<li>HTTP nedir?</li>
+<li>GET ve POST nedir?</li>
+<li>JSON isteği (request) nasıl gönderilir?</li>
+<li>Kimlik doğrulama (authentication) nasıl çalışır?</li>
+<li>API anahtarları (API key) nasıl saklanır/kullanılır?</li>
+</ul>
+<h3>2. Aşama — LLM'ler ve Transformer mimarisi (≈00:10–00:11)</h3>
+<p>ChatGPT ile birlikte büyük dil modellerinin gücü ortaya çıktı; onları kullanırken nasıl çalıştıklarını da bilmek gerekir.</p>
+<p>Bugüne kadar çıkan neredeyse tüm büyük dil modellerinin temeli <strong>Transformer mimarisine</strong> dayanır. Bu mimari 2017'de Google Brain ekibi tarafından geliştirildi. İki kısımdan oluşur:</p>
+<ul>
+<li><strong>Encoder (kodlayıcı):</strong> veriler kodlanır.</li>
+<li><strong>Decoder (kod çözücü):</strong> veriler işlenir.</li>
+</ul>
+<p>Claude, GPT ve Gemini modelleri bu mimari baz alınarak geliştirildi.</p>
+<blockquote>
+<p>Not: Hoca çizimde orijinal "Attention Is All You Need" diyagramını gösteriyor. Günümüzdeki GPT/Claude/Gemini gibi sohbet modelleri pratikte yalnızca decoder (decoder-only) varyantlarıdır; hoca bu ayrıntıya girmiyor.</p>
+</blockquote>
+<h3>2. Aşama — Prompt engineering'den context engineering'e (≈00:11–00:13)</h3>
+<p>LLM'lerle iletişim kurmak için <strong>prompt engineering</strong> alanı ortaya çıktı. Prompt, modele verdiğimiz talimattır. İlk dönemde prompt engineering çok meşhurdu; ama sonra anlaşıldı ki modele yalnızca bir talimat vermiyoruz. Modele ayrıca şunlar da gidiyor:</p>
+<ul>
+<li>sistem prompt'ları (system prompts),</li>
+<li>önceki konuşmalar,</li>
+<li>araçlardan (tool) gelen bilgiler,</li>
+<li>dokümanlar.</li>
+</ul>
+<p>Bunların hepsine <strong>bağlam (context)</strong> denir. Prompt'un yanında diğer girdilerin de önemi anlaşılınca <strong>context engineering</strong> alanı doğdu.</p>
+<p>Yazılımdaki kural burada da geçerli: <strong>"Garbage in, garbage out"</strong> — kötü girdi verirsek kötü çıktı alırız. Hocanın vurgusu: kötü uygulamalar genellikle modelin kötülüğünden kaynaklanmaz; modeller artık gerçekten çok güçlü. Son araştırmalara göre kötü uygulamanın asıl sebebi <strong>kötü bağlamdır</strong>. Model ne kadar iyi olursa olsun, bağlamı kötü verirseniz kötü sonuç alırsınız.</p>
+<h3>2. Aşama — Model kullanımı: kapalı ve açık kaynak (≈00:13–00:15)</h3>
+<p>ChatGPT ile normalde mesajlaşarak konuşuruz; AI uygulaması geliştirirken ise LLM'lere <strong>programatik</strong> olarak erişiriz. Kullanılabilecek iki model ailesi var:</p>
+<p><strong>Kapalı kaynaklı modeller</strong> (ör. GPT, Claude)
+- API'ler üzerinden erişilir.
+- Ücretlidir.
+- Veriler model sağlayıcısına gönderildiği için hocanın ifadesiyle "veriler güvende olmaz".</p>
+<p><strong>Açık kaynaklı modeller</strong> (ör. Gemma, Qwen)
+- Yerelde (lokal) çalıştırılabilir; bilgisayara indirip kullanılır.
+- Ücretsizdir; herhangi bir limit olmadan uygulamalara entegre edilebilir.
+- Veriler dışarı çıkmadığı için güvendedir.
+- En çok kullanılan araçlar: <strong>Ollama</strong> ve <strong>Hugging Face</strong> — model indirmek, modelle konuşmak ve uygulama geliştirmek için.</p>
+<blockquote>
+<p>Not: Transkriptte "Google tarafından geliştirilen …" ifadesi Qwen'e bağlanmış gibi duruyor; aslında Gemma Google'ın, Qwen ise Alibaba'nın modelidir. Büyük olasılıkla altyazı/söyleyiş kayması.</p>
+</blockquote>
+<h3>2. Aşama — Model boyutları, VRAM ve quantization (≈00:15–00:16)</h3>
+<p>Bir model genelde farklı boyutlarla yayımlanır: örneğin 8 milyar, 12 milyar, 27 milyar parametreli sürümler ya da daha büyükleri. Açık kaynak modelle lokalde çalışırken modelin <strong>VRAM</strong>'i (ekran kartı belleği) nasıl kullandığını öğrenmek faydalıdır. Ardından modeli VRAM'e sığdırmak için sıkıştırma yöntemi olan <strong>quantization</strong>'ın ne olduğunu ve nasıl çalıştığını öğrenirseniz açık kaynak LLM'leri çok daha verimli kullanırsınız.</p>
+<h3>2. Aşama — Kendi verinle çalışmak: RAG ve fine-tuning (≈00:16–00:17)</h3>
+<p>Kendi verilerinizle çalışmanın iki yolu var: <strong>RAG</strong> ve modeli <strong>ince ayarlamak (fine-tuning)</strong>. (RAG 3. aşamada anlatılıyor.)</p>
+<p><strong>Fine-tuning:</strong> LLM'ler internetteki genel verilerle eğitilir; genel bilgileri çok iyidir ama belirli bir alanda o kadar iyi çalışmazlar. Modeli belirli bir alanda uzmanlaştırmak istersek fine-tune ederiz, yani modelin <strong>ağırlıklarını güncelleriz</strong>.</p>
+<p>Son dönemde geliştirilen iki pratik teknik: <strong>LoRA</strong> ve <strong>QLoRA</strong>. Bunlarla modelin tamamını değil, <strong>yalnızca belirli parametreleri</strong> eğitiriz. Avantajları: eğitim süresi kısalır ve daha az yer kaplar.</p>
+<h3>3. Aşama — AI sistemleri: LangChain ekosistemi (≈00:17–00:18)</h3>
+<p>AI sistemleri geliştirmek için birçok framework var; hocaya göre en çok kullanılanı <strong>LangChain</strong>. LangChain ile LLM destekli uygulamalar geliştirilir. Ekosistemdeki kütüphaneler:</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>İhtiyaç</th>
+<th>Kütüphane</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AI ajanları geliştirmek</td>
+<td><strong>LangGraph</strong></td>
+</tr>
+<tr>
+<td>Karmaşık (kompleks) ajanlar</td>
+<td><strong>Deep Agents</strong></td>
+</tr>
+<tr>
+<td>Uygulamayı izleme ve değerlendirme</td>
+<td><strong>LangSmith</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>Bunları öğrenince uçtan uca AI projeleri geliştirilebilir.</p>
+<h3>3. Aşama — RAG (≈00:18–00:20)</h3>
+<p>LangChain ile yapılabilecek uygulamalardan biri <strong>RAG (Retrieval-Augmented Generation — getirmeyle zenginleştirilmiş üretim)</strong>. Modeller genel bilgiye sahiptir; örneğin şirket bilgilerini bilemezler. Tüm bilgiyi doğrudan modele verirseniz maliyet çok artar. RAG burada devreye girer.</p>
+<p>RAG iki aşamadan oluşur:</p>
+<ol>
+<li><strong>Veri indeksleme (Data Indexing):</strong> Dokümanlar alınır → küçük parçalara (chunk) bölünür → bu parçalar vektör gömmeleri (vector embedding) olarak vektör veritabanına kaydedilir.</li>
+<li><strong>Getirme ve üretim (Retrieval &amp; Generation):</strong> Kullanıcı soru sorduğunda soru da embedding'e, yani sayısal temsile çevrilir → vektör veritabanında ona en yakın temsiller bulunur → bunlar sıralanır → kullanıcının sorgusu ile bu bilgiler birlikte LLM'e verilir → LLM bunlara uygun cevabı üretir.</li>
+</ol>
+<p>Hocaya göre RAG ile modellerin <strong>halüsinasyon</strong> görmesi, yani bilmediğini uydurması sorunu çözülür.</p>
+<blockquote>
+<p>Not: Pratikte RAG halüsinasyonu tamamen ortadan kaldırmaz, önemli ölçüde azaltır.</p>
+</blockquote>
+<p>Bu temel (basic) RAG'dir. Son dönemde geliştirilen ileri teknikler de öğrenilmeli:</p>
+<ul>
+<li>parçalama stratejileri (chunking strategies),</li>
+<li>hibrit arama (hybrid search),</li>
+<li>yeniden sıralama (reranking),</li>
+<li>sorguyu yeniden yazma (query rewriting),</li>
+<li>çoklu sorgu (multi-query).</li>
+</ul>
+<p>Bunlarla daha kaliteli sonuç veren uygulamalar geliştirilir. RAG ile çalışırken ayrıca <strong>embedding</strong>, <strong>vektör veritabanları</strong> ve <strong>anlamsal arama (semantic search)</strong> bilinmeli: günümüz AI teknikleri embedding'leri kullanır, bunlar vektör veritabanlarında saklanır, verilen girdiye en yakın sonuçlar semantic search ile bulunur.</p>
+<h3>3. Aşama — AI Agents (≈00:20–00:22)</h3>
+<p>RAG'den sonra <strong>AI ajanları</strong> öğrenilmeli. ChatGPT ilk çıktığında onunla sohbet ediyorduk: soru soruyorduk, cevap veriyordu. Son dönemde ajanlar çok popüler oldu çünkü verilen görevi yerine getirmek için <strong>karar veriyorlar</strong>. Bunu yaparken:</p>
+<ul>
+<li><strong>araçlar (tools)</strong> kullanırlar,</li>
+<li>karar vermeden önce <strong>düşünürler</strong>,</li>
+<li><strong>aksiyon</strong> alırlar: API çağrısı yapmak, veritabanı sorgulamak, dosya okumak, kod okuyup çalıştırmak gibi.</li>
+</ul>
+<p>Ajanların temelinden sonra <strong>ajan iş akışları (agent workflows)</strong> öğrenilmeli:</p>
+<ul>
+<li>ajanlar nasıl plan yapar (planning),</li>
+<li>bellek (memory) nasıl kullanılır,</li>
+<li>durum (state) nedir,</li>
+<li>döngüde insan (human-in-the-loop) nedir,</li>
+<li>hata yönetimi (error handling).</li>
+</ul>
+<p><strong>Hocanın vurgusu:</strong> Önce <strong>tek ajan</strong> geliştirmeyi öğrenin, sonra <strong>çoklu ajan (multi-agent)</strong>. Günümüz AI uygulamaları birden fazla ajan kullanıyor; ama tek bir ajanı kötü geliştirirseniz diğerleri de kötü olur ve uygulama kötü çalışır.</p>
+<h3>3. Aşama — MCP (≈00:22–00:24)</h3>
+<p>Ajanlardan sonra <strong>MCP (Model Context Protocol)</strong>. MCP ile uygulamalarımızı dış dünyaya bağlarız: GitHub'a, veritabanlarına, Slack gibi uygulamalara. MCP 2024'te Anthropic tarafından geliştirildi.</p>
+<p>MCP'nin üç temel bileşeni:</p>
+<ul>
+<li><strong>Host:</strong> AI uygulamanız gibi düşünün — örneğin Claude ya da ChatGPT uygulaması.</li>
+<li><strong>Client:</strong> host ile server arasındaki bağlantıyı sağlar.</li>
+<li><strong>Server:</strong> host'un bağlandığı taraf.</li>
+</ul>
+<blockquote>
+<p>Not: Transkriptte server için "hostun bağlandığı, esasında AI uygulaması" gibi karışık bir ifade geçiyor. Standart tanımda server, dış sistemin (GitHub, veritabanı, Slack…) araç/veri/prompt yeteneklerini sunan programdır; AI uygulaması host'tur.</p>
+</blockquote>
+<p><strong>Hocanın vurgusu — öğrenme sırası çok önemli:</strong></p>
+<p>API → Tool Calling → AI Agent → MCP</p>
+<h3>3. Aşama — Production: API, Docker, bulut, CI/CD (≈00:24–00:25)</h3>
+<p>Uygulamayı geliştirdikten sonra onu lokalde tutmak istemeyiz; dış dünyaya açmak isteriz. Bunun için:</p>
+<ol>
+<li><strong>API'ye çevirmek:</strong> <strong>FastAPI</strong> kullanılabilir; LangChain ekosistemindeyseniz <strong>LangGraph Server</strong>.</li>
+<li><strong>Paketlemek:</strong> Uygulamanın her ortamda çalışabilmesi için <strong>Docker</strong> ile paketlenir.</li>
+<li><strong>Yayına almak (deploy):</strong> Bulut sağlayıcılar — AWS, Microsoft Azure, Google Cloud.</li>
+<li><strong>CI/CD:</strong> Deploy ettikten sonra yapılan değişiklikleri test etmek ve otomatik olarak yayına almak için.</li>
+</ol>
+<h3>3. Aşama — Observability (≈00:25–00:26)</h3>
+<p>Uygulama dış dünyaya açıldıktan sonra yavaşlayabilir, maliyeti artabilir, hatalar çıkabilir ya da kötü sonuçlar verebilir. Bu yüzden izlenmesi gerekir; burada <strong>gözlemlenebilirlik (observability)</strong> devreye girer. Gözlemleme ile şunları izleriz:</p>
+<ul>
+<li>Sistem ne yapıyor?</li>
+<li>Hangi prompt gönderildi?</li>
+<li>Hangi model kullanıldı?</li>
+<li>Hangi tool çağrıldı?</li>
+<li>Kaç token kullanıldı?</li>
+<li>Uygulama hangi adımları attı, hangi adımda hata verdi?</li>
+</ul>
+<p>Bir hata durumunda hemen müdahale edip uygulamayı düzeltiriz.</p>
+<h3>3. Aşama — Değerlendirme (Evaluation) (≈00:26–00:27)</h3>
+<p>Production'a taşınan uygulama değerlendirilir. <strong>"Uygulama bana göre güzel çalışıyor" demenin bir anlamı yoktur; ölçmek gerekir.</strong> Ölçmek için:</p>
+<ol>
+<li>bir test veri seti (test dataset) oluşturulur,</li>
+<li>test soruları hazırlanır,</li>
+<li>beklenen sonuçlar tanımlanır.</li>
+</ol>
+<p>Sonra modele veriyi verip soruları sorduğumuzda cevapların beklenen sonuçlara ne kadar yakın olduğu ölçülür. Örnekler:</p>
+<ul>
+<li><strong>RAG için:</strong> getirme (retrieval) kalitesi ölçülür.</li>
+<li><strong>Ajanlar için:</strong> görevi tamamladı mı?</li>
+<li><strong>LLM çıktıları için:</strong> <strong>LLM-as-a-Judge</strong> (bir LLM'in hakem olarak kullanılması).</li>
+</ul>
+<h3>3. Aşama — Güvenlik ve maliyet (≈00:27–00:28)</h3>
+<p>Production'da iki önemli kavram daha var:</p>
+<p><strong>Güvenlik (security):</strong>
+- prompt injection,
+- guardrails (koruma bariyerleri),
+- API anahtarlarının güvenliği,
+- gereksiz yetki vermemek.</p>
+<p><strong>Maliyet (cost):</strong>
+- <strong>Model seçimi:</strong> basit görevler için küçük ve ucuz modeller, karmaşık görevler için daha güçlü modeller.
+- <strong>Önbellekleme (caching).</strong>
+- <strong>Prompt optimizasyonu.</strong>
+- <strong>Token takibi.</strong></p>
+<h3>4. Aşama — İş bulma ve portföy projeleri (≈00:28–00:31)</h3>
+<p>İş piyasası zor ve rekabetçi; öne çıkmak gerekiyor. En iyi yollardan biri <strong>güçlü bir portföy</strong>. CV'ye sadece "Python biliyorum, LLM biliyorum, RAG biliyorum" yazmak yetmez; bildiklerinizi <strong>göstermeniz</strong> gerekir. Bunun için basitten başlayarak projeler yapın:</p>
+<ol>
+<li><strong>LLM çağırma projesi:</strong> Örneğin metin analiz uygulaması — girilen metni özetleyen bir uygulama. Bununla Python, API, prompt engineering ve yapılandırılmış çıktı (structured output) bildiğinizi gösterirsiniz.</li>
+<li><strong>RAG sistemi:</strong> Örneğin verilen PDF'ler üzerinden soru-cevap yapan bir uygulama. <strong>Sadece çalışan bir demo yapıp bırakmayın</strong>: vektör veritabanı, evaluation, FastAPI, Docker kullanın ve deploy edin.</li>
+<li><strong>Agentic AI projesi:</strong> Örneğin bir <strong>AI Research Agent</strong> — kullanıcı soru verir, ajan web'de araştırır, kaynakları toplar, bilgileri analiz eder ve kaynaklarıyla birlikte bir rapor hazırlar. Kullanılacak teknikler: tool calling, memory, MCP, logging, evaluation, deploy.</li>
+</ol>
+<p>Bu projeleri <strong>GitHub reponuzda</strong> sergileyin.</p>
+<h3>4. Aşama — Projeyi sunmak ve görünür olmak (≈00:31–00:32)</h3>
+<p>Yaptıklarınızı göstermek çok önemli: çok kaliteli projeler yapsanız bile kimse görmezse iş bulmakta zorlanırsınız. Projeyi iyi "süsleyip" tanıtmak gerekir:</p>
+<ul>
+<li>Repoya iyi bir <strong>README</strong> yazın: hangi zorluklarla karşılaştınız, nasıl çözdünüz, hangi mimariyi kullandınız.</li>
+<li>Bir <strong>demo video</strong> çekin.</li>
+<li>Uygulamayı herkesin görebilmesi için <strong>canlıya alın</strong>.</li>
+</ul>
+<p>Proje geliştirmek tek başına yetmiyor, <strong>görünür olmak</strong> da çok önemli:</p>
+<ul>
+<li>Projelerinizi paylaşın: LinkedIn'de gösterin, X'te post atın, hatta YouTube videosu çekin.</li>
+<li>Açık kaynak projelere katkıda bulunun.</li>
+<li>Konferanslara katılın.</li>
+<li>Network'ünüzü geliştirin, AI mühendisleriyle bağlantı kurun.</li>
+</ul>
+<p><strong>Hocanın tavsiyesi:</strong> Biriyle bağlantı kurduğunuzda hemen "bana referans olur musunuz" demeyin. Önce kendinizi tanıtın, yaptıklarınızı gösterin ve anlatın; referansı ondan sonra isteyin.</p>
+<h3>Bootcamp müfredatı (≈00:32–00:33)</h3>
+<p>Hoca bu konuların hepsini anlatacağı AI Engineering Bootcamp'in yapısını veriyor: <strong>6 hafta, 36 saat canlı ders.</strong></p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Hafta</th>
+<th>Konu</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>LLM'ler, prompt ve context engineering</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Embedding ve vektör veritabanları</td>
+</tr>
+<tr>
+<td>3</td>
+<td>RAG sistemleri</td>
+</tr>
+<tr>
+<td>4</td>
+<td>AI ajanları</td>
+</tr>
+<tr>
+<td>5</td>
+<td>MCP ve lokal LLM'ler</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Deployment ve final projesi</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Özet ve kapanış (≈00:33–00:35)</h3>
+<p>Dört aşamanın hızlı tekrarı:</p>
+<ul>
+<li><strong>1. Aşama:</strong> Python, SQL, Git, API.</li>
+<li><strong>2. Aşama:</strong> LLM'ler, Transformer mimarisi, prompt ve context engineering, lokal ve açık kaynak modeller, quantization, LoRA ve fine-tuning.</li>
+<li><strong>3. Aşama:</strong> RAG, AI ajanları, tool calling, MCP, production (FastAPI, Docker, bulut, CI/CD), observability, değerlendirme, güvenlik ve maliyet optimizasyonu.</li>
+<li><strong>4. Aşama:</strong> Gerçek projeler geliştirmek, güçlü portföy oluşturmak, yaptıklarını paylaşmak, network kurmak.</li>
+</ul>
+<p>Bu dört aşamayı tamamlayan biri AI alanında rahatlıkla iş bulabilir. Ama her şeyi aynı anda öğrenmek zorunda değilsiniz: önce 1. aşamayı bitirin, sonra 2., 3. ve 4. aşamaya geçin. Konular birbirine bağlı; 1. aşamayı öğrenmezseniz 2.'de, 2.'yi öğrenmezseniz 3.'de zorlanırsınız. Her aşamada "elinizi kirletin".</p>
+<p><strong>Kapanış mesajı:</strong> AI mühendisliğini öğrenmenin en iyi yolu sürekli video izlemek değil, <strong>gerçek sistemler geliştirmektir.</strong></p>

@@ -1,0 +1,512 @@
+<h2>07 · Day03-Embedding — Ders Metni (ayıklanmış)</h2>
+<blockquote>
+<p>Tirendaz Academy · AI Engineering | Eylül 2026 · Hoca: Evren Özkip
+Kaynak: Skool otomatik altyazısı (temizlenmiş, yönetimsel konuşmalar çıkarılmış) + hocanın notebook dosyaları (<code>1_01-word2vec.ipynb</code>, <code>2_02-context-embedding.ipynb</code>) + konu anlatım çizimi ("Day 03 Embedding").</p>
+<p><strong>Transkript boşlukları:</strong> ≈00:54–01:22 (mola ve sonrasında yaklaşık 12 dakikalık anlatım transkriptte yok — çizime göre bu aralıkta GloVe, FastText, "corpus" ve Embedding Projector anlatılmış), ≈01:58–02:17 (mola ve sonrasında analoji örnekleri — <code>king − man + woman</code> — transkriptte yok). Bu kısımlar aşağıda çizimden ve notebook'tan tamamlandı ve öyle işaretlendi.</p>
+</blockquote>
+<hr>
+<h3>1. Geçen haftanın tekrarı (≈00:00–00:11)</h3>
+<p>Hoca derse geçen haftanın kısa bir özetiyle başladı (çizimdeki "Geçen dersimizde" başlığı):</p>
+<ul>
+<li><strong>LLM'lere giriş</strong> yapıldı.</li>
+<li><strong>Çalışma ortamı</strong> kuruldu. Hoca, çalışma ortamını kurmanın her şeyin ön koşulu olduğunu vurguladı: ortam kurulamazsa hiçbir işlem yapılamaz. Başta zor gelse de yeni araçlarla (uv) artık çok kolay, zamanla alışılıyor.</li>
+<li><strong>API kullanımı:</strong> Modellerle genellikle API üzerinden konuşuyoruz; bir istek (request) gönderiyoruz, servis bir cevap (response) dönüyor. Modeller lokalde de çalıştırılabilir, ancak bunun için güçlü bir ekran kartı gerekir. Hoca kendi makinesinde RTX 5080 olduğunu, RTX 5090 gibi kartların yüz binlerce lira tuttuğunu söyledi. Bu makinelerle bile Opus ya da GPT sınıfı çok büyük modeller lokalde çalıştırılamaz; bunlar için API kullanılır. Ollama ile lokalde model çalıştırmak da derslerde görülecek; Ollama'nın bulutta çalışan büyük modelleri (ör. Qwen, kodlamada çok kullanılan GLM) de yine API ile kullanılıyor.</li>
+<li>API'ler yalnızca modellere bağlanmak için değil, <strong>araçlar (tools)</strong> için de kullanılıyor. Örneğin bir ajana (agent) ya da uygulamaya hava durumu eklemek istiyorsak bunu bir araç olarak, bir hava durumu API'si üzerinden ekliyoruz. Dolayısıyla API kullanmak, API anahtarına sahip olmak ve bunların nasıl kullanıldığını bilmek çok önemli.</li>
+<li><strong>LangChain:</strong> ChatGPT'den sonra çıkan, çok önemli bir framework. Altında birçok kütüphane var:</li>
+<li>LangChain Core: şablonlar (template), mesajlar gibi bileşenler.</li>
+<li><strong>LangGraph:</strong> ajan oluşturmak için (ajan haftasında kullanılacak).</li>
+<li><strong>LangSmith:</strong> uygulamaları takip etmek, gözlemlemek (observability).</li>
+<li><strong>Deep Agents:</strong> daha sonra geliştirilen, daha "derin" ajanlar kurmaya yarayan kütüphane.</li>
+<li>İsim: "Lang" (language model) + "Chain" (zincir) — uygulamaları birbirine zincirleme bağlıyoruz.</li>
+<li><strong>Prompt ve context engineering:</strong> Prompt, modele verdiğimiz talimattır (girdi). Context ise modele verdiğimiz <strong>bütün</strong> girdidir: prompt, kullanıcı mesajları, önceki konuşmalar, araçlardan gelen mesajlar, verilen dokümanlar. İyi girdi verirsek iyi çıktı alırız. Modeli çok fazla context ile boğmamak, çok az verip ne yapacağını bilemez hale de getirmemek gerekir: doğru zamanda, doğru şekilde context vermek esastır.</li>
+<li><strong>Prompt teknikleri:</strong> Eskiden çok meşhurdu, modeller geliştikçe önemi biraz azaldı ama LLM'lerin tarihini ve nasıl çalıştığını anlamak için bilinmeli. GPT-3'ten önce "modeli iyi cevap versin diye eğitmek gerekir" düşünülüyordu; GPT-3 ile birlikte, eğitmeden de prompt teknikleriyle iyi cevap alınabildiği anlaşıldı.</li>
+<li><strong>Zero-shot:</strong> Örnek vermeden girdi veriyoruz, model çıktı veriyor.</li>
+<li><strong>One-shot:</strong> Bir örnek gösteriyoruz ("bu yorum pozitif"), modelin buna göre cevap vermesini istiyoruz.</li>
+<li><strong>Few-shot:</strong> Birden fazla örnekle modeli yönlendiriyoruz.</li>
+<li><strong>LangChain prompt template:</strong> Promptları esnek yazmak için şablon kullanıyoruz. Şablon aynı zamanda promptu modelin anlayacağı biçime çeviriyor; her modelin farklı bir girdi formatı var.</li>
+<li><strong>Uygulamalar:</strong> LangChain ile birkaç uygulama yapıldı; son olarak Streamlit (ön yüz/web uygulaması geliştirme kütüphanesi) ve OpenAI kütüphanesi ile bir uygulama geliştirildi. Bu ders, proje dosyası ve konu anlatım çizimleri Skool'daki Classroom bölümüne yüklendi.</li>
+</ul>
+<p><strong>Bu haftanın planı (çizim):</strong> 1. gün <strong>embedding</strong>, 2. gün <strong>vektör veritabanları</strong>. Vektör veritabanları dersinde biraz SQL'e değinileceği için hoca SQL'e genel olarak göz atılmasını önerdi; çok ayrıntılı bilmeye gerek yok.</p>
+<hr>
+<h3>2. Tekrar quiz'i — Kahoot (≈00:15–00:21)</h3>
+<p>Geçen haftanın konularından 13 soruluk bir quiz yapıldı (ne kadar hızlı doğru cevap verilirse o kadar çok puan). Sorular ve doğru cevaplar:</p>
+<ol>
+<li><strong>LLM nedir?</strong> → Büyük miktarda veriyle eğitilmiş dil modeli.</li>
+<li><strong>LLM tabanlı bir uygulamada model API'si neden kullanılır?</strong> → Uzakta çalışan modele istek göndermek için.</li>
+<li><strong>Bir API'ye gönderdiğimiz isteğin karşılığında gelen veri nedir?</strong> → Response (yanıt). Request (istek) atıyoruz, gelen cevabı genelde <code>response</code> adlı bir değişkene atıyoruz.</li>
+<li><strong>API key'in temel amacı nedir?</strong> → Kullanıcıyı/uygulamayı doğrulamak.</li>
+<li><strong>LangChain nedir?</strong> → LLM uygulamaları geliştirmek için kullanılan bir framework.</li>
+<li><strong>LangChain'in önemli avantajlarından biri?</strong> → Farklı LLM bileşenlerini birbirine bağlamak ("chain" adı da buradan gelir).</li>
+<li><strong>Prompt nedir?</strong> → Modele verdiğimiz talimat ve istek.</li>
+<li><strong>Context nedir?</strong> → Modelin cevap üretirken erişebildiği girdi bilgisi.</li>
+<li><strong>Hangisi context'in bir parçası olabilir?</strong> → Hepsi: kullanıcı mesajı, önceki konuşmalar, verilen dokümanlar.</li>
+<li><strong>Zero-shot prompting nedir?</strong> → Örnek vermeden görev vermek (one-shot'ta bir örnek verilir).</li>
+<li><strong>Prompt template neden kullanılır?</strong> → Dinamik ve tekrar kullanılabilir prompt oluşturmak için (içine değişken konur, değişken istenildiği gibi değiştirilir).</li>
+<li><strong>Context engineering'in temel amacı nedir?</strong> → Modele doğru zamanda doğru bilgiyi sağlamak.</li>
+<li><strong>Streamlit ne için kullanılabilir?</strong> → Python ile hızlı web arayüzü (UI) geliştirmek için.</li>
+</ol>
+<hr>
+<h3>3. Embedding nedir? (≈00:23–00:33)</h3>
+<h4>Multimodal modeller ve sayısal temsil</h4>
+<p>ChatGPT ilk çıktığında modellere yalnızca metin veriyor, metin alıyorduk. En yeni modeller ise <strong>multimodal</strong>: metin, resim ve ses kabul ediyorlar; bazıları video bile alabiliyor. Peki bu girdileri verdiğimizde arka planda ne oluyor?</p>
+<p>Arka planda bu girdiler <strong>sayısal temsillere</strong> çevriliyor. Büyük dil modelleri — hatta genel olarak derin öğrenme ve makine öğrenmesi modelleri — metinden, sesten, görüntüden anlamaz; <strong>sayısal verilerden anlar</strong>. Bu yüzden LLM uygulaması geliştirmek için embedding kavramını çok iyi öğrenmek gerekiyor.</p>
+<blockquote>
+<p><strong>Embedding → verileri sayısal temsillere çevirir.</strong></p>
+</blockquote>
+<p>Örnek (çizim): Modele bir kedi resmi verdiğinizde model resmi değil, embedding'den geçmiş vektörü "anlar": kedi → <code>[0.12, -0.45, 0.88, …]</code>. Köpek resmi → <code>[0.10, -0.40, 0.83, …]</code>. Embedding aslında bir <strong>vektördür</strong>.</p>
+<h4>Sayısal temsile nasıl çevriliyor? — Anlam uzayı</h4>
+<p>Sayısal temsile çevirmek, esasında <strong>benzer verileri uzayda birbirine yakın konumlara yerleştirmek</strong> demektir. Üç boyutlu bir uzay düşünelim:</p>
+<ul>
+<li>Köpeği bir yere konumlandırdık. Kedi anlamca köpeğe yakın olduğu için onu uzak bir köşeye değil, köpeğin yanına koyarız.</li>
+<li>Pizzayı başka bir yere koyduk. Salatayı da sosisi de pizzanın yanına koyarız; çünkü anlamca birbirlerine yakındırlar.</li>
+</ul>
+<p>Çizimdeki ikinci şekilde (kitaptan alınmış bir görsel) iki "öğrenilmiş boyut" (learned dimension) üzerinde kümeler var: <strong>Hayvanlar</strong> (cat, dog, puppy, kitten), <strong>Taşıtlar</strong> (bus, car, truck), <strong>Yiyecekler</strong> (apple, banana, orange), <strong>Kraliyet</strong> (king, queen, prince). Aynı gruptaki kelimeler uzayda birbirine yakın konumlanıyor.</p>
+<p><strong>Yapay zeka doğrudan kelime eşleştirmesine bakmaz.</strong> "Köpek" dediğinizde sadece "köpek" kelimesine değil, sayısal temsili köpeğe yakın olan kelimelere bakar:</p>
+<ul>
+<li>"Köpek" diye ararsanız → Kangal, enik, Golden gelebilir.</li>
+<li>"Salata" diye ararsanız → ezme, havuç tarator gelebilir.</li>
+</ul>
+<p>Hoca bunu canlı olarak bir görsel arama sitesinde [belirsiz: site adı transkriptte "piksime" olarak geçiyor, muhtemelen Pixabay] gösterdi: "okyanus kenarında gün batımı" araması yalnızca okyanus görselleri değil, İstanbul Boğazı'nda gün batımı, deniz gibi anlamca yakın sonuçlar da getiriyor; "ev" araması da yalnızca "ev" etiketli görselleri değil, ilişkili görselleri getiriyor. Sebebi embedding'ler: kelime sayısal temsile çevriliyor, o temsile yakın olanlar sonuç olarak geliyor.</p>
+<blockquote>
+<p><strong>Sistem birebir aynı olan kelimelere bakmaz → benzer anlamlı kelimelere bakar.</strong></p>
+</blockquote>
+<h4>İki tür arama: keyword search ve semantic search</h4>
+<ul>
+<li><strong>Keyword search (anahtar kelime araması) = kelime eşleşmesi.</strong> "Kangal" ararsanız doğrudan "kangal" kelimesini içeren sonuçlar gelir.</li>
+<li><strong>Semantic search (anlamsal arama) = anlam eşleşmesi.</strong> "Kangal" ararsanız köpek, kurt, Sivas ile ilgili sonuçlar da gelebilir.</li>
+</ul>
+<p><strong>Embedding'ler modern yapay zekanın temelidir.</strong> Girdiyi embedding'e çevirmezseniz hangi modeli kullanırsanız kullanın, hangi uygulamayı geliştirirseniz geliştirin bir anlamı yok; önce girdiyi embedding'e çevirmek gerekir.</p>
+<hr>
+<h3>4. Embedding'ler nerelerde kullanılır? (≈00:33–00:38)</h3>
+<p>Hoca soruyu öğrencilere sordu. Bir öğrenci görüntüden tanıma (ör. trafik/radar sistemlerinde plaka tanıma) örneğini verdi; hoca bunun <strong>computer vision</strong> alanı olduğunu, orada da resimlerin embedding'e çevrilmesi gerektiğini onayladı. Benzer resimleri getirmek, görsel arama yapmak da bu kapsamda; ancak bunlar daha çok computer vision tarafına giriyor. Yapay zeka mühendisliğinde ağırlıklı olarak RAG uygulamaları yapacağız.</p>
+<p>Çizimdeki üç ana kullanım alanı:</p>
+<ol>
+<li><strong>RAG:</strong> Doküman aramalarında anlamca en yakın dokümanı bulmak isteriz. Kullanıcı bir soru sorar; önce bu soru embedding'e çevrilir, sonra vektör veritabanında bu embedding'e en yakın vektörler bulunur ve getirilir (retrieve). Anlamca en yakın dokümanı bulmak için <strong>semantic search</strong> kullanılır.</li>
+<li><strong>Vektör veritabanları:</strong> Yapay zeka için verileri vektör veritabanlarında saklarız; böylece benzer içerikleri hızlıca buluruz. SQL veritabanları nasıl önemliyse vektör veritabanları da yapay zeka uygulamaları için o kadar önemli. Gelecek derste ayrıntılı görülecek ve kendi vektör veritabanımızı <strong>Docker</strong> ile kuracağız.</li>
+<li><strong>LLM uygulamaları:</strong> Uygulama girdilerini önce sayısal temsillere çeviririz. Yani embedding'ler aslında her yerde.</li>
+</ol>
+<p><strong>Özet (çizim):</strong></p>
+<ul>
+<li><strong>Embedding</strong> → Anlamı sayılara çevirme yöntemidir.</li>
+<li><strong>Vektör veritabanı</strong> → Sayısal temsilleri sakladığımız yer.</li>
+<li><strong>Semantic search</strong> → Kelimeye göre değil, anlama göre arama yapmak.</li>
+</ul>
+<p><strong>Soru:</strong> RAG bir semantic search yöntemi mi oluyor?
+<strong>Cevap:</strong> RAG aslında bir uygulama (yaklaşım); RAG'in içinde semantic search kullanıyoruz. Gelecek derste daha ayrıntılı anlatılacak.</p>
+<hr>
+<h3>5. Word2Vec öncesi: NLP neden geride kaldı? (≈00:41–00:47)</h3>
+<p>İlk derste de değinildiği gibi, 2010'dan sonra yapay zekada büyük ilerlemeler oldu, ama önce <strong>computer vision</strong> alanında: makineler insan seviyesinde "görmeye" başladı. Önce <strong>AlexNet</strong>, sonra <strong>GAN</strong>, ardından <strong>diffusion</strong> modelleri çıktı. NLP'de ise bir duraklama oldu. Neden?</p>
+<p>Çünkü metinleri anlamlı biçimde embedding'e çevirmekte zorlanıldı.</p>
+<p><strong>Computer vision'da durum:</strong> Resimler sınırlı sayıda pikselden oluşur ve kolayca sayısal temsile çevrilebilir. Örnek: <strong>MNIST</strong> veri seti — 28×28 boyutunda, gri tonlamalı el yazısı rakamlardan oluşan, computer vision'a başlayanların sıkça kullandığı meşhur bir veri seti. Bir "8" resmindeki her piksel 0 (siyah) ile 255 (beyaz) arasında bir sayıdır. Resmi <strong>düzleştirirsek</strong> (flatten) 28 × 28 = <strong>784</strong> sayıdan oluşan bir vektör elde ederiz: <code>[0, 0, 12, 85, 240, 255, …]</code>. Sınırlı sayıda sayı olduğu için AlexNet, GAN gibi modeller bunu rahatça işleyebiliyor.</p>
+<p><strong>Metinlerde durum:</strong> Metinsel verilerde <strong>öznitelikler (features) kelimelerdir</strong> (daha doğrusu token'lar). Öznitelik, verinin bir özelliğidir; örneğin ev fiyatları veri setinde metrekare bir özniteliktir. Metinde ise her kelime/token bir öznitelik oluyor.</p>
+<blockquote>
+<p>Hoca bu derste anlaşılır olsun diye "token" yerine "kelime" diyeceğini söyledi; ama kelime denince token anlaşılmalı. Token bazen bir kelime, bazen bir harf, bazen bir noktalama işareti olabilir.</p>
+</blockquote>
+<p>Çizimdeki renkli token görselinde ("Large Language Models (LLMs), such as GPT-3 and GPT-4, utilize a process called tokenization…") her renkli parça bir token. Bir kitabı, bir PDF'i, internet sayfalarını düşünün: <strong>devasa miktarda token</strong> ortaya çıkıyor. Her token bir öznitelik olduğu için, örneğin 30.000 kelimelik bir dokümanda 30.000 öznitelik çıkıyor; model ne kadar derin olursa olsun bunu işleyemiyor.</p>
+<hr>
+<h3>6. Klasik teknikler: Bag of Words ve TF-IDF (≈00:47–00:51)</h3>
+<p>Word2Vec'ten önce klasik teknikler vardı: <strong>Bag of Words</strong> (kelime torbası — kelimeleri bir torbaya atıyoruz) ve <strong>TF-IDF</strong>. Bu teknikler kelimeleri sayısala çeviriyordu ama <strong>kelimenin anlamını yakalayamıyordu</strong>. Ayrıntılarına girmeye gerek yok.</p>
+<p>Örnek — üç cümle: <em>"the red dog"</em>, <em>"cat eats dog"</em>, <em>"dog eats food"</em>. Bu üç cümledeki kelimeler tek tek alınınca sözlük (vocabulary) altı kelimeden oluşur: the, red, dog, cat, eats, food. Her cümle için kelime varsa 1, yoksa 0 yazılır:</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th></th>
+<th>the</th>
+<th>red</th>
+<th>dog</th>
+<th>cat</th>
+<th>eats</th>
+<th>food</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>the red dog</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>cat eats dog</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr>
+<td>dog eats food</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+</tr>
+</tbody>
+</table></div>
+<p>Sadece üç cümleden bu kadar veri çıktı. Sözlüğün 30.000 kelime olduğunu düşünün: üç kelimelik bir cümle için üç tane 1, geriye kalan <strong>29.997 tane 0</strong> oluşur. Hem çok fazla sıfır (seyrek veri) oluşuyor hem de çok büyük miktarda veri ortaya çıkıyor.</p>
+<hr>
+<h3>7. Word2Vec (≈00:47 ve ≈00:51–00:54)</h3>
+<p><strong>Word2Vec</strong>, 2013'te Google tarafından geliştirildi ve <strong>NLP'deki ilk büyük gelişme</strong> oldu. İki şey sağladı:</p>
+<ol>
+<li><strong>Boyut küçültme:</strong> 30.000 token'lık bir vektörü örneğin 1.000 boyuta, 5.000 boyuta, hatta istenirse 4 boyuta indirebiliyor.</li>
+<li><strong>Anlamı yakalama:</strong> Kelimeleri bir uzaya taşıyıp birbirine yakın kelimeleri birbirine yakın yerlere konumlandırıyor.</li>
+</ol>
+<p><strong>Temel fikir:</strong> Bir kelimenin anlamını <strong>çevresindeki kelimelerden</strong> öğrenebiliriz. Aynı cümlede geçen kelimeler genellikle birbiriyle yakın anlamlıdır — mantıklı, çünkü bir cümlede birbirine yakın kelimeleri kullanırız.</p>
+<p>Örnek: <em>"Sabahları çay, öğlenleri kahve içerim."</em> Çay ve kahve aynı cümlede geçtiği için birbirine yakın kelimelerdir. "Çay"ın çevresinde genelde içmek, kahve, fincan, sabah, demlik gibi kelimeler geçer. Bu kelimeler benzer anlamdadır, dolayısıyla <strong>uzayda yakın yerlerde temsil edilirler</strong>. Word2Vec ile artık "kahve çayla alakalı, demlik çayla ilgili, sabah fincanla ilişkili" diyebiliyoruz.</p>
+<p><strong>Soru:</strong> Bag of Words ve TF-IDF computer vision teknikleri mi?
+<strong>Cevap:</strong> Hayır; bunlar metinleri sayısal temsile çevirme teknikleri. İçlerinde biraz matematiksel işlem var, kafa karıştırmamak için ayrıntıya girilmedi. Bilinmesi gereken: bu tekniklerle sayısal temsile çevirebiliyoruz ama çok büyük miktarda veri çıkıyor ve kelimelerin anlamı yakalanamıyor. Örneğin tabloda "red" ve "dog" hep 1 olarak geçiyor ama aralarındaki anlam ilişkisi yakalanmıyor; anlam yakalanamadığı için semantic search yapılamıyor, modellerden mantıksal cevaplar alınamıyor.</p>
+<h4>Çizimden: Word2Vec görselleri (≈00:54–01:22 aralığı, transkriptte yok)</h4>
+<blockquote>
+<p>Bu bölüm molanın ardından anlatılmış ancak transkriptte bulunmuyor; içerik hocanın çiziminden aktarıldı.</p>
+</blockquote>
+<ul>
+<li>King, man, woman kelimeleri Word2Vec'ten geçip renkli vektörlere dönüşüyor. Örnek vektörler: king → <code>[0.25, -0.12, 0.88, …]</code>, queen → <code>[0.27, -0.10, 0.84, …]</code> (king'e çok yakın), car → <code>[-0.65, 0.31, 0.05, …]</code> (uzak).</li>
+<li><strong>king − man + woman ≈ queen</strong> (vektör aritmetiği).</li>
+<li>7 boyutlu örnek tablo (sütunlar: living being, feline, human, gender, royalty, verb, plural): cat, kitten, dog, houses vektörleri 2 boyuta indirildiğinde cat–kitten–dog birbirine yakın, houses uzak duruyor. Aynı şekilde man–women ve king–queen arasındaki fark yönleri paralel.</li>
+<li><strong>Embedding Projector</strong> ekran görüntüsü: "Word2Vec 10K" veri seti (10.000 nokta, 200 boyut), PCA ile 3 boyutta görselleştirme (UMAP, t-SNE seçenekleri de var).</li>
+<li><strong>"Word2Vec bir devrim yaptı."</strong> Ardından iki türev:</li>
+<li><strong>GloVe</strong> — Stanford, 2014. Yanında <strong>corpus</strong> notu ve örnek: "I drink coffee", "I like coffee", "I drink tea", "I like tea" → coffee↔drink, coffee↔like, tea↔drink, tea↔like eş-geçişleri → coffee <code>[0.21, -0.53, 0.72, …]</code>, tea <code>[0.18, -0.49, 0.69, …]</code> (birbirine yakın vektörler).</li>
+<li><strong>FastText</strong> — Facebook AI Research (FAIR), 2016.</li>
+</ul>
+<p><strong>Soru (01:22):</strong> GloVe'da "corpus" dediniz, onu anlamadım.
+<strong>Cevap:</strong> Corpus aslında üzerinde çalışılan sözlüğümüz, yani metin derlemi. Bag of Words örneğinde corpus altı kelimeden oluşuyordu; bir kitabı alırsanız kitaptaki kelimelerden, internetteki web sitelerini alırsanız onlardaki kelimelerden oluşur. Corpus'u kendimiz belirliyoruz. Corpus büyüdükçe işlemler yavaşlayabilir ama daha kaliteli sonuçlar alınır; parametre sayısına benzetilebilir (modeller trilyon parametreye ulaştı, 7B/24B/36B gibi modeller de var; model büyüdükçe daha iyi cevap verir ama gereken hesaplama gücü artar). Burada bir <strong>trade-off</strong> bulmanız gerekiyor.</p>
+<blockquote>
+<p>Not: Hoca "corpus büyüdükçe vektör boyutları uzuyor" dedi. Word2Vec/GloVe'da embedding boyutu (ör. 300) bir hiperparametredir ve corpus'tan bağımsızdır; corpus büyüyünce büyüyen şey sözlük (vocabulary) yani tablo satır sayısıdır. One-hot/Bag of Words temsilinde ise vektör uzunluğu doğrudan sözlük büyüklüğüne eşittir.</p>
+</blockquote>
+<p><strong>Ek soru:</strong> Corpus kelimesi GloVe'a mı özel, yoksa genel mi? (Bir öğrenci: "Modelin üzerinde çalıştığı metinlerin tümü diyebiliriz.")
+<strong>Cevap:</strong> Evet, NLP'de genel olarak kullanılan bir terim; modelin üzerinde çalıştığı metinlerin bütünü.</p>
+<hr>
+<h3>8. Uygulama 01 için ortam kurulumu (≈01:23–01:42)</h3>
+<p>Hoca her proje için ayrı bir çalışma ortamı kurulmasını tavsiye etti.</p>
+<ol>
+<li>Masaüstünde yeni bir klasör oluşturuldu (hocanınki <code>d03</code>; isim serbest).</li>
+<li>VS Code'da <strong>File → Open Folder</strong> ile bu klasör açıldı (sağ tık menüsünde VS Code görünmeyenler doğrudan VS Code'dan açabilir). Hoca, ders başlamadan klasörün ve ortamın hazırlanabileceğini söyledi.</li>
+<li>Terminal açıldı (menüden ya da <code>Ctrl + "</code> kısayoluyla).</li>
+<li>Proje başlatıldı. Bazı sistemlerde varsayılan olarak Python 3.14 kuruluyor; hoca sürümü kendisi belirlemek istedi (3.11 de olur):</li>
+</ol>
+<pre><code class="language-bash">uv init --python 3.12
+</code></pre>
+<ol start="5">
+<li>Gerekli kütüphaneler eklendi (<code>uv add</code> kütüphane yükleme komutu):</li>
+</ol>
+<pre><code class="language-bash">uv add gensim numpy jupyter
+</code></pre>
+<ul>
+<li><strong>Gensim:</strong> Word2Vec gibi modellerle çalışmak için kullanışlı, bir dönem çok daha meşhur olan ve bu işle uğraşanların hâlâ kullandığı kütüphane.</li>
+<li><strong>NumPy:</strong> Python'da çok boyutlu dizi işlemleri için en çok kullanılan kütüphane.</li>
+<li><strong>Jupyter:</strong> Notebook ile çalışacağımız için.</li>
+<li>uv sadece bu kütüphaneleri değil, bağlı oldukları kütüphaneleri de otomatik yüklüyor (ör. <strong>SciPy</strong> — bilimsel hesaplamada çok kullanılan önemli bir kütüphane).</li>
+</ul>
+<ol start="6">
+<li>Yeni bir notebook dosyası oluşturuldu: <code>01-word2vec.ipynb</code>. (Python dosyası olsaydı uzantı <code>.py</code> olurdu; burada <code>.ipynb</code> notebook.)</li>
+<li>Sağ üstteki <strong>Select Kernel → Python Environments</strong> ile klasördeki <code>.venv</code> ortamı seçildi (uv ortam adını otomatik oluşturur; conda'da adı kendimiz veririz). Yeni hücre eklenerek ortam hazır hale geldi.</li>
+</ol>
+<p>Notebook'ta kodlar satır satır / hücre hücre çalıştırılabiliyor; hepsini birden çalıştırmak zorunda değilsiniz.</p>
+<h4>Kernel görünmeme sorunu (bir öğrencinin ekranında birlikte çözüldü)</h4>
+<ul>
+<li>Öğrencinin terminalinde conda'nın <code>base</code> ortamı aktifti. Önce <code>conda deactivate</code> ile çıkıldı, VS Code kapatılıp açıldı; olmayınca <strong>Existing Jupyter Server</strong> denendi (<code>uv add jupyter</code>, <code>uv run jupyter notebook</code> ile sunucu başlatıp linkini yapıştırma) — parola istedi, uzun bir yol olduğu için bırakıldı.</li>
+<li>Pratik çözüm: Conda kullanan öğrenci, <strong>Select Kernel → Python Environments</strong> altında <strong>Anaconda 3</strong> ortamını seçip kütüphaneleri conda ile yükleyerek devam etti (<code>conda install jupyter</code> vb.).</li>
+<li>Hoca: Anaconda bilgisayarda çok yer kaplıyor ve biraz kompleks, genelde veri bilimi için kullanılıyor; biz uv kullanıyoruz çünkü basit ve hızlı. Yine de uv ile sorun yaşayan conda ile devam edebilir; sorunlar dersten sonra birlikte çözülecek.</li>
+</ul>
+<hr>
+<h3>9. Uygulama 01 — Word2Vec Demo (≈01:42–01:54, analoji kısmı ≈01:58–02:17 boşluğunda)</h3>
+<h4>Modelin yüklenmesi</h4>
+<p>Gensim'in <code>downloader</code> modülü <code>api</code> takma adıyla import edildi:</p>
+<pre><code class="language-python">import gensim.downloader as api
+</code></pre>
+<p>Hazır eğitilmiş Word2Vec modeli indirildi. İndirme zaman alabiliyor (≈1.5–1.6 GB):</p>
+<pre><code class="language-python">print(&quot;Word2Vec modeli yükleniyor...&quot;)
+
+word2vec_model = api.load(&quot;word2vec-google-news-300&quot;)
+
+print(&quot;Model yüklendi!&quot;)
+</code></pre>
+<p>Bu embedding modeli <strong>Google News</strong> veri seti üzerinde eğitilmiş; her token <strong>300 boyutlu</strong> bir vektörle temsil ediliyor.</p>
+<h4>Bir kelimenin vektörüne bakmak</h4>
+<pre><code class="language-python">word = &quot;king&quot;
+
+vector = word2vec_model[word]
+
+print(type(vector))
+</code></pre>
+<p>Tip: <code>numpy.ndarray</code> — yani lisede gördüğümüz türden, tek boyutlu bir vektör.</p>
+<pre><code class="language-python">print(vector.shape)
+</code></pre>
+<p>Sonuç <code>(300,)</code>: her token 300 boyutlu bir vektörle temsil ediliyor.</p>
+<pre><code class="language-python">print(vector[:10])
+</code></pre>
+<p>İlk 10 değer ekrana yazdırıldı; her boyut ondalıklı bir sayı.</p>
+<h4>En yakın kelimeler</h4>
+<pre><code class="language-python">word2vec_model.most_similar(&quot;king&quot;, topn=10)
+</code></pre>
+<p><code>most_similar</code> metodu, verilen kelimeye vektör uzayında en yakın kelimeleri (benzerlik skorlarıyla) döndürür; <code>topn=10</code> en yakın 10 kelimeyi getirir.</p>
+<h4>Vektör aritmetiği — analoji (transkriptte yok, notebook'tan)</h4>
+<blockquote>
+<p>Hoca 01:28'de "token'ları sayısal temsile çevirdikten sonra toplama-çıkarma gibi işlemler yapabiliyoruz; king ile woman'ı toplayıp man'i çıkarırsak queen'i elde ediyoruz, bunu göstereceğim" dedi. Bu gösterimin yapıldığı aralık transkriptte bulunmuyor; kod notebook'tan alındı.</p>
+</blockquote>
+<pre><code class="language-python">king_vector = word2vec_model[&quot;king&quot;] 
+man_vector = word2vec_model[&quot;man&quot;] 
+woman_vector = word2vec_model[&quot;woman&quot;] 
+
+analogy_vector = king_vector - man_vector + woman_vector
+
+len(analogy_vector)
+</code></pre>
+<pre><code class="language-python">result = word2vec_model.similar_by_vector(analogy_vector, topn=10)
+</code></pre>
+<pre><code class="language-python">for word, score in result: 
+    print(f&quot;{word}: {score:.4f}&quot;)
+</code></pre>
+<p>İkinci analoji: Paris − France + Germany → (beklenen: Berlin)</p>
+<pre><code class="language-python">analogy_vector2 = word2vec_model[&quot;Paris&quot;] + word2vec_model[&quot;Germany&quot;]- word2vec_model[&quot;France&quot;]
+
+result2 = word2vec_model.similar_by_vector(analogy_vector2, topn=10)
+
+for word, score in result2:
+    print(f&quot;{word}: {score:.4f}&quot;)
+</code></pre>
+<h4>Derste yaşanan sorunlar</h4>
+<ul>
+<li><strong>Kopyala-yapıştır hatası:</strong> Bir öğrencide kod WhatsApp'tan kopyalanınca satırlar tek satıra birleşti / ilk satır (import) çalıştırılmamıştı; <code>gensim</code> modülü bulunamadı hatası alındı. Satırlar Enter ile ayrılıp import hücresi önce çalıştırılınca düzeldi. Başka bir öğrencide ise <code>gensim</code> hiç yüklenmemişti (<code>uv add gensim</code> atlanmıştı).</li>
+<li><strong>Yavaş indirme / uv takılması:</strong> İnternet hızlı olmasına rağmen indirme çok yavaş giden öğrenciye alternatif olarak <code>pip install gensim</code> önerildi. Hoca: "Bazen uv'de, hatta Claude'a ya da ChatGPT'ye bağlanırken bile sorun çıkabiliyor; ertesi gün çok daha hızlı yüklenebiliyor."</li>
+</ul>
+<h4>Hocanın motivasyon notu</h4>
+<p>Şu an basit uygulamalar yapıyoruz ama sonra hepsini birleştireceğiz; bir yapboz gibi düşünün. Embedding'i bilmezseniz RAG uygulaması, ajan uygulaması geliştiremezsiniz. Adım adım, küçük adımlarla ilerliyoruz. Yapamadığınız yeri dersten sonra videodan tekrar deneyin; olmazsa birlikte bakılır. Önemli olan istekli olmak ve problemlerin üstesinden gelmek; moral bozmamak.</p>
+<hr>
+<h3>10. Statik embedding'in sorunu: "bank" örneği (≈02:17–02:23)</h3>
+<p>İki cümle:</p>
+<ul>
+<li><em>"I deposited money in the bank."</em> (Bankaya para yatırdım.)</li>
+<li><em>"I sat near the river bank."</em> (Nehir kıyısına/kenarına oturdum.)</li>
+</ul>
+<p>İki "bank" aynı yazılıyor ama anlamları farklı (sesteş). <strong>Word2Vec'teki sorun:</strong> her iki "bank" <strong>aynı vektörle</strong> temsil ediliyor. Biz ise bağlama (context) bakılarak farklı sayısal temsillere çevrilmelerini istiyoruz.</p>
+<p>Şimdiye kadar gördüğümüz <strong>Word2Vec, GloVe, FastText</strong> → <strong>statik embedding</strong>: her kelime belirli, sabit bir sayısal temsile sahip.</p>
+<h4>Context embedding (bağlamsal embedding)</h4>
+<p>Bu problemi çözmek için <strong>context embedding</strong> kullanıyoruz: <strong>bir kelimenin vektörü, cümledeki anlamına göre değişir</strong>. Bunu <strong>Transformer mimarisi</strong> ile yapıyoruz.</p>
+<ul>
+<li><em>"Bank approved my loan."</em> → vektör A</li>
+<li><em>"We sat by the river bank."</em> → farklı bir vektör</li>
+</ul>
+<p>(Not: Çizimde her iki cümlenin altına da "vektör A" yazılmış; anlatımın bağlamına göre ikincisinin farklı bir vektör, örn. "vektör B" olması kastediliyor.)</p>
+<p>Context embedding üreten modeller: <strong>BERT</strong>, <strong>GPT</strong>. Model sadece kelimelere değil, cümledeki anlama da bakıyor. Bunun için <strong>Hugging Face</strong> kütüphanesini (<code>transformers</code>) kullanacağız.</p>
+<h4>Hugging Face ile işlem sırası</h4>
+<p>Hoca bunun çok önemli olduğunu vurguladı; ister fine-tuning yapın ister Hugging Face ile metin/resim çalışması yapın, adımlar bu sırayla atılır:</p>
+<pre><code>Metin → Tokenlaştırma → Vektör embedding'lere çevirme → (Transformer) → bağlama göre güncellenen embedding'ler
+</code></pre>
+<ul>
+<li>İlk kısım (metin → token → vektör) statik kısımdır; hoca bunu "Word2Vec ile kelimeleri sayısal temsile çeviriyoruz" diye anlattı (çizimde bu üç adım "Word2Vec" ile parantezlenmiş).</li>
+<li>Sonra bunlar Transformer mimarili modellerden geçiriliyor, <strong>her vektör güncelleniyor</strong>: vektör embedding'ler sabit kalmaz, bağlama göre güncellenir. Böylece <strong>Apple şirketi ≠ Apple meyve</strong> ayrımı ortaya çıkıyor.</li>
+</ul>
+<blockquote>
+<p>Not: BERT ve GPT, Word2Vec vektörlerini kullanmaz; kendi eğitim sırasında öğrenilen bir giriş embedding tablosu (token embedding + konum embedding) vardır. "Word2Vec" burada "kelime başına sabit vektör" fikrinin karşılığı olarak kullanılmış.</p>
+</blockquote>
+<hr>
+<h3>11. Uygulama 02 — Context Embedding (≈02:24–02:50)</h3>
+<h4>Hazırlık</h4>
+<p>Yeni bir notebook (<code>02-context-embedding.ipynb</code>) oluşturuldu, kernel seçildi, terminalde <code>transformers</code> eklendi:</p>
+<pre><code class="language-bash">uv add transformers
+</code></pre>
+<p><strong>Hugging Face</strong> hakkında: açık kaynak modellerin bulunduğu bir platform; içinde birçok kütüphane var ve son dönemde çok daha meşhur oldu. Models sekmesinde 3 milyondan fazla açık kaynak model var. Bu modelleri kullanmak için <code>transformers</code> kütüphanesi kullanılıyor.</p>
+<h4>Tokenizer</h4>
+<p>Her modelin farklı bir tokenlaştırma tekniği var. <code>AutoTokenizer</code> sınıfı, model adını verdiğimizde o modelin tokenizer'ını otomatik indiriyor (ayrıca da indirilebilir ama bu pratiklik sağlıyor). Kullanılan model: <strong>bert-base-multilingual-cased</strong>.</p>
+<pre><code class="language-python">from transformers import AutoTokenizer 
+
+model_name = &quot;bert-base-multilingual-cased&quot; 
+
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+</code></pre>
+<pre><code class="language-python">text = &quot;Yapay zeka çok hızlı gelişiyor.&quot;
+tokens = tokenizer.tokenize(text)
+print(tokens)
+</code></pre>
+<p>Çıktıdaki token'lar kelime kökü ya da tam kelime şeklinde değil; her modelin kendi tokenlaştırması var. <strong><code>##</code></strong> işareti, o parçanın öncesinde başka bir token olduğunu (kelimenin devamı olduğunu) gösterir.</p>
+<p><strong>Soru:</strong> Boşluk için bir token var mı?
+<strong>Cevap:</strong> Boşluk için ayrı bir karakter koymamış. Bir öğrenci ekledi: önünde <code>##</code> yoksa öncesinde boşluk olduğu anlaşılıyor; hoca onayladı. Bu bizim anlayacağımız gibi değil, modelin anlayacağı şekilde.</p>
+<p>Token'ların sayısal karşılıkları (ID'leri):</p>
+<pre><code class="language-python">input_ids = tokenizer.convert_tokens_to_ids(tokens) 
+
+print(input_ids)
+</code></pre>
+<p>Her token'ın sözlükte bir sayısal karşılığı var. (Ekranda okunan örnek ID'ler transkriptte net değil [belirsiz].) Yine: model metinden değil, sayılardan anlar.</p>
+<h4>Mülakat tavsiyesi</h4>
+<p>Hoca, bu konuların teorik gelebileceğini ama <strong>mülakatlarda sorulduğunu</strong> vurguladı. Context embedding gibi konular projelerle de pekişir ama bilinmesi gerekir; bir öğrencinin girdiği mülakatta da embedding ve benzeri konuların [belirsiz: transkriptte "KPI"] sorulduğunu aktardı.</p>
+<h4>PyTorch kurulumu</h4>
+<p><strong>PyTorch</strong>, derin öğrenme için kullanılan (TensorFlow ile birlikte) en meşhur kütüphanelerden biri; Facebook (Meta) tarafından geliştirildi. Hugging Face <code>transformers</code> PyTorch üzerine inşa edildiği için bizim için önemli.</p>
+<p>Kurulum için pytorch.org'daki seçim ekranı kullanılıyor: işletim sistemi (Mac'te Mac, Windows'ta Windows), paket yöneticisi (pip), dil (Python) ve <strong>CUDA sürümü</strong> seçilip oluşan komut kopyalanıyor. Hoca CUDA 13.0'ı seçti.</p>
+<p>Hangi CUDA sürümünüzün olduğunu görmek için terminalde:</p>
+<pre><code class="language-bash">nvidia-smi
+</code></pre>
+<p>Bu komut ekran kartı bilgilerini gösteriyor: hocanın ekranında CUDA sürümü 13.x, ekran kartı NVIDIA GeForce RTX 5080, VRAM 16 GB. CUDA sürümüne göre seçim yapılır.</p>
+<p>Kopyalanan komut <code>pip3 install …</code> şeklinde geliyor (Windows seçilmesine rağmen). Hoca: <code>pip3</code>'teki <strong>3'ü silin</strong>, yoksa hata veriyor; başına da <code>uv</code> ekleyin:</p>
+<pre><code class="language-bash">uv pip install torch ...   # pytorch.org'dan kopyalanan komutun devamı, pip3 → pip
+</code></pre>
+<p>PyTorch büyük bir kütüphane (bir öğrencide CUDA sürümü ≈1.8 GB).</p>
+<p><strong>CUDA'lı ve CUDA'sız sürüm farkı:</strong> CUDA sürümü işlemlerin GPU'da yapılmasını sağlar. CUDA sürümü yüklenmezse işlemler CPU'da yapılır; GPU'da işlemler paralel ve hızlı, CPU'da sıralı ve yavaş.</p>
+<p>Kontrol:</p>
+<pre><code class="language-python">import torch
+
+print(torch.__version__)
+print(torch.cuda.is_available())
+print(torch.version.cuda)
+</code></pre>
+<p>Sırasıyla PyTorch sürümü, CUDA kullanılabilir mi, CUDA sürümü yazdırılır. Hocada CUDA kullanılabilir (<code>True</code>) çıktı.</p>
+<p><strong>Mac kullanan öğrenci:</strong> <code>cuda.is_available</code> <code>False</code> döndü, MPS çıktı. Hoca: CUDA NVIDIA GPU gerektirir; Apple Silicon Mac'lerde Apple GPU'su var ve <strong>MPS</strong> kullanılabiliyor; bunun için o platforma uygun komut kullanılmalı. GPU yoksa da CPU ile devam edilebilir; işlemler CPU'da da yapılabilir.</p>
+<p><strong>Conda kullanan öğrenci:</strong> Conda ile indirirken de CUDA sürümünü istediğinizi belirtmeniz gerekiyor.</p>
+<p><strong>"No module named torch" / yükledim ama görmüyor sorunu:</strong> Yükleme yapıldıktan sonra <strong>kernel'i yeniden başlatmak (Restart)</strong> gerekiyor; yeni yüklenen kütüphanenin görülmesi için kernel'in kapatılıp açılması şart. Bir öğrencinin önerisiyle hoca da restart edince sorun çözüldü.</p>
+<h4>Modelin indirilmesi ve girdilerin hazırlanması</h4>
+<pre><code class="language-python">from transformers import AutoModel
+
+model = AutoModel.from_pretrained(model_name)
+</code></pre>
+<p>Model ağırlıkları indirildi. Çıkan uyarı (Hugging Face hesabıyla ilgili) önemli değil.</p>
+<pre><code class="language-python">text = &quot;Yapay zeka çok hızlı gelişiyor.&quot; 
+
+inputs = tokenizer( text, return_tensors=&quot;pt&quot; ) 
+
+print(inputs)
+</code></pre>
+<p><code>return_tensors="pt"</code>: dönen veri tipini <strong>PyTorch tensörü</strong> olarak ayarlar. Metin model anlayacağı şekle getirilmiş olur. Hoca'nın çıktı yorumu:</p>
+<ul>
+<li>İlk token her zaman <strong>101</strong> ile başlıyor, son token <strong>102</strong> — bunlar özel token'lar (<strong>[CLS]</strong> ve <strong>[SEP]</strong>).</li>
+<li>Hoca, çıktıdaki sıfırları ve birleri şöyle açıkladı: her vektörün sabit bir uzunluğu var (örneğin 300); 20 token'lık bir girdi verirseniz geri kalan kısım boş kalır, oraya <strong>padding</strong> (sıfırlar) eklenir; birler "bu token'lara dikkat et", sıfırlar "bunlara dikkat etme" anlamına gelir.</li>
+</ul>
+<blockquote>
+<p>Not: Tek bir cümle verildiğinde çıktıdaki <code>token_type_ids</code> (hepsi 0) cümle/segment kimliğidir, <code>attention_mask</code> (hepsi 1) ise gerçek token'ları işaretler. Padding ve <code>attention_mask</code>'teki 0'lar, ancak farklı uzunlukta birden çok cümle birlikte (batch) ve <code>padding=True</code> ile verildiğinde ortaya çıkar. Hocanın "1 = dikkat et, 0 = dikkat etme" açıklaması <code>attention_mask</code> için doğrudur.</p>
+</blockquote>
+<h4>Context embedding'lerin elde edilmesi</h4>
+<pre><code class="language-python">with torch.no_grad():
+    outputs = model(**inputs)
+
+# Modelin son katmandaki token temsilleri
+token_embeddings = outputs.last_hidden_state
+
+print(token_embeddings.shape)
+</code></pre>
+<ul>
+<li><code>torch.no_grad()</code>: "Burada eğitim yapma" diyoruz; modeli eğitmiyoruz, sadece girdiyi verip çıktıyı (tahmini) alıyoruz.</li>
+<li><code>last_hidden_state</code>: son katmandan çıkan değerler, yani <strong>context embedding'ler</strong>.</li>
+<li>Shape üç boyutlu: <strong>[batch, token sayısı, 768]</strong>. Bir metin (batch = 1), N token, her token <strong>768 boyutlu</strong> bir vektöre çevriliyor (768 = BERT-base'in gizli katman boyutu; öznitelik sayısı gibi düşünülebilir). (Bu cümle için ekranda okunan token sayısı transkriptte net değil [belirsiz: 11 ve 15 sayıları geçiyor].)</li>
+</ul>
+<p>Token'lar ve embedding'ler birlikte:</p>
+<pre><code class="language-python">tokens = tokenizer.convert_ids_to_tokens(inputs[&quot;input_ids&quot;][0])
+
+for token, embedding in zip(tokens, token_embeddings[0]):
+    print(f&quot;{token:15} -&gt; {embedding.shape}&quot;)
+</code></pre>
+<p>Her token (başta <code>[CLS]</code>, sonda <code>[SEP]</code> dahil) 768 boyutlu bir vektöre karşılık geliyor.</p>
+<h4>"bank" deneyi</h4>
+<p>Önce iki cümle modelden geçirildi ve çıktı boyutları yazdırıldı:</p>
+<pre><code class="language-python">sentences = [
+    &quot;I deposited money in the bank.&quot;,
+    &quot;I sat near the river bank.&quot;
+]
+
+for sentence in sentences:
+    inputs = tokenizer(sentence, return_tensors=&quot;pt&quot;)
+
+    with torch.no_grad():
+        outputs = model(**inputs)
+
+    print(sentence)
+    print(outputs.last_hidden_state.shape)
+</code></pre>
+<p>Token'lar görüntülendi:</p>
+<pre><code class="language-python">sentences = [
+    &quot;I deposited money in the bank.&quot;,
+    &quot;I sat near the river bank.&quot;
+]
+
+for sentence in sentences:
+    inputs = tokenizer(sentence, return_tensors=&quot;pt&quot;)
+    tokens = tokenizer.convert_ids_to_tokens(inputs[&quot;input_ids&quot;][0])
+
+    print(sentence)
+    print(tokens)
+    print(&quot;-&quot; * 50)
+</code></pre>
+<p>Her iki cümledeki "bank" token'ının embedding'i çekildi:</p>
+<pre><code class="language-python">bank_embeddings = []
+
+for sentence in sentences:
+    inputs = tokenizer(sentence, return_tensors=&quot;pt&quot;)
+    tokens = tokenizer.convert_ids_to_tokens(inputs[&quot;input_ids&quot;][0])
+
+    with torch.no_grad():
+        outputs = model(**inputs)
+
+    token_embeddings = outputs.last_hidden_state[0]
+
+    bank_index = tokens.index(&quot;bank&quot;)
+    bank_embedding = token_embeddings[bank_index]
+
+    bank_embeddings.append(bank_embedding)
+
+    print(&quot;Cümle:&quot;, sentence)
+    print(&quot;Tokenlar:&quot;, tokens)
+    print(&quot;'bank' token index:&quot;, bank_index)
+    print(&quot;'bank' embedding shape:&quot;, bank_embedding.shape)
+    print(&quot;'bank' embedding ilk 10 değer:&quot;)
+    print(bank_embedding[:10])
+    print(&quot;-&quot; * 50)
+</code></pre>
+<p>Hocanın adım adım açıklaması: boş bir liste oluşturduk; cümleyi tokenize edip <code>inputs</code> değişkenine atadık; token'ları sayısal temsillere çevirip modele verdik; modele "eğitim yapma" dedik (<code>no_grad</code>) — eğitmeden doğrudan cevap verdirdik; <code>last_hidden_state</code> ile context embedding'leri aldık; <code>bank</code> token'ının indeksini bulup sadece onun embedding'ini seçtik ve listeye ekleyip yazdırdık.</p>
+<p><strong>Sonuç:</strong> İki "bank"ın vektörlerinin ilk değerleri birbirinden farklı. Yani cümledeki farklı kullanım sayesinde model iki "bank"ı ayırabildi; Word2Vec'te bunu ayıramıyorduk, aynı sayısal temsil çıkıyordu.</p>
+<p>Word2Vec'in en büyük problemi: aynı yazılan bütün kelimeleri aynı vektörle temsil etmesi. Meyve olan elma (apple) ile şirket olan Apple aynı harflerle yazılıyor ama cümledeki anlamları farklı. Transformer mimarisi bunu bizim için ayarlıyor.</p>
+<p><strong>Soru:</strong> Bunları her zaman böyle elle mi yapacağız?
+<strong>Cevap:</strong> Hayır. Framework'ler ve modeller bunu kendileri yapıyor. Burada kaputun altında işlemlerin nasıl olduğunu göstermek, <strong>static embedding</strong> ile <strong>context embedding</strong> farkını anlamak için yaptık. Tam anlaşılmadıysa canınızı sıkmayın; konsepti anlamak yeterli.</p>
+<hr>
+<h3>12. Özet: statik vs. bağlamsal ve metin işleme hattı (≈02:50–02:54)</h3>
+<ul>
+<li><strong>Static embedding:</strong> Her kelimeye doğrudan bir sayısal temsil verir; her kelimenin sabit bir embedding'i vardır.</li>
+<li><strong>Context embedding:</strong> Bağlama göre token'ların sayısal temsilini verir; aynı kelimenin temsili cümleye göre değişir.</li>
+</ul>
+<p>Metin işleme hattı (çizimdeki şema, örnek: "The dog sat on the couch."):</p>
+<pre><code>Text: &quot;The dog sat on the couch.&quot;
+  → Standardization (standartlaştırma; ör. hepsini küçük harfe çevirme): &quot;the dog sat on the couch&quot;
+  → Tokenization (metni küçük parçalara ayırma): &quot;the&quot;, &quot;dog&quot;, &quot;sat&quot;, &quot;on&quot;, &quot;the&quot;, &quot;couch&quot;
+  → Indexing (sayısal karşılıklar): 4, 22, 63, 7, 4, 143
+  → One-hot encoding veya embedding (her indeks bir vektöre)
+</code></pre>
+<p>Hocanın genel tavsiyesi: Bu konuların her biri aslında başlı başına bir bootcamp ya da kitap konusu. Derste anlatılabildiği kadar anlatılıyor; derinleşmek size kalıyor — proje yaparak, kitap ve makale okuyarak kendinizi geliştirebilirsiniz. Bir öğrencinin özetiyle: embedding = sayısal temsile çevirme; her platformun/modelin ayrı bir tokenizer'ı var, token'lar sayılara karşılık geliyor, arkasında sayısal temsillere çevirme var. Bu konsepti bilmek ilerideki konular için temel teşkil ediyor.</p>
+<hr>
+<h3>13. Doc2Vec (≈02:57–03:01)</h3>
+<p>Şimdiye kadar tek tek kelimeleri sayısal vektörlere çevirdik ("cat", "kitten", "car" → sayı vektörü). Ama gerçek hayatta tek kelimeyle değil, <strong>daha büyük metinlerle</strong> çalışırız: bir cümle, bir paragraf, bir makale, bir ürün açıklaması. Bunları embedding vektörlerine çevirmek için <strong>Doc2Vec</strong> tekniğini kullanıyoruz: <strong>uzun metinleri</strong> vektör embedding'lere çevirir.</p>
+<p><strong>Word2Vec vs Doc2Vec:</strong></p>
+<ul>
+<li>Word2Vec → her <strong>kelimeyi</strong> vektöre çevirir; kelimeler arasındaki ilişkiyi öğrenir.</li>
+<li>Doc2Vec → her <strong>dokümanı</strong> (paragraf, sayfa…) vektöre çevirir; dokümanlar arasındaki ilişkiyi öğrenir.</li>
+</ul>
+<p>Örnek (çizim):</p>
+<ul>
+<li>Doküman 1: "Kangal güçlü bir çoban köpeğidir." → <code>[0.3, -0.7, 0.2, …]</code></li>
+<li>Doküman 2: "Golden aileler için uygun bir köpektir." → <code>[0.4, -0.5, 0.1, …]</code></li>
+<li>Doküman 3: "BERT metinleri bağlama göre temsil eder." → <code>[-0.6, 0.8, 0.9, …]</code></li>
+</ul>
+<p>(İlk iki doküman köpeklerle ilgili olduğu için vektörleri birbirine yakın, üçüncüsü uzak.)</p>
+<p>Bir başka örnek: <em>"The cat sat on the mat."</em> ile <em>"A kitten rested on the rug."</em> — Türkçesiyle "Kedi paspasın üzerinde oturuyordu." ve "Bir yavru kedi de halının üzerinde dinleniyordu." Kelimeler farklı görünse de iki cümle aslında aynı anlama geliyor. Doc2Vec ile çevirdiğimizde, farklı görünseler bile benzer temsiller elde edilir.</p>
+<p><strong>Doc2Vec nerede kullanılır?</strong></p>
+<ul>
+<li><strong>Öneri sistemleri</strong></li>
+<li><strong>İntihal tespiti</strong> (iki yazı birbiriyle bağlantılı mı?)</li>
+<li><strong>Semantik arama</strong></li>
+<li><strong>Metin sınıflandırma</strong> (bir haber ekonomi mi, spor mu, teknoloji mi?)</li>
+</ul>
+<p>Gelecek derste vektör veritabanları görülecek.</p>
+<blockquote>
+<p>Not: Bu derste Doc2Vec yalnızca teorik olarak anlatıldı; kod yazılmadı ("sentence-transformers" kütüphanesi bu derste geçmiyor).</p>
+</blockquote>
+<hr>
+<h3>14. Kapanış: sonraki derse hazırlık (≈03:02–03:12)</h3>
+<ul>
+<li>Öğrenci önerisi üzerine hoca, her dersten önce yüklenmesi gereken kütüphaneleri ve komutları Skool'daki Classroom sayfasına yazacak; böylece öğrenciler ortamı ders öncesinde kurup kütüphaneleri test ederek gelebilecek. Kodlar ve dokümanlar da her hafta Classroom'a yükleniyor.</li>
+<li><strong>Sonraki ders: Docker kurulumu</strong> ve Docker üzerinden vektör veritabanları. <strong>Windows</strong> kullananların önce <strong>WSL</strong> kurması gerekiyor (Windows içinde Linux kurmak; Ubuntu kuruluyor). Bu biraz uzun sürüyor. <strong>Mac</strong> kullananlar Docker'ı doğrudan yükleyebiliyor. Hoca adım adım talimatı Classroom'a ekleyecek.</li>
+<li><strong>Soru:</strong> Daha önce başka bir ders için Docker kurdum; orada da environment gibi bir şey, adı, parolası vs. vardı. Yeni bir tane açmam gerekir mi?
+  <strong>Cevap:</strong> Aynısını kullanabilirsin. Bir image yükleyip onun üzerinden bir container ayağa kaldıracağız; derste gösterilecek.</li>
+<li>Hoca, öğrencilerin buldukları faydalı kitap ve makaleleri grupla paylaşmasını teşvik etti.</li>
+</ul>

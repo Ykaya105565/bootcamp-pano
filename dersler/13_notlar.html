@@ -1,0 +1,358 @@
+<h2>13 · Day10-MCP</h2>
+<p><strong>Bu derste ne var:</strong> Önce function calling (fonksiyon çağırma) OpenAI Responses API ile adım adım uygulandı: modelin araç seçmesi, uygulamanın aracı çalıştırması, sonucun modele geri verilmesi. Ardından aynı <code>add</code> fonksiyonu bir <strong>MCP sunucusuna</strong> çevrildi, MCP Inspector'da test edildi, sunucuya <strong>tool / resource / prompt</strong> eklendi. Son olarak MCP mimarisi (Host–Client–Server) anlatıldı ve sunucu <code>mcp.json</code> ile <strong>VS Code</strong>'a bağlanıp sohbet panelinden kullanıldı.</p>
+<hr>
+<h3>Ana kavramlar</h3>
+<ul>
+<li><strong>LLM çağrısı (LLM call):</strong> Tek LLM, araç yok (klasik chatbot). <em>Önemi:</em> En basit katman; modelin bilgisi eğitim kesim tarihiyle sınırlı.</li>
+<li><strong>Araç (tool):</strong> LLM'in dış dünyayla iletişim kurmasını sağlayan fonksiyon/servis (hesap makinesi, web arama, hava durumu, veritabanı, dosya sistemi, API). <em>Önemi:</em> Güncel bilgi ve deterministik hesap (LLM'ler olasılıksal token tahmincisi olduğu için çarpmayı bile yanlış yapabiliyordu).</li>
+<li><strong>Fonksiyon çağırma (function calling):</strong> Modelin, araç açıklamalarına bakarak hangi aracı hangi parametrelerle çağıracağına karar verip bunu uygulamaya bildirmesi. <em>Önemi:</em> Aracı <strong>model değil, uygulama</strong> çalıştırır; model sadece seçim ve parametre üretir.</li>
+<li><strong>Agentic sistem:</strong> Düşünen, plan yapan, gerektikçe tekrar araca giden, bilgiyi <strong>hafızaya</strong> alan ve <strong>aksiyona</strong> geçen sistem. <em>Önemi:</em> ChatGPT/Claude/Gemini'nin arkasındaki yapı; hoca 2026'yı "agentic yılı" olarak niteledi.</li>
+<li><strong>MCP (Model Context Protocol):</strong> Anthropic'in 2024 sonunda çıkardığı, AI uygulamalarını araç ve veri kaynaklarına bağlamak için <strong>standart iletişim protokolü</strong>. <em>Önemi:</em> Her uygulama–araç çifti için ayrı entegrasyon yazma yükünü kaldırır. Artık OpenAI, Google vb. de kullanıyor; fiilî standart.</li>
+<li><strong>MCP ≠ daha zeki model:</strong> MCP modeli akıllandırmaz; yalnızca <strong>bağlantı ve iletişim katmanıdır</strong>.</li>
+<li><strong>MCP = function calling'in genişletilmiş, standartlaşmış hâli.</strong></li>
+<li><strong>M × N problemi:</strong> 3 uygulama × 5 araç = 15 entegrasyon; araya MCP katmanı koyunca tek standart yeterli.</li>
+<li><strong>Tools / Resources / Prompts (MCP'nin üç temel yapısı):</strong></li>
+<li><em>Tools:</em> Çağrılabilir araçlar (aksiyon).</li>
+<li><em>Resources:</em> Modele verilen ek bilgi/bağlam (URI ile adreslenir, ör. <code>course://mcp</code>).</li>
+<li><em>Prompts:</em> Parametreli hazır prompt şablonları.</li>
+<li><strong>Host:</strong> AI uygulamasının kendisi (Claude Desktop, VS Code, Streamlit uygulaması); LLM'i çalıştırır, kullanıcıyla konuşur.</li>
+<li><strong>Client:</strong> Host içinde, bir MCP sunucusuyla bağlantıyı yöneten bileşen. Host birden fazla sunucuya bağlanabilir.</li>
+<li><strong>Server:</strong> Tool/resource/prompt'ları dış dünyaya standart biçimde sunan program.</li>
+<li><strong>Transport <code>stdio</code>:</strong> Host ile sunucu arasında standart girdi/çıktı üzerinden iletişim (yerel süreç olarak çalıştırılır).</li>
+<li><strong>MCP Inspector:</strong> <code>uv run mcp dev &lt;dosya&gt;</code> ile tarayıcıda açılan test arayüzü; Node.js gerektirir.</li>
+<li><strong><code>mcp.json</code>:</strong> Host'a (VS Code) hangi sunucunun nasıl başlatılacağını söyleyen yapılandırma dosyası.</li>
+<li><strong>A2A (Agent2Agent):</strong> Google'ın geliştirdiği, ajanlar arası iletişim için standartlaşan protokol (derste yalnızca adı geçti).</li>
+</ul>
+<h3>Akış / mimari</h3>
+<p><strong>Function calling akışı:</strong></p>
+<pre><code>Kullanıcı → Uygulama → Model (araç seç + parametre üret)
+        → Uygulama (fonksiyonu ÇALIŞTIRIR) → Model (sonuçla cevap üret)
+        → Uygulama → Kullanıcı
+</code></pre>
+<p><strong>Koddaki karşılığı:</strong></p>
+<pre><code>input_list[user] → responses.create(tools) → output: function_call
+→ input_list += output → json.loads(arguments) → add(**args) = 500
+→ input_list.append(function_call_output, call_id) → responses.create → output_text
+</code></pre>
+<p><strong>MCP öncesi/sonrası:</strong></p>
+<pre><code>Önce:   App1 ─┬─ GitHub        (3 uygulama × 5 araç = 15 entegrasyon)
+        App2 ─┼─ Slack ...
+        App3 ─┘
+Sonra:  App1/App2/App3 → [ MCP katmanı ] → GitHub / Slack / PostgreSQL / Weather API / Stripe
+</code></pre>
+<p><strong>MCP çalışma adımları:</strong></p>
+<pre><code>Host → MCP Client oluşturur → Server'a bağlanır → yetenekleri keşfeder
+→ tools/list → Server araç listesini döndürür → LLM uygun aracı seçer
+→ Client araç çağrısını gönderir → Server çalıştırır
+→ Sonuç Client üzerinden Host'a → LLM nihai cevabı üretir
+</code></pre>
+<p><strong>Dersteki pratik zincir:</strong></p>
+<pre><code>03-server.py (MCPServer + tool/resource/prompt)
+→ .vscode/mcp.json (uv run mcp run …/03-server.py)
+→ VS Code (Host) → MCP: List Servers → Chat: Open Chat
+→ &quot;add aracını kullanarak 18 ile 20'yi topla&quot; → izin ver → 38
+</code></pre>
+<h3>Kod / uygulama</h3>
+<h4>1) Fonksiyon ve tip ipuçları</h4>
+<pre><code class="language-python">def add(a: int, b: int) -&gt; int:
+    &quot;&quot;&quot;İki tam sayıyı toplar.&quot;&quot;&quot;
+    return a + b
+</code></pre>
+<ul>
+<li><code>a: int, b: int, -&gt; int</code> → type hint; model/agent'ı doğru parametre tipine yönlendirir.</li>
+<li>Docstring → aracın açıklaması; model aracı kullanıp kullanmayacağına buna bakarak karar verir.</li>
+</ul>
+<h4>2) Aracı modele tanıtmak</h4>
+<pre><code class="language-python">tools = [{
+    &quot;type&quot;: &quot;function&quot;,
+    &quot;name&quot;: &quot;add&quot;,
+    &quot;description&quot;: &quot;İki tam sayıyı toplar ve sonucu döndürür.&quot;,
+    &quot;parameters&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;properties&quot;: {
+            &quot;a&quot;: {&quot;type&quot;: &quot;integer&quot;, &quot;description&quot;: &quot;Toplanacak ilk sayı&quot;},
+            &quot;b&quot;: {&quot;type&quot;: &quot;integer&quot;, &quot;description&quot;: &quot;Toplanacak ikinci sayı&quot;}
+        },
+        &quot;required&quot;: [&quot;a&quot;, &quot;b&quot;],
+        &quot;additionalProperties&quot;: False
+    },
+    &quot;strict&quot;: True
+}]
+</code></pre>
+<ul>
+<li><code>name</code> / <code>description</code> → modelin araç seçiminde baktığı alanlar (çok dikkatli yazılmalı).</li>
+<li><code>parameters</code> → JSON Schema; her parametrenin tipi ve açıklaması.</li>
+<li><code>required</code> → zorunlu parametreler.</li>
+<li><code>additionalProperties: False</code> → tanımsız ekstra parametre olmasın.</li>
+<li><code>strict: True</code> → model şemanın dışına çıkıp parametre "uydurmasın".</li>
+</ul>
+<h4>3) Konuşma geçmişi olarak liste</h4>
+<pre><code class="language-python">input_list = [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;125 ile 375'i topla.&quot;}]
+</code></pre>
+<ul>
+<li>Liste, çünkü geçmiş büyüyecek: kullanıcı → modelin function call'u → araç çıktısı → … Model kimin ne dediğini bu sırayla takip eder.</li>
+</ul>
+<h4>4) İlk çağrı</h4>
+<pre><code class="language-python">response = client.responses.create(model=&quot;gpt-6-luna&quot;, input=input_list, tools=tools)
+print(response.output)
+</code></pre>
+<ul>
+<li>Responses API; <code>tools</code> ile model "bunları kullanabilirsin" bilgisini alır.</li>
+<li>Çıktıda <code>type="function_call"</code>, <code>name</code>, <code>arguments</code>, <code>call_id</code>, <code>status</code> görülür.</li>
+</ul>
+<h4>5) Function call'u ayıklamak</h4>
+<pre><code class="language-python">input_list += response.output
+tool_call = next(item for item in response.output if item.type == &quot;function_call&quot;)
+arguments = json.loads(tool_call.arguments)
+</code></pre>
+<ul>
+<li><code>+=</code> → modelin çıktısı geçmişe eklenir (bağlam genişler).</li>
+<li><code>next(...)</code> → tipi <code>function_call</code> olan <strong>ilk</strong> öğe; çok araçlı senaryoda daha anlamlı.</li>
+<li><code>json.loads</code> → argümanlar JSON <strong>metni</strong> olarak gelir, sözlüğe çevrilir.</li>
+</ul>
+<h4>6) Uygulama fonksiyonu çalıştırır ve sonucu geri verir</h4>
+<pre><code class="language-python">result = add(**arguments)
+input_list.append({
+    &quot;type&quot;: &quot;function_call_output&quot;,
+    &quot;call_id&quot;: tool_call.call_id,
+    &quot;output&quot;: str(result)
+})
+</code></pre>
+<ul>
+<li><code>**arguments</code> → sözlüğü anahtar–değer parametreleri olarak açar.</li>
+<li><code>call_id</code> → bu çıktının hangi çağrıya ait olduğunu eşler.</li>
+<li><code>str(result)</code> → çıktı metin olarak gönderilir.</li>
+</ul>
+<h4>7) Son cevap</h4>
+<pre><code class="language-python">final_response = client.responses.create(model=&quot;gpt-6-luna&quot;, input=input_list, tools=tools)
+print(final_response.output_text)
+</code></pre>
+<ul>
+<li><code>tools</code> yine verilir; model sonuca bakıp aracı tekrar çağırmak isteyebilir.</li>
+</ul>
+<h4>8) Minimal MCP sunucusu (<code>02-server-demo.py</code>)</h4>
+<pre><code class="language-python">from mcp.server import MCPServer
+
+mcp = MCPServer(&quot;Bootcamp MCP Server&quot;)
+
+@mcp.tool()
+def add(a: int, b: int) -&gt; int:
+    &quot;&quot;&quot;İki tam sayıyı toplar.&quot;&quot;&quot;
+    return a + b
+
+if __name__ == &quot;__main__&quot;:
+    mcp.run(transport=&quot;stdio&quot;)
+</code></pre>
+<ul>
+<li><code>MCPServer("…")</code> → sunucu örneği (adı istemcide görünür).</li>
+<li><code>@mcp.tool()</code> → dekoratör, sıradan fonksiyonu MCP aracına çevirir; şema type hint + docstring'den üretilir (Not: function calling'deki elle yazılan <code>tools</code> sözlüğüne gerek kalmıyor).</li>
+<li><code>if __name__ == "__main__":</code> → dosya doğrudan çalıştırılınca sunucu başlar.</li>
+<li><code>transport="stdio"</code> → iletişim standart girdi/çıktı ile.</li>
+</ul>
+<h4>9) Tool + Resource + Prompt (<code>03-server.py</code>, ilgili kısımlar)</h4>
+<pre><code class="language-python">@mcp.tool()
+def joke(topic: str | None = None) -&gt; str:
+    &quot;&quot;&quot;İsteğe bağlı bir konuya göre kısa bir şaka döndürür.&quot;&quot;&quot;
+    return f&quot;{topic} hakkında bir fıkra&quot;
+
+@mcp.resource(&quot;course://mcp&quot;)
+def course_info() -&gt; str:
+    &quot;&quot;&quot;MCP dersi hakkında kısa bilgi verir.&quot;&quot;&quot;
+    return (&quot;Bu kaynak AI Engineering Bootcamp içindeki &quot;
+            &quot;Model Context Protocol dersine aittir.&quot;)
+
+@mcp.prompt()
+def explain_mcp(level: str = &quot;başlangıç&quot;) -&gt; str:
+    &quot;&quot;&quot;MCP konusunu belirtilen seviyeye göre açıklayan prompt oluşturur.&quot;&quot;&quot;
+    return (f&quot;Model Context Protocol konusunu {level} seviyesindeki &quot;
+            &quot;bir öğrenciye sade örneklerle açıkla.&quot;)
+</code></pre>
+<ul>
+<li><code>str | None = None</code> → isteğe bağlı parametre.</li>
+<li><code>@mcp.resource("course://mcp")</code> → URI ile adreslenen salt bilgi kaynağı; modele ek bağlam.</li>
+<li><code>@mcp.prompt()</code> → parametreli şablon; <code>level</code> boşsa varsayılan "başlangıç".</li>
+</ul>
+<h4>10) Komutlar</h4>
+<pre><code class="language-bash">uv init --python 3.12                    # proje (iki tire!)
+uv add openai ipykernel python-dotenv    # function calling notebook'u için
+uv add &quot;mcp[cli]&quot;                        # MCP SDK + CLI (mcp dev / mcp run)
+uv sync                                  # pyproject'teki sürümlere göre ortamı yeniden kur
+uv run mcp dev 02-server-demo.py         # MCP Inspector ile test
+node --version                           # Inspector için Node.js kontrolü
+</code></pre>
+<h4>11) VS Code yapılandırması (<code>.vscode/mcp.json</code>)</h4>
+<pre><code class="language-json">{
+  &quot;servers&quot;: {
+    &quot;ai-engineering-mcp&quot;: {
+      &quot;type&quot;: &quot;stdio&quot;,
+      &quot;command&quot;: &quot;uv&quot;,
+      &quot;args&quot;: [&quot;run&quot;, &quot;mcp&quot;, &quot;run&quot;, &quot;${workspaceFolder}/03-server.py&quot;],
+      &quot;cwd&quot;: &quot;${workspaceFolder}&quot;
+    }
+  }
+}
+</code></pre>
+<ul>
+<li><code>servers.&lt;ad&gt;</code> → VS Code'da listelenecek sunucu adı.</li>
+<li><code>type: stdio</code> → VS Code sunucuyu alt süreç olarak başlatıp stdin/stdout ile konuşur.</li>
+<li><code>command</code> + <code>args</code> → <code>uv run mcp run &lt;dosya&gt;</code> çalıştırılır; dosya adı gerçek adla birebir aynı olmalı.</li>
+<li><code>${workspaceFolder}</code> → açık çalışma klasörü; <code>cwd</code> çalışma dizini.</li>
+</ul>
+<h3>Hocanın vurguları &amp; pratik kurallar</h3>
+<ul>
+<li>Araç tasarlarken <strong>fonksiyon adı, açıklama (docstring/description) ve parametre açıklamaları</strong> en kritik kısım; model seçimi bunlara bakarak yapıyor.</li>
+<li><strong>Type hint mutlaka kullanın</strong>; uygulama daha doğru çalışıyor.</li>
+<li><strong>Sadece gerekli araçları bağlayın.</strong> Fazla araç = daha yavaş cevap, model kapasitesinin zorlanması.</li>
+<li>Aracı <strong>model çalıştırmaz, uygulama çalıştırır.</strong></li>
+<li>MCP modeli zekileştirmez; <strong>standart bağlantı katmanıdır</strong>.</li>
+<li>Sunucu yazarken <strong><code>.py</code> dosyası</strong> kullanın (notebook sadece anlatım/deneme için).</li>
+<li>Dosya adlarını <strong>sıra numarasıyla</strong> başlatın (<code>01-…</code>, <code>02-…</code>) — tekrar ederken kolaylık.</li>
+<li>Sunucu koduna yeni araç ekledikten sonra sunucuyu <strong>yeniden başlatın</strong> ve istemcide <strong>yeniden bağlanın</strong>.</li>
+<li>Sohbette aracın kullanılmasını <strong>garantilemek</strong> için istekte araç/sunucu adını açıkça yazın; aksi halde model bazen kendi cevap verir.</li>
+<li>Eski projelerin <strong><code>.venv</code> klasörünü silerek</strong> disk alanı açın.</li>
+<li>Hata çözümünde Claude/Gemini'ye sormak çoğu zaman işe yarıyor.</li>
+<li>Yeni yaklaşımları (token tasarrufu sağlayan araç seçimi yöntemleri, yeni formatlar) takip edin.</li>
+<li>Kariyer: Alan uzmanlığını (ör. uydu/radar görüntü analizi) yapay zekâ ile birleştirmek büyük fırsat; açıklanabilir yapay zekâ (XAI) önemli bir alan; model kıyaslarında bağımsız kullanıcı oylamalı platformlar (Arena) daha anlamlı.</li>
+<li>Donanım: ~27B bir modeli yerelde çalıştırmak için ~24 GB VRAM; 16 GB'ta yavaş. 7/24 otomasyon için 32 GB Mac mini veya ucuz bir VPS.</li>
+</ul>
+<h3>Sık hatalar / karşılaşılan sorunlar</h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Sorun</th>
+<th>Neden / Çözüm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>uv init</code> "Python 3.12 bulunamadı"</td>
+<td>Parametre <code>--python 3.12</code> (iki tire) ile yazılmalı.</td>
+</tr>
+<tr>
+<td><code>mcp</code> kurulumunda/çalıştırmada hata</td>
+<td>Önce <code>uv sync</code>; olmazsa yeni klasörde sıfırdan proje (<code>uv init</code> → <code>uv add …</code>).</td>
+</tr>
+<tr>
+<td><code>uv run mcp dev</code> → <code>npx</code> bulunamadı</td>
+<td>Inspector Node.js tabanlı; nodejs.org'dan Node.js kurun, <code>node --version</code> ile kontrol edin, terminal/VS Code'u yeniden açın.</td>
+</tr>
+<tr>
+<td>Node kurulumunda saatler süren ek araç kurulumu</td>
+<td>"Gerekli araçları otomatik kur" kutusunu işaretlemeyin; gerek yok.</td>
+</tr>
+<tr>
+<td>Inspector tarayıcıda açılmadı</td>
+<td>Terminaldeki linki elle herhangi bir tarayıcıda açın.</td>
+</tr>
+<tr>
+<td>Inspector'da Connect → 30 sn sonra timeout</td>
+<td>Derste çözülemedi. Kontrol: dosya adı, <code>if __name__ == "__main__": mcp.run(transport="stdio")</code> bloğu, çalışma klasörü; tahminler: güvenlik duvarı/antivirüs, sürüm.</td>
+</tr>
+<tr>
+<td>Yeni araç Inspector'da görünmüyor</td>
+<td><code>Ctrl+C</code> ile sunucuyu durdurup yeniden başlatın, yeniden Connect edin.</td>
+</tr>
+<tr>
+<td><code>joke</code> aracında hata</td>
+<td>Dönüş metninde parametre kullanılmamıştı; f-string <code>f"{topic} …"</code> ile düzeltildi.</td>
+</tr>
+<tr>
+<td>VS Code sunucuyu görmüyor</td>
+<td><code>mcp.json</code> <strong><code>.vscode/</code> klasörünün içinde</strong> olmalı (veya "MCP: Open User Configuration" ile kullanıcı yapılandırmasına eklenmeli).</td>
+</tr>
+<tr>
+<td>VS Code "dosya bulunamadı"</td>
+<td><code>args</code> içindeki dosya adı gerçek dosya adıyla aynı değil.</td>
+</tr>
+<tr>
+<td>"MCP: List Servers" komut paletinde yok</td>
+<td>Derste çözülemedi; muhtemelen VS Code/Copilot ayarı kapalı.</td>
+</tr>
+<tr>
+<td>Chat paneli çalışmıyor</td>
+<td>GitHub Copilot'un etkinleştirilmesi / hesapla giriş gerekebiliyor.</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Kendini test et</h3>
+<ol>
+<li>Function calling'de aracı kim çalıştırır: model mi, uygulama mı? Modelin görevi nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Aracı <b>uygulama</b> çalıştırır. Model yalnızca hangi aracın, hangi parametrelerle çağrılacağına karar verir ve bunu bir <code>function_call</code> olarak döndürür.</p>
+</details>
+<ol start="2">
+<li><code>tools</code> tanımında <code>strict: True</code> ve <code>additionalProperties: False</code> ne işe yarar?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Modelin şemanın dışına çıkmasını engeller: tanımsız ekstra parametre eklenmez, model parametre uydurmaz; sadece tanımlı <code>a</code> ve <code>b</code> kullanılır.</p>
+</details>
+<ol start="3">
+<li><code>input_list</code> neden bir liste? Bu derste sırasıyla hangi öğeler eklendi?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Konuşma geçmişini tutmak için. Sıra: kullanıcı mesajı (<code>role: user</code>) → modelin çıktısı (function_call) → araç sonucu (<code>function_call_output</code>, <code>call_id</code>, <code>output</code>).</p>
+</details>
+<ol start="4">
+<li><code>call_id</code> neden gönderilir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Araç çıktısının modelin hangi çağrısına ait olduğunu eşleştirmek için; birden fazla çağrı olduğunda model hangi sonucun hangi isteğe karşılık geldiğini bilir.</p>
+</details>
+<ol start="5">
+<li>4 AI uygulaması ve 6 araç varsa doğrudan entegrasyonla kaç entegrasyon gerekir? MCP bunu nasıl değiştirir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>4 × 6 = 24 entegrasyon. MCP ile her araç bir kez MCP sunucusu olarak yazılır, her uygulama MCP standardıyla bağlanır; bağlantı sayısı çarpım yerine toplam gibi büyür (M + N).</p>
+</details>
+<ol start="6">
+<li>MCP'nin üç temel yapısı nedir, her birini birer cümleyle açıklayın.</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><b>Tools:</b> çağrılabilir araçlar/fonksiyonlar. <b>Resources:</b> modele ek bilgi sağlayan, URI ile adreslenen kaynaklar. <b>Prompts:</b> parametre alabilen hazır prompt şablonları.</p>
+</details>
+<ol start="7">
+<li>Host, Client ve Server'ı tanımlayın; VS Code bu derste hangi roldeydi?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Host: LLM'i çalıştıran ve kullanıcıyla konuşan AI uygulaması. Client: host içinde bir sunucuyla bağlantıyı yöneten bileşen. Server: araç/kaynak/şablonları standart biçimde sunan program. VS Code <b>host</b> rolündeydi.</p>
+</details>
+<ol start="8">
+<li><code>@mcp.tool()</code> dekoratörü ne yapar ve function calling'deki <code>tools</code> sözlüğüne göre farkı nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Sıradan bir Python fonksiyonunu MCP aracı olarak kaydeder. Aracın adı, açıklaması ve parametre şeması fonksiyon adı, docstring ve type hint'lerden alınır; JSON şemasını elle yazmaya gerek kalmaz.</p>
+</details>
+<ol start="9">
+<li><code>uv run mcp dev 02-server-demo.py</code> çalıştırınca <code>npx</code> hatası alıyorsunuz. Sebep ve çözüm?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>MCP Inspector Node.js tabanlı ve Node.js kurulu değil. Node.js kurulur, <code>node --version</code> ile doğrulanır, terminal/VS Code yeniden açılır.</p>
+</details>
+<ol start="10">
+<li>VS Code <code>mcp.json</code>'daki sunucuyu listelemiyor. İlk kontrol edeceğiniz şey nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Dosyanın <code>.vscode/mcp.json</code> konumunda olup olmadığı (proje kökünde değil). Ardından <code>args</code> içindeki dosya adının doğruluğu.</p>
+</details>
+<h3>Hocaya sorulacaklar / belirsiz kalanlar</h3>
+<ul>
+<li><strong>Inspector timeout hatası</strong> (Connect sonrası ~30 sn bekleyip bağlanamama) bir öğrencide çözülemedi; kök neden ne olabilir?</li>
+<li><strong>"MCP: List Servers" komutunun çıkmaması</strong> — hangi VS Code/Copilot ayarı gerekiyor?</li>
+<li>Derste planlanan <strong>"kendi agent'ımızın MCP sunucusunu kullanması"</strong> uygulaması zaman yetmediği için yapılmadı; sonraki derste yapılacak mı?</li>
+<li><code>mcp.json</code>'da sunucuyu VS Code zaten <code>uv run mcp run …</code> ile kendisi başlatıyor; terminalde ayrıca sunucuyu çalıştırmak gerçekten gerekli mi? (Not: <code>stdio</code> transport'ta host sunucuyu alt süreç olarak kendisi başlatır; ayrı terminal çalıştırması genelde gerekmez — hocaya teyit ettirilmeli.)</li>
+<li>Kurumsal GPU sunucularında (A30 vb.) ihtiyaca göre farklı modelleri yükleme/boşaltma (Ollama ile?) — hoca araştırıp dönecekti.</li>
+<li>Model adı <code>gpt-6-luna</code> ve <code>mcp.server.MCPServer</code> sınıfı hocanın dosyalarından alındı; mcp 2.3.0 ile import yolu değişmiş olabilir (eski sürümlerde <code>FastMCP</code>), kendi ortamında hata alırsan sürümü kontrol et.</li>
+<li>Önerilen yerel model (transkriptte "27 beye" / "20'de bey", Qwen ailesi) ve önerilen model platformunun adı transkriptte net değil.</li>
+<li>MCP'nin FastAPI üzerinden yazılması ileriki derslerde gösterilecek.</li>
+</ul>

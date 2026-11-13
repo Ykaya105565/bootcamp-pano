@@ -1,0 +1,445 @@
+<h2>04 · Day01 – LLM'lere Giriş — Ders Metni (ayıklanmış)</h2>
+<blockquote>
+<p>Tirendaz Academy · AI Engineering Bootcamp (Eylül 2026, 2. kohort) · Hafta 1, ilk canlı ders · Hoca: Evren Özkip
+Kaynak: Skool otomatik altyazısı + hocanın Excalidraw konu çizimi. Bu derse ait kod dosyası yok; uygulama kısmı yalnızca çalışma ortamı kurulumu.
+Transkriptte boşluk olan aralıklar (≈00:50–01:07, ≈01:08, ≈01:44–01:48, ≈01:50–02:19) aşağıda ilgili yerde belirtildi; o kısımların içeriği hocanın çiziminden tamamlandı ve "(çizimden)" diye işaretlendi.</p>
+</blockquote>
+<hr>
+<h3>Hocanın kısa tanıtımı (≈00:00–00:04)</h3>
+<p>Hoca 2010'dan beri veri bilimi, makine öğrenmesi ve yapay zekâyla uğraşıyor; 2015'te matematiksel istatistik alanında doktorasını tamamlamış, ardından makine öğrenmesi, derin öğrenme ve yapay zekâya yoğunlaşmış. 2018'de Tirendaz Academy'yi kurmuş; 500'den fazla video ve Udemy kursları üretmiş. Türkçe YouTube kanalında yaklaşık 35 bin, İngilizce kanalında yaklaşık 78 bin takipçisi var. 2022'de Medium'da "AI Top Writer" seçilmiş (yaklaşık 11 bin takipçi). Son dönemde LLM'ler, yapay zekâ ajanları (AI agents), RAG (özellikle agentic RAG ve GraphRAG) ve otomasyona odaklanıyor. LLM çalışmaları sonucunda Alibaba'nın açık kaynaklı model ailesi Qwen'in "ambassador"ı (büyükelçisi) seçilmiş. Manning ve Packt yayınevlerinde teknik editör (technical reviewer) olarak kitap inceliyor; bu sayede güncel kitapları basılmadan önce takip edebiliyor.</p>
+<p>Udemy yerine canlı bootcamp tercih etmesinin gerekçesi: Bir Udemy kursu yaklaşık altı ayda eskiyor; kodlar, framework'ler ve teknolojiler çok hızlı değişiyor. Canlı derste konular güncel anlatılabiliyor ve daha verimli oluyor.</p>
+<p>Ardından katılımcılar kendilerini tanıttı (bu kısım notlara alınmadı). Tanışma sırasında hocanın verdiği genel tavsiyeler:</p>
+<ul>
+<li>Bu alanlar çok derin. Hoca temelleri "hap gibi" altı haftada anlatacak; öğrencinin de günde 2–3 saat çalışması ve proje geliştirmesi gerekiyor.</li>
+<li><strong>Temel bilimlerin önemi arttı.</strong> Teoriyi iyi öğrenirseniz, her 5–7 yılda bir değişen teknolojilere kolayca uyum sağlarsınız.</li>
+<li>DevOps ile yapay zekâyı birleştirebilen kişiler çok güzel projeler çıkarabilir; DevOps'ta LLM kullanma girişimleri var.</li>
+<li>Yapay zekâ mühendisliği, yazılım ile veri biliminin kesişimi gibi. Veri biliminin teorisinden çıkıp uygulamaya ağırlık veriyor. Hocaya göre eski veri bilimi konuları bugünkülerden daha zordu.</li>
+</ul>
+<hr>
+<h3>Bugünün planı ve bootcamp düzeni (≈00:22–00:30)</h3>
+<p><strong>Bugün ne yapacağız?</strong>
+1. Bootcamp yol haritası
+2. İşleyeceğimiz konular (hafta hafta)
+3. Yapay zekâya ve LLM'lere giriş
+4. (Bir sonraki ders) Prompt ve context mühendisliği (prompt &amp; context engineering)</p>
+<p>Hoca, konulara derse gelmeden önce göz atılırsa çok daha iyi öğrenileceğini söyledi.</p>
+<p><strong>Bootcamp düzeni</strong>
+- 6 hafta, toplam 36 saat. Çarşamba 20:00–23:00, Cumartesi 10:00–13:00.
+- Dersler Skool üzerinden canlı yapılıyor; derse takvimdeki (Calendar) linkten giriliyor. Hoca bir önceki bootcamp'i de Skool'da sorunsuz yapmış. Skool'u ileride daha geniş bir topluluk ve canlı yayın alanı olarak da kullanmayı planlıyor.
+- <strong>Derslere canlı katılım isteniyor.</strong> Soru sormak ve karşılıklı konuşmak dersi açıyor; katılım olmazsa Udemy kursundan farkı kalmıyor.
+- Kayıtlar ve tüm dokümanlar/kodlar sonradan Skool'daki Classroom bölümüne yükleniyor. Bootcamp yalnızca kayıtlı katılımcılara açık.
+- <strong>Canlı kodlama</strong> yapılacak, ama her şey satır satır yazılmayacak; uzun kod blokları yapıştırılıp açıklanacak. Kodları kendiniz çalıştırın, anlamadığınız yeri araştırın veya yapay zekâya sorun. Hoca bunu şöyle özetledi: "Ezberlemeyeceğiz ama yapay zekâyı yardımcı olarak kullanacağız."
+- Ders aralarında <strong>Kahoot</strong> quizleri yapılacak (pekiştirme amaçlı).
+- Derslerden sonra <strong>ödev ve projeler</strong> verilecek. Sadece dinleyerek ya da tutorial izleyerek öğrenilmiyor.
+- Geçen dönem 8 hafta × 2,5 saatti; bu dönem 6 hafta × 3 saat. Ayrı bir proje haftası yok. Proje yapanlar 6 haftanın dışında ek bir oturumda projelerini sunabilecek.
+- Hoca anlatım için Obsidian içinde <strong>Excalidraw</strong> eklentisini kullanıyor: Notlara link ve görsel eklenebiliyor, notlar Markdown olarak saklanıyor.
+- Dersler saat başlarında yaklaşık 10–15 dakika arayla işleniyor.</p>
+<hr>
+<h3>Neden hazır AI araçlarını kullanmıyoruz? (≈00:30–00:34)</h3>
+<p>Bootcamp'te Claude, Codex, Cursor gibi <strong>hazır yapay zekâ araçları kullanılmayacak</strong>. Hocanın gerekçeleri:</p>
+<ul>
+<li><strong>Esnek değiller:</strong> Bu araçlarla esnek projeler yapmak zor.</li>
+<li><strong>Pahalılar ve fiyatlar belirsiz:</strong> Eskiden limit yoktu, şimdi kullanım limitleri getirildi. Şirketler zarar ettiği için bugün 20 dolar olan bir plan yarın 40, 60 ya da 100 dolar olabilir.</li>
+<li><strong>Çok token harcıyorlar:</strong> Basit bir Python fonksiyonuyla çözülebilecek bir işi uzun uğraşlarla ve çok token harcayarak yapabiliyorlar.</li>
+<li><strong>Veri mahremiyeti yok:</strong> Verdiğiniz verilerin nereye gittiği ve nerede kullanıldığı belli değil. Hoca örnek olarak, uzun süredir çözülemeyen bir matematik problemi üzerinde Codex kullanılarak çalışılması ve OpenAI'ın bundan haberdar olmasını anlattı (ayrıntılar [belirsiz]).</li>
+</ul>
+<p><strong>Bunun yerine:</strong> Yapay zekâ araçlarını kendimiz, <strong>Python</strong> ile inşa edeceğiz. Temel seviyede Python bilmek yeterli. Python veri bilimi ve makine öğrenmesinde çok yaygın ve "İngilizce yazar gibi" kolay öğreniliyor. Skool'da "Hafta 00 – AI Giriş" altında hazırlık içerikleri var: AI Engineer Yol Haritası, Yapay Zekâ için Temeller (tek videoda Python eğitimi, nesne tabanlı programlama: sınıflar, nesneler, kalıtım, üretken yapay zekâ ve generative AI uygulamaları) ve Çalışma Ortamı Kurulumu. Python'u yapay zekâya "adım adım anlat" diyerek de öğrenebilirsiniz.</p>
+<hr>
+<h3>Bootcamp yol haritası: hafta hafta konular (≈00:34–00:46)</h3>
+<h4>1. Hafta: LLM'ler + Prompt &amp; Context Engineering</h4>
+<ul>
+<li><strong>LLM'ler:</strong> Yapay zekâ uygulamaları için LLM'lerin nasıl çalıştığı. Bugünkü yapay zekâ devrimi büyük dil modellerinin ortaya çıkmasıyla başladı.</li>
+<li><strong>Prompt ve context mühendisliği:</strong> ChatGPT çıktığında "her şey prompt" deniyordu. Prompt koleksiyonu GitHub projeleri çok yıldız alıyordu (hoca, Fatih Kadir Akın'ın prompt projesine katkıda bulunduğunu söyledi). Zamanla asıl önemli olanın <strong>context (bağlam)</strong> olduğu anlaşıldı: Modele yalnızca prompt değil, sistem promptu, araçlardan (tools) gelen veriler ve bilgiler de veriliyor; bunların hepsi context'i oluşturuyor.</li>
+<li><strong>Hocanın vurgusu:</strong> Yapay zekâ projeleri genellikle modelden dolayı başarısız olmuyor; son dönem modeller "üç aşağı beş yukarı" hepsi iyi. <strong>Başarısızlıkların asıl nedeni kötü context.</strong> "Garbage in, garbage out": Kötü girdi kötü çıktı, iyi girdi iyi çıktı verir. Modele doğru zamanda doğru bilgiyi vermek gerekiyor.</li>
+</ul>
+<h4>2. Hafta: Embedding + Vektör veritabanları</h4>
+<ul>
+<li><strong>Embedding'ler modern yapay zekânın temeli.</strong></li>
+<li>Embedding'ler <strong>vektör veritabanlarında</strong> saklanıyor. Yeni vektör veritabanları geliştirildi; mevcut veritabanlarına da vektör desteği eklendi.</li>
+</ul>
+<h4>3. Hafta: RAG + RAG teknikleri</h4>
+<ul>
+<li>RAG, yapay zekâ mühendisliğinin <strong>"merhaba dünya"sı</strong>. Şirketler çok kullanıyor.</li>
+<li>LLM'lerin üç sorununu çözüyor:
+  1. <strong>Halüsinasyon:</strong> Model bilmediği şeyi uydurabiliyor.
+  2. <strong>Güncel verilere ulaşamama.</strong>
+  3. <strong>Veri mahremiyeti:</strong> Özellikle ücretli/kapalı modellerde verilerimizi model sağlayıcılarına göndermek istemiyoruz.</li>
+<li>RAG evrimleşiyor: Basit (naive) RAG çoğu problemi çözmüyor; modern RAG teknikleri ikinci günün konusu.</li>
+</ul>
+<h4>4. Hafta: AI Agent'lar + Agent mimarileri</h4>
+<ul>
+<li>2026 "ajanların yılı" deniyor. Eskiden modele soru sorup cevap alıyorduk. Ajanlar ise düşünüp kendi kararlarını alabiliyor ve verilen görevi adım adım yapabiliyor.</li>
+<li>Konular: Agent nedir, araç (tool) ve bellek (memory) kullanımı, agentic sistemler.</li>
+<li><strong>Agent mimarileri:</strong> Kodu artık yapay zekâ ile yazıyoruz; bizim için önemli olan <strong>sistem tasarlamak</strong>, yani hangi projede hangi mimarinin kullanılacağını bilmek. En çok kullanılan mimariler tek tek anlatılacak.</li>
+</ul>
+<h4>5. Hafta: MCP + Lokal LLM'ler</h4>
+<ul>
+<li><strong>MCP:</strong> Geçen yıl çok popüler oldu; yapay zekâ için bir bağlantı standardı. Hem MCP'nin ne olduğu görülecek hem de <strong>canlı olarak kendi MCP sunucumuzu yazacağız</strong>. Hoca n8n'i (kod yazmadan kullanılan otomasyon aracı) belki kısaca gösterebileceğini, ama ders için gerekli olmadığını söyledi.</li>
+<li><strong>Lokal LLM'ler:</strong> Bazı durumlarda belirli bir alanda uzman bir model isteriz. Bunun için açık kaynaklı bir modeli alıp <strong>fine-tuning</strong> yaparız. Konular: açık kaynaklı modellerin avantaj ve dezavantajları, lokal LLM'in nasıl çalıştığı, fine-tuning'in nasıl yapıldığı. Hugging Face kullanılacak; LoRA ve QLoRA gibi teknikler işlenecek.</li>
+</ul>
+<h4>6. Hafta: Deployment</h4>
+<ul>
+<li>Bootcamp'lerde ve YouTube'da az anlatılan, uzmanlık gerektiren bir alan. Bir proje üzerinden uygulama geliştirilip <strong>canlıya alınacak (deploy)</strong>.</li>
+<li>Canlıya almak yetmez: Uygulamayı <strong>değerlendirmek (evaluation)</strong> ve <strong>gözlemlemek (observability)</strong> de gerekiyor. Bunların hepsi görülecek.</li>
+<li><strong>Güvenlik:</strong> Yapay zekânın en sıkıntılı alanı siber güvenlik. Temel seviyede önlemler anlatılacak. Hocanın kariyer önerisi: <strong>Yapay zekâda siber güvenlik alanına yönelirseniz çok güzel projeler yapabilirsiniz.</strong> Uygulamalarımızı kötü niyetli kişilerden korumak için onların yöntemlerini temel düzeyde bilmemiz gerekiyor.</li>
+<li>Bir katılımcı, "vibe coding" ile üretilen uygulamalarda güvenlik tarafının atlandığını ve KVKK açısından sorumluluk doğduğunu hatırlattı. Hoca da verinin uygulama içinde güvenli ve düzgün akmasını sağlamak için <strong>Pydantic</strong> kütüphanesinden bahsedeceğini söyledi.</li>
+<li><strong>Bitirme projesi:</strong> Bir <strong>agentic RAG uygulaması</strong> yapılacak.</li>
+</ul>
+<h4>Konular birbirine bağlı (piramit)</h4>
+<p>Hoca konuları bir piramitle gösterdi (alttan üste):</p>
+<pre><code>            Deploy
+       MCP – Lokal LLMs
+           AI Agent
+             RAG
+     Embedding – Vektör DB
+   LLMs – Context Engineering
+</code></pre>
+<p>LLM ve context mühendisliği iyi oturmazsa embedding ve vektör veritabanları, onlar oturmazsa RAG, RAG oturmazsa ajanlar, ajanlar oturmazsa MCP, lokal LLM'ler ve deployment anlaşılamaz. Bu yüzden her dersi dikkatle takip etmek gerekiyor. AI engineering bazı üniversitelerde 4 yıllık bir bölüm; burada önemli konular işlenecek, derinleşmek proje yapmakla mümkün.</p>
+<hr>
+<h3>Sertifika ve proje tavsiyesi (≈00:46–00:50)</h3>
+<ul>
+<li>Derslere katılım ve ödevler → <strong>katılım sertifikası</strong>.</li>
+<li>Bitirme projesi → <strong>başarı sertifikası</strong>. İleride akredite sertifikalar planlanıyor.</li>
+<li>Hocanın tavsiyesi: Bitirme projesini mutlaka yapın; hem konuyu derinlemesine öğrenirsiniz hem de CV'nize ve portfolyonuza eklersiniz. <strong>Projeyi ilk haftadan düşünmeye başlayın.</strong> Son haftaya bırakanlar konu seçemiyor, konu değiştiriyor ve bootcamp bitiveriyor.</li>
+<li>Bir katılımcı, herkesin şimdiden bir proje fikri belirleyip gruba yazmasını önerdi; hoca da katıldı. Konfor alanınızdan çıkıp kendinizi zorlamanız gerekiyor.</li>
+</ul>
+<p><em>(≈00:50–01:07 ara. Transkriptin bu aralığı boş; aradan sonraki ilk dakikalar da transkriptte yok.)</em></p>
+<hr>
+<h3>Yapay zekâ nedir? Kısa tarihçe (≈01:06–01:12) (kısmen çizimden)</h3>
+<p><strong>Tanım (çizimden):</strong> Yapay zekâ, insan zekâsı gerektiren görevlerin makineler tarafından yapılmasıdır.</p>
+<p><strong>Yapay zekânın uzun bir tarihi var</strong> (çizimdeki zaman çizelgesi):</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Yıl</th>
+<th>Olay</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1950</td>
+<td>Turing testi (Alan Turing; çizimde Enigma ile ilişkilendirilmiş)</td>
+</tr>
+<tr>
+<td>1956</td>
+<td>Dartmouth Konferansı: yapay zekâ kavramı dile getiriliyor</td>
+</tr>
+<tr>
+<td>1980</td>
+<td>Uzman sistemler (expert systems): yapay zekânın ilk uygulaması</td>
+</tr>
+<tr>
+<td>1997</td>
+<td>Deep Blue, Kasparov'u yeniyor</td>
+</tr>
+<tr>
+<td>2012</td>
+<td>Derin öğrenme (AlexNet)</td>
+</tr>
+<tr>
+<td>2017</td>
+<td>Transformer mimarisi (Google)</td>
+</tr>
+<tr>
+<td>2020</td>
+<td>GPT-3</td>
+</tr>
+<tr>
+<td>2022 sonu</td>
+<td>ChatGPT ("ChatGPT anı")</td>
+</tr>
+<tr>
+<td>2023 başı</td>
+<td>GPT-4</td>
+</tr>
+<tr>
+<td>2025–2026</td>
+<td>Çok modlu (multimodal) ve agentic yapay zekânın yükselişi</td>
+</tr>
+</tbody>
+</table></div>
+<p>Transkriptten anlaşılan anlatım:
+- <strong>Turing testi</strong>, makinenin insana benzer cevaplar verip veremediğini ölçüyor (Kahoot'ta da soruldu).
+- <strong>ImageNet hikâyesi:</strong> Stanford'da bir profesör, etrafındakiler dalga geçse de etiketli görselleri biriktirerek büyük bir veri seti oluşturuyor. Bu veri setiyle yarışmalar düzenleniyor ve çeşitli mimariler ortaya çıkıyor. <strong>2012'de AlexNet</strong> (yapay zekânın "babalarından" birinin öğrencisi tarafından geliştirilen) ile bilgisayarlar insan seviyesinde görmeye başlıyor; bu önemli bir dönüm noktası. (Not: Profesör Fei-Fei Li, veri seti ImageNet. Transkriptte isimler net değil.)
+- <strong>ChatGPT anı:</strong> ChatGPT'nin kod yazdığını görmek, yıllardır derin öğrenmeyle uğraşanları bile şaşırttı ve LLM'lerin gücü herkesin gündemine girdi. Hoca, pandemi döneminde GPT'nin erken bir arayüzünü denediğini anlattı.</p>
+<hr>
+<h3>LLM nedir, nasıl eğitilir? (≈01:12–01:19)</h3>
+<ul>
+<li><strong>LLM = Large Language Model (büyük dil modeli).</strong> Başta metin üretmek için çıktı; artık <strong>çok modlu (multimodal)</strong> modeller var, yani yalnızca metin değil resim, ses ve video da alabiliyorlar.</li>
+<li>LLM'ler birer <strong>yapay zekâ modelidir</strong> ve Transformer mimarisine dayanır.</li>
+<li>İki temel bileşenle geliştirilir:
+  1. <strong>Devasa miktarda veri:</strong> İnternet verileri, kitaplar, internetteki PDF'ler. İzinsiz kitap kullanımı nedeniyle eleştiriliyor.
+  2. <strong>Güçlü bilgisayarlar.</strong></li>
+<li><strong>Örnek: GPT-6 Astra</strong> (çizimdeki bağlantı: openai.com/tr-TR/index/gpt-6-astra). Hocanın verdiği rakamlar: tahminen <strong>200 bin A100 GPU</strong>, yaklaşık <strong>1 milyar dolar</strong> maliyet, <strong>aylar süren eğitim</strong>. Önemi: Bilgisayar ekranında doğru yere tıklama (computer use) işini çok daha isabetli yapabiliyor; hocanın hatırladığı kadarıyla %80'in üzerinde başarı, diğer modellerde %20–30 civarı.</li>
+<li><strong>Soru:</strong> Daha önceki modeller ekranı kontrol edemiyor muydu?
+    <strong>Cevap:</strong> Ediyorlardı, ama bu model bunu çok daha yüksek isabetle yapıyor. Hoca kaynağı (benchmark sonuçları içeren bir yazı ve kendi videosu) WhatsApp grubuna atacağını söyledi.</li>
+<li>Hoca bu konuda <strong>Sebastian Raschka</strong>'nın blogunu ve bülten listesini tavsiye etti. Raschka'nın iki güzel kitabı var; transkriptte isimleri net değil: "[belirsiz] PyTorch ... (Machine Learning with PyTorch and Scikit-Learn olabilir)" ve "Build a Large Language Model / Build a Reasoning Model (From Scratch)" [belirsiz]. Astra için iki makale okunmasını önerdi.</li>
+<li>Yapay zekâ çok hızlı gelişiyor, hatta kendi kendine öğrenmeye başladı. Bazı uzmanlar durdurulması ya da sınırlandırılması gerektiğini söylüyor. Ancak ABD (OpenAI, Anthropic) ile Çin modelleri arasında yarış olduğu için gelişim durmayacak; bizim yapmamız gereken öğrenip doğru yöne yönlendirmek.</li>
+<li><strong>Model eğitmek pahalı ve zaman alıcı.</strong> Frontier modelleri yalnızca büyük şirketler ve ülkeler eğitebiliyor.</li>
+</ul>
+<h4>AI mühendisinin rolü (≈01:19)</h4>
+<ul>
+<li><strong>AI mühendisleri sıfırdan model eğitmez</strong>; bu genelde veri bilimcilerin ve ML mühendislerinin işi.</li>
+<li>AI mühendisi <strong>daha önce eğitilmiş modelleri (OpenAI, Claude, Qwen vb.) alır ve bunlarla uygulama ve sistem geliştirir.</strong></li>
+</ul>
+<hr>
+<h3>Yapay zekâ bir şemsiye: AI ⊃ ML ⊃ DL ⊃ GenAI ⊃ LLM (≈01:19–01:24)</h3>
+<p>Hoca iç içe halkalardan oluşan bir şema çizdi:</p>
+<pre><code>Yapay Zekâ ⊃ Makine Öğrenmesi ⊃ Derin Öğrenme ⊃ GenAI ⊃ LLMs
+</code></pre>
+<ul>
+<li><strong>Makine öğrenmesi (ML):</strong> Makinelerin verilerden otomatik olarak öğrenmesi.</li>
+<li><strong>Klasik programlama ile farkı (hesap makinesi örneği):</strong> Klasik programlamada girdiyi ve kuralı veririz, makine çıktıyı üretir (3 × 5 → 15). Makine öğrenmesinde <strong>girdiyi ve çıktıyı veririz, kuralı makine kendisi öğrenir.</strong></li>
+<li>Kullanılan algoritmalar: regresyon, lojistik regresyon, destek vektör makineleri (SVM), yapay sinir ağları.</li>
+<li>Bu algoritmalar LLM'ler çıktı diye bir kenara atılmadı. Aynı işi bir LLM'e yaptırmak hem doğruluk açısından belirsiz hem de çok token harcıyor; klasik algoritmayla daha ucuza ve güvenilir şekilde yapılabiliyor.</li>
+<li>ML <strong>küçük ve orta ölçekli veriler</strong> için uygun. Büyük verilerde gizli örüntüleri (pattern) bulamıyor.</li>
+<li><strong>Derin öğrenme (DL):</strong> Makine öğrenmesinin yetmediği <strong>büyük veriler</strong> için geliştirildi; <strong>yapay sinir ağlarının genişletilmiş hali.</strong> Yapay sinir ağında bir gizli katman varken, derin sinir ağında birden fazla gizli katman var.</li>
+<li><strong>Üretken yapay zekâ (Generative AI):</strong> Derin öğrenmenin alt alanı. Yapay zekânın öğrendiği verilerden yararlanarak <strong>yeni içerik üretmesi</strong>: metin, resim, kod, müzik, video. Artık veriyi yalnızca analiz etmiyoruz, yeni içerik üretiyoruz.</li>
+<li><strong>LLM'ler GenAI projelerinin beyni.</strong> LLM'lerin temeli de yapay sinir ağları.</li>
+</ul>
+<p>Hocanın gerekçesi: LLM'leri iyi kullanabilmek için "kapının arkasını açıp" nasıl çalıştıklarını bilmek gerekiyor.</p>
+<hr>
+<h3>Yapay sinir ağları ve perceptron (≈01:24–01:32)</h3>
+<p><strong>Doğa her zaman ilham kaynağı olmuştur:</strong> Kuşlardan uçaklar, yarasalardan sonar sistemleri, insan beyninden de yapay sinir ağları geliştirildi.</p>
+<p><strong>Biyolojik nöron (sinir hücresi):</strong>
+- <strong>Dendritler:</strong> Diğer nöronlardan gelen sinyalleri alır.
+- <strong>Çekirdek:</strong> Gelen sinyalleri bir araya getirip değerlendirir. Sinyal belli bir eşiği geçerse nöron aktif hale gelir ("yanar").
+- <strong>Akson:</strong> Oluşan sinyali diğer nöronlara iletir. Beyinde her nöron değil, yalnızca eşiği geçenler yanar.</p>
+<p><strong>Perceptron (yapay nöron):</strong> Yapay sinir ağlarının yapı taşı, yani "hücresi".</p>
+<pre><code>x1 --w1--\
+x2 --w2---&gt; [ z | f ] --y--&gt; çıktı
+x3 --w3--/
+</code></pre>
+<ul>
+<li><strong>x1, x2, x3:</strong> Girdiler.</li>
+<li><strong>w1, w2, w3:</strong> <strong>Ağırlıklar (weights)</strong>, başka bir deyişle katsayılar ya da <strong>parametreler</strong>. Ağırlık ne kadar büyükse girdinin önemi o kadar büyük. "Qwen'in X milyar parametreli modeli" denirken kastedilen bu ağırlıklar.</li>
+<li><strong>z (lineer fonksiyon):</strong> Girdilerle ağırlıklar çarpılıp toplanır: <code>z = x1·w1 + x2·w2 + ... (+ b)</code>.</li>
+<li><strong>f (aktivasyon fonksiyonu):</strong> Eşiği geçerse nöron aktif olur (1), geçmezse pasif kalır (0). Sonuç <strong>y</strong> (çıktı).</li>
+<li>Hoca, ayrıntıları bilmenin şart olmadığını, neyin ne olduğunu bilmenin yeterli olduğunu söyledi.</li>
+</ul>
+<p><strong>Örnek: Öğrenci sınavı geçer mi?</strong>
+- x1 = çalışma süresi, x2 = deneme sınavı puanı, b = <strong>bias</strong> (sabit sayı).
+- <code>z = w1·x1 + w2·x2 + b</code> → aktivasyon → eşik (örneğin 70) aşıldıysa <strong>1 → geçti</strong>, aşılmadıysa <strong>0 → kaldı</strong>.</p>
+<hr>
+<h3>AND, OR ve XOR problemi (≈01:32–01:37)</h3>
+<p>Perceptron <strong>AND</strong> ve <strong>OR</strong> problemlerini çözebildi, çünkü bu problemler <strong>doğrusal olarak ayrılabilir</strong>: Noktalar koordinat düzlemine konduğunda tek bir doğruyla iki sınıf birbirinden ayrılabiliyor.</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>x1</th>
+<th>x2</th>
+<th>AND</th>
+<th>OR</th>
+<th>XOR</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>AND: (1,1) noktası diğer üçünden tek bir doğruyla ayrılıyor.</li>
+<li>OR: (0,0) noktası diğer üçünden tek bir doğruyla ayrılıyor.</li>
+<li><strong>XOR:</strong> Hangi doğruyu çizerseniz çizin, 1'leri (0,1 ve 1,0) 0'lardan (0,0 ve 1,1) ayıramıyorsunuz. <strong>Tek bir perceptron yetmiyor.</strong> Hocaya göre bu problem yapay zekâyı yıllarca durdurdu.</li>
+<li><strong>Çözüm:</strong> Birden fazla perceptron kullanmak. Bir nöron AND'i, diğeri OR'u öğreniyor; iki doğru birlikte, iki 0'ı ortada, 1'leri dışarıda bırakarak sınıfları ayırabiliyor. Böylece <strong>yapay sinir ağları</strong> doğdu.</li>
+</ul>
+<p><strong>Yapay sinir ağı:</strong> Birden fazla nörondan oluşan sistem.</p>
+<pre><code>Girdi katmanı → Gizli katman → Çıktı katmanı
+</code></pre>
+<p>Veriler girdi katmanından girer, ağırlıklandırılarak gizli katmandan geçer, çıktı katmanından çıkar.</p>
+<ul>
+<li><strong>Soru:</strong> Bu derin öğrenmedeki nöron ve katman yapısına benziyor, doğru mu düşünüyorum?
+  <strong>Cevap:</strong> Evet. Bir gizli katman kullanıldığında yapay sinir ağı, birden fazla gizli katman kullanıldığında derin öğrenme oluyor. (Soruyu soran öğrenci daha önce PyTorch ile derin öğrenme dersi almış; hoca PyTorch'un daha kapsamlı bir framework olduğunu belirtti.)</li>
+<li><strong>Soru:</strong> Gizli katman tam olarak nedir? Perceptron'ların oluşturduğu bir şey mi?
+  <strong>Cevap:</strong> Evet, gizli katmandaki her bir birim bir nöron (perceptron); bunlar bir araya gelerek yapay sinir ağını oluşturuyor. Gizli katmanın içinde verinin nasıl işlendiği tam bilinmiyor; bu yüzden yapay sinir ağları ve derin öğrenme <strong>"kara kutu" (black box)</strong> olarak anılıyor (uçakların kara kutusu benzetmesi). Doğru tahmin yapıyor ama nasıl yaptığı tam açıklanamıyor. Bu nedenle tıp ve finans gibi açıklanabilirlik gerektiren alanlarda kullanımına temkinli yaklaşılıyor. Bizim için kritik olan, nöronlar arasındaki <strong>ağırlıklar (parametreler)</strong> ve bunların nasıl bulunduğu.</li>
+</ul>
+<p>Hoca ayrıca Python'un C'ye göre "çocuk oyuncağı" kadar kolay olduğunu ve 15 dakikalık bir Python videosu bulunduğunu söyledi. Zor bir dili bilen kolay dili hızla öğrenir; tersi daha zordur.</p>
+<hr>
+<h3>Derin sinir ağları nasıl öğrenir? (≈01:44–01:50) (kısmen çizimden)</h3>
+<p><em>(≈01:44–01:48 arası transkriptte yok; içerik çizimden.)</em></p>
+<ul>
+<li>Yapay sinir ağları küçük ve orta ölçekli verilerdeki gizli örüntüleri bulabiliyor, büyük verilerde bulamıyor. <strong>Derin öğrenme</strong> bu yüzden geliştirildi: birden fazla gizli katmanlı ağlar.</li>
+<li><strong>Eğitim döngüsü (çizimden):</strong></li>
+</ul>
+<pre><code>Forward propagation:  x → (z|f) katmanları → tahmin (y')
+Loss function:        tahmin (y') ile gerçek değer (y) karşılaştırılır → loss score
+Backward propagation: optimizer, loss'a göre ağırlıkları günceller (weight update)
+Bu döngü loss minimuma inene kadar tekrar edilir.
+</code></pre>
+<ul>
+<li><strong>Epoch (transkriptten):</strong> Verinin ağdan bir kez tam geçişi bir epoch. Eğitim 5, 10, 20 ya da 100 epoch sürebilir. Bir noktadan sonra ağ artık öğrenmiyor, yani loss grafiği düzleşiyor; orada eğitim durdurulur ve o andaki ağırlıklar "en iyi parametreler" kabul edilir.</li>
+<li>Bir katılımcı, grafikte aşağı inerken aslında loss'un sürekli küçültüldüğünü belirtti; hoca onayladı.</li>
+</ul>
+<p><em>(≈01:50–02:19: ara ve transkriptte boşluk. Aşağıdaki iki bölüm çizimden.)</em></p>
+<hr>
+<h3>Derin öğrenme neden 2010'dan sonra patladı? (çizimden, ≈02:10–02:19)</h3>
+<ul>
+<li>LLM'lerin arkasındaki mimari derin sinir ağları. Derin öğrenme mimarileri 1990'lardan beri vardı ama <strong>eğitilemiyordu</strong>. 2010'lardan sonra üç etkenle patladı (Kahoot'ta da soruldu):
+  1. <strong>Büyük veri:</strong> internet, sosyal medya.
+  2. <strong>Bilgisayarlar güçlendi:</strong> GPU teknolojisi gelişti, buna <strong>oyun sektörü</strong> sebep oldu.
+  3. <strong>Yeni yapay zekâ mimarileri.</strong></li>
+<li><strong>"İnsanların sandığı" ve gerçek:</strong> Yapay zekâ, insanların hayal ettiği robotlar değil, özünde <strong>matris çarpımı</strong>. CPU işlemleri sıralı (sequential) yapar; GPU <strong>paralel</strong> işlem yaptığı için derin öğrenme eğitimini hızlandırır.</li>
+</ul>
+<h4>Mimarilerin gelişimi</h4>
+<ul>
+<li><strong>CNN (2010'a kadar):</strong> Basit resimleri analiz edebildi, rakam sınıflandırması yaptı, elle yazılmış posta kodları okunabildi. (Transkriptte CNN için "1990'da geliştirildi, rakamları sınıflandırmak için" deniyor.)</li>
+<li><strong>AlexNet (2012):</strong> İnsan seviyesinde görsel tanıyan ilk model. Yenilikleri: daha derin yapı, <strong>ReLU</strong> aktivasyon fonksiyonu, <strong>dropout</strong>, <strong>data augmentation</strong>.</li>
+<li>2014'e kadar çeşitli mimariler geliştirildi. Ardından devrim niteliğinde bir mimari çıktı: <strong>GAN</strong>.</li>
+<li><strong>GAN:</strong> İki modelin (Generator ve Discriminator) yarıştığı mimari. Generator rastgele gürültüden görüntü üretir, Discriminator gerçek veriyle karşılaştırıp "gerçek/sahte" der. İki ağ birbirini eğitir ve zamanla çok gerçekçi görüntüler üretilir. Daha önceki mimariler yalnızca veriyi analiz ediyordu; GAN <strong>generative AI'ın önünü açtı</strong> ve difüzyon modellerine giden yolu hazırladı.</li>
+<li><strong>Diffusion modeller:</strong> Görüntüye adım adım gürültü eklenir (forward diffusion), model gürültüyü adım adım temizlemeyi öğrenir (reverse diffusion, denoising U-Net). Fikir 2015'te bir makalede çıktı; 2020'den sonra pek çok difüzyon modeli geldi: <strong>DALL·E, Midjourney, Stable Diffusion</strong>.</li>
+</ul>
+<h4>Neden önce bilgisayarlı görü, sonra NLP?</h4>
+<ul>
+<li>Yapay zekâdaki ilk büyük gelişmeler <strong>bilgisayarlı görüde (computer vision)</strong> oldu, çünkü <strong>bir resimdeki piksel sayısı sınırlı.</strong> Görseller piksellerden oluşur ve her piksel bir <strong>öznitelik (feature)</strong>, yani veri setinde bir sütundur. Benzetme: Ev fiyatları veri setinde oda sayısı, lokasyon, metrekare ve bina yaşı birer öznitelik.</li>
+<li>Bilgisayarlı görüde 2010'dan sonra hızlı ilerleme oldu; <strong>NLP'de çalışmalar yavaş ilerledi.</strong> (Transkript 02:19'da "2014–2017'den sonra NLP'de gelişmeler olmaya başladı" diye başlıyor.)</li>
+</ul>
+<hr>
+<h3>Token, one-hot encoding ve embedding (≈02:19–02:28)</h3>
+<ul>
+<li><strong>NLP'de her token bir özniteliktir.</strong></li>
+<li><strong>Token, metnin en küçük parçasıdır:</strong> Bir kelime, bir harf, bir noktalama işareti, hatta bir sayı olabilir. Kaba bir oran olarak (çizimden) <strong>1000 token ≈ 750 kelime</strong>. Örneğin GPT-3/GPT-4, BPE (Byte Pair Encoding) tokenizer kullanıyor.</li>
+<li><strong>Modeller metinden anlamaz, sayısal temsillerden anlar.</strong></li>
+<li><strong>One-hot encoding:</strong> "The cat sat on the mat" cümlesinin sözlüğünde 5 kelime var (cat, mat, on, sat, the). Her kelime, sözlük uzunluğunda bir vektörle temsil ediliyor: kendi sütunu 1, diğer tüm sütunlar 0 (ör. <code>the → [0,0,0,0,1]</code>, <code>cat → [1,0,0,0,0]</code>).</li>
+<li><strong>Sorun:</strong> Bir kitapta 10, 20, 30 bin farklı token olabilir. Her token için 30 bin boyutlu, neredeyse tamamen sıfırlardan oluşan bir vektör, yani devasa ve seyrek bir veri ortaya çıkıyor. NLP'nin başta zor ilerlemesinin nedeni buydu (Kahoot sorusu).</li>
+<li><strong>Çözüm: Veriler uzaya taşındı, sayısal temsiller embedding'lere çevrildi.</strong> 30 bin boyut yerine örneğin 10, 20 ya da 30 boyutlu yoğun (dense) vektörler kullanıldı.</li>
+<li>Örnek 4 boyutlu embedding: <code>cat → [1.2, -0.1, 4.3, 3.2]</code>.</li>
+<li><strong>Her boyut bir özelliği temsil eder</strong> (ör. cinsiyet, tekil-çoğul).</li>
+<li><strong>Word embedding'lerin iki kazanımı:</strong>
+  1. <strong>Boyut indirgendi.</strong>
+  2. <strong>Anlamca yakın kelimeler uzayda birbirine yakın konumlandı.</strong> Hoca TensorFlow Embedding Projector'da (projector.tensorflow.org) 10 bin kelimelik bir embedding gösterdi: "desktop" kelimesinin çevresinde disk, hardware, PC, Linux, Intel; "Türkiye"nin çevresinde İran, Suriye, Yunanistan, Irak gibi kelimeler çıktı.</li>
+<li><strong>Kelimeler arasında sayısal işlem yapılabildi:</strong> <code>king − man + woman ≈ queen</code>.</li>
+<li>
+<p>Örnek 7 boyutlu uzay (boyutlar: living being, feline, human, gender, royalty, verb, plural), 2 boyuta indirgenince cat ile kitten birbirine yakın, dog biraz uzakta, houses ise çok uzakta çıkıyor; man ile woman arasındaki fark, king ile queen arasındaki farka paralel.</p>
+</li>
+<li>
+<p><strong>Soru:</strong> Cümle oluştururken de benzer bir yapı mı kullanılıyor? Yakın anlamlı kelimeler (hardware, computer…) birbirine yakın, ama cümle kurmak için fiil ve ekler gerekiyor. Bu denge nasıl sağlanıyor?
+  <strong>Cevap:</strong> Kelime embedding'i gibi <strong>cümle embedding'i (sentence embedding)</strong> de var. Cümleler Transformer mimarisi kullanılarak bütün halinde vektörlere çevriliyor. Bu konu embedding dersinde ayrıntılı anlatılacak.</p>
+</li>
+</ul>
+<p>Çizimdeki not: Var olan mimariler (dil) analizinde yetersiz kaldı; bu da Transformer'a giden yolu açtı.</p>
+<hr>
+<h3>Transformer mimarisi: genel bakış (≈02:28–02:33)</h3>
+<p><em>(Ayrıntılı anlatım bir sonraki derste yapılacak; burada yalnızca genel tanıtım var.)</em></p>
+<ul>
+<li><strong>2017'de Google</strong> tarafından geliştirildi. <strong>Diziden dizi üreten (sequence-to-sequence)</strong> bir mimari: Metin veriyorsunuz, metin alıyorsunuz.</li>
+<li>İlk amaç <strong>çeviriydi</strong> (ör. Türkçe → İngilizce). 2017'den sonra Google Çeviri'nin belirgin şekilde iyileşmesi bu mimari sayesinde.</li>
+<li>İki blok var:</li>
+<li><strong>Encoder:</strong> Girdi buradan girer ve sayısal temsillere çevrilir.</li>
+<li><strong>Decoder:</strong> Bu temsilleri işleyip çıktı üretir. Bir kelime tahmin edilir, tahmin dizinin sonuna eklenir, yeniden girdi olarak verilir ve bir sonraki kelime tahmin edilir. Döngüsel (otoregresif) bir yapı.</li>
+<li>Mimari karmaşık olduğu için tek bir blokla modeller geliştirildi:</li>
+<li><strong>Yalnızca encoder → BERT</strong> (Google, 2018): metin sınıflandırma ve metnin anlamını çıkarma.</li>
+<li><strong>Yalnızca decoder → GPT</strong> (OpenAI, hocaya göre 2019): metin üretme.</li>
+<li>(Not: İlk GPT modeli Haziran 2018'de yayımlandı; GPT-2 2019'da. Hoca ve çizim "2019" diyor.)</li>
+</ul>
+<hr>
+<h3>Toparlama: Perceptron'dan Agentic AI'a (≈02:32–02:35)</h3>
+<pre><code>Perceptron → Yapay sinir ağları → (Derin sinir ağları) → CNN → Transformer → ChatGPT (2022) → Agentic AI (2026)
+</code></pre>
+<ul>
+<li>Perceptron tek bir nöron; nöronlar bir araya gelince yapay sinir ağı, gizli katman sayısı artınca derin sinir ağı oluşuyor.</li>
+<li>CNN (görüntü, rakam sınıflandırma) ve AlexNet'ten sonra NLP'de devrimi Transformer yaptı.</li>
+<li><strong>ChatGPT (2022):</strong> 1 milyon kullanıcıya Instagram 2,5 yılda, TikTok 9 ayda, ChatGPT ise yaklaşık <strong>2 ayda</strong> ulaştı. LLM'lerin gücü anlaşıldı ve LLM tabanlı uygulamalar geliştirilmeye başlandı.</li>
+<li><strong>Agentic AI (2026'da çok popüler):</strong> Artık modele yalnızca girdi verip çıktı almıyoruz. Ajan düşünüyor, karar veriyor, araçları ve dokümanları kullanıyor, çevresiyle etkileşime geçip veri topluyor ve sonuca gidiyor. Biz görev veriyoruz; o araştırıp görevi tamamlıyor ve tamamladığını bildiriyor. Kursun odağı da <strong>LLM'leri ve ajanları kullanarak uygulama geliştirmek.</strong></li>
+</ul>
+<hr>
+<h3>Kahoot quiz: sorular ve doğru cevaplar (≈02:35–02:44)</h3>
+<ol>
+<li><strong>Yapay zekânın temel amacı nedir?</strong> → İnsan zekâsı gerektiren görevleri makinelerin yapması (herkes doğru bildi).</li>
+<li><strong>Turing testi neyi ölçmeye çalışır?</strong> → Makinenin insana benzer cevaplar verip veremediğini.</li>
+<li><strong>Bir AI mühendisinin LLM'lerle ilgili temel görevi hangisidir?</strong> → Eğitilmiş modellerle yapay zekâ uygulamaları geliştirmek.</li>
+<li><strong>LLM'leri sıfırdan eğitmek neden zordur?</strong> → Çok büyük hesaplama gücü gerektirdikleri için.</li>
+<li><strong>Yapay sinir ağlarındaki ağırlıklar neyi gösterir?</strong> → Girdilerin önemini; ağırlık büyükse girdi önemlidir.</li>
+<li><strong>Derin öğrenmenin 2010'dan sonra gelişmesini sağlayan üç önemli etken hangisidir?</strong> → Veri, GPU ve yeni mimariler.</li>
+<li><strong>GPU'lar yapay zekâ eğitimini neden hızlandırır?</strong> → İşlemleri paralel gerçekleştirdikleri için.</li>
+<li><strong>NLP çalışmalarının başlangıçta görüntü işlemeye göre daha zor ilerlemesinin nedenlerinden biri nedir?</strong> → Metinlerde çok fazla token olması; her token bir öznitelik olduğundan işlenmeleri zordu.</li>
+<li><strong>Aşağıdakilerden hangisi bir token olabilir? (kelime, sayı, noktalama, hepsi)</strong> → Hepsi. Kelime, sayı, harf ve noktalama işareti token olabilir.</li>
+<li><strong>Word embedding'in temel görevi nedir?</strong> → Kelimeleri sayısal vektörlere dönüştürmek.</li>
+<li><strong>AI ajanlarını klasik sohbet (chatbot) sistemlerinden ayıran temel özellik nedir?</strong> → Eyleme geçebilmeleri.</li>
+<li><strong>BERT ile GPT arasındaki temel fark hangisidir?</strong> → BERT metnin anlamını çıkarır/sınıflandırır, GPT metin üretir.</li>
+</ol>
+<hr>
+<h3>Duyurular ve topluluk tavsiyesi (≈02:44–02:48)</h3>
+<ul>
+<li>Hoca, Cuma günü Türkiye veri topluluğu ile ilgili canlı bir eğitime katılacağını duyurdu (ayrıntılar [belirsiz]); YouTube'dan canlı olacak.</li>
+<li><strong>Topluluğun değeri:</strong> Topluluk içinde fırsatlardan haberdar oluyorsunuz. Hoca Qwen ambassador'lığına da böyle, bir arkadaşının başvurusunu duyup başvurarak seçilmiş. Anthropic, OpenAI, DeepSeek gibi şirketlerin de ambassador programları var; açıldığında başvurmayı önerdi.</li>
+<li>İyi bir doküman ya da video bulursanız grupla paylaşın.</li>
+</ul>
+<hr>
+<h3>Çalışma ortamı kurulumu: VS Code + uv (≈02:48–02:58)</h3>
+<p><strong>Neden uv?</strong> Python'un varsayılan paket yöneticisi <strong>pip</strong> yavaş. <strong>uv</strong> Rust ile yazılmış bir araç, Python'dan kullanılabiliyor; çok daha hızlı ve Python sürümlerini de daha iyi yönetiyor. Son dönemde çok popüler oldu.</p>
+<p><strong>Adımlar:</strong></p>
+<ol>
+<li><strong>VS Code'u kurun.</strong> Cursor da VS Code tabanlı olduğu için onu kullanabilirsiniz. <strong>Kurulumda "Add to PATH" seçeneğini işaretleyin</strong>; böylece her dizinden VS Code'a erişebilirsiniz.</li>
+<li>Masaüstünde bir klasör oluşturun (hoca <code>day01</code> adını verdi). Sağ tık → <strong>"Code ile aç" (Open with Code)</strong>.</li>
+<li>VS Code içinde <strong>Terminal → New Terminal</strong> ile terminali açın.</li>
+<li><strong>uv'yi kurun:</strong> Tarayıcıda "uv install" aratıp resmi sayfadan işletim sisteminize uygun komutu kopyalayın (macOS/Linux için ayrı, Windows için ayrı komut var). Komutu VS Code terminaline ya da sistem terminaline yapıştırıp Enter'a basın.</li>
+</ol>
+<p>Not: Resmi kurulum komutları (transkriptte okunmuyor, astral.sh dokümantasyonundan):
+   <code>bash
+   # macOS / Linux
+   curl -LsSf https://astral.sh/uv/install.sh | sh</code>
+   <code>powershell
+   # Windows (PowerShell)
+   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"</code>
+   Hocanın kurulu sürümü transkriptte "0.12.10" olarak geçiyor [belirsiz].</p>
+<ol start="5">
+<li>
+<p><strong>Projeyi başlatın:</strong>
+   <code>bash
+   uv init</code>
+   Bu komut dizinde bir Python projesi oluşturur ve otomatik dosyalar ekler: <code>.gitignore</code>, projeyi açıklamak için <code>README.md</code> ve <strong><code>pyproject.toml</code></strong>. <code>pyproject.toml</code> dosyasında Python sürümü ve yüklenen kütüphanelerin sürümleri tutulur.</p>
+</li>
+<li>
+<p><strong>Paket ekleyin</strong> (hoca örnek olarak OpenAI kütüphanesini kurdu):
+   <code>bash
+   uv add openai</code>
+   Paket ve bağımlılıkları yüklenir ve <code>pyproject.toml</code>'a eklenir.</p>
+</li>
+<li>
+<p><strong>Projeyi başka makinede kurmak:</strong> Hocanın hatırladığı kadarıyla
+   <code>bash
+   uv sync</code>
+   komutu, <code>pyproject.toml</code>'daki sürümleri yükleyerek projeyi aynı ortamla çalıştırır.</p>
+</li>
+</ol>
+<ul>
+<li><strong>Her proje için ayrı ortam (environment):</strong> Proje proje ayrı environment kurulacak.</li>
+<li><strong>Python sürümü:</strong> Bir katılımcı en stabil sürüm olarak <strong>3.12</strong>'yi hatırlattı; diğer sürümlerde kütüphane çakışmaları çıkabiliyor. Hoca da <strong>3.12 veya 3.11</strong> kurulmasını önerdi.</li>
+<li>Mac kullanan bir katılımcı uv'yi kurmadan Python ile ilerlemişti; hoca yine de uv'yi kurmasını önerdi.</li>
+</ul>
+<p><strong>Soru:</strong> <code>pyproject.toml</code> içinde e-posta adresim ve adım görünüyor. GitHub'a gönderirken bunu <code>.gitignore</code>'a mı eklemeliyim?
+<strong>Cevap:</strong> Hoca bu bilginin dosyada çıkmasına kendisi de şaşırdı; diğer katılımcılarda çıkmamıştı. Dosyanın tamamını gitignore'a eklemek doğru değil, çünkü <code>pyproject.toml</code> başkasının projeyi aynı sürümlerle çalıştırabilmesi için gerekli. Görünmesini istemediğiniz satırları silip geri kalanını gönderebilirsiniz.</p>
+<p><strong>Hocanın uyarısı (API anahtarı):</strong> OpenAI ilk çıktığında hoca API anahtarını yanlışlıkla GitHub'a göndermiş. O zaman verilen 10 dolarlık ücretsiz kredi başkası tarafından kullanılıp bitirilmiş, sonradan da anahtarın paylaşıldığına dair bir uyarı mesajı gelmiş. <strong>API anahtarlarını asla repoya göndermeyin.</strong></p>
+<hr>
+<h3>Kapanış (≈02:58–02:59)</h3>
+<ul>
+<li>Ders kayıtları, dokümanlar ve görseller Skool → Classroom altında "Hafta 1, Hafta 2…" klasörlerine yüklenecek.</li>
+<li>Hocanın son tavsiyesi: <strong>Sadece videoyu izlemekle kalmayın; kodları kendiniz tekrar çalıştırın, konuları tekrar edin.</strong> Takıldığınız yerleri WhatsApp grubuna yazın.</li>
+</ul>

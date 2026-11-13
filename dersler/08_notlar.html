@@ -1,0 +1,298 @@
+<h2>08 · Day04 – Vektör Veri Tabanları</h2>
+<p><strong>Bu derste ne var:</strong> Anahtar kelime araması (keyword search) ile anlamsal arama (semantic search) arasındaki fark üç uygulamayla gösterildi: SQLite'ta <code>LIKE</code> ile kelime araması, Sentence Transformers ile yerel anlamsal arama, OpenAI embedding'leri + FAISS ile ilk vektör veri tabanı. Teorik tarafta yapılandırılmış/yapılandırılmamış veri, SQL'in vektör saklamadaki sınırları, vektör DB'lerin ek özellikleri (indeksleme, yaklaşık arama, sparse saklama), hibrit yaklaşım ve doğru vektör DB seçimi ele alındı.</p>
+<hr>
+<h3>Ana kavramlar</h3>
+<ul>
+<li><strong>Embedding (gömme vektörü)</strong> — Metin, görsel, ses gibi verinin sayısal vektör temsili. <em>Neden önemli:</em> Anlamca yakın veriler vektör uzayında yakın düşer; böylece "anlama göre" arama ve karşılaştırma yapılabilir.</li>
+<li><strong>Statik embedding</strong> — Her kelimeye tek, sabit bir vektör (Word2Vec). <em>Sorun:</em> Çok anlamlı kelimeleri ("Apple": şirket mi meyve mi) ayırt edemez.</li>
+<li><strong>Bağlamsal embedding (contextual embedding)</strong> — Transformer tabanlı; aynı kelimenin vektörü cümleye göre değişir. <em>Neden önemli:</em> Modern embedding modellerinin (Sentence Transformers, OpenAI) temeli.</li>
+<li><strong>Word2Vec vs Doc2Vec</strong> — Word2Vec her kelimeyi, Doc2Vec her dokümanı vektöre çevirir.</li>
+<li><strong>Cümle embedding'i (ortalama/pooling)</strong> — Token embedding'lerinin ortalaması alınarak cümlenin tek vektörü elde edilir. <em>Neden önemli:</em> <code>model.encode(cümle)</code> bize token değil cümle vektörü döndürür.</li>
+<li><strong>Yapılandırılmış veri (structured data)</strong> — Tablo halinde, sütunları/anahtarları belli veri (Excel, SQL tablosu). SQL DB'leri bunda çok güçlü.</li>
+<li><strong>Yapılandırılmamış veri (unstructured data)</strong> — Görüntü, metin, PDF, ses, video, IoT sensör verisi. Klasik DB'de saklansa bile anlamsal arama yapılamaz.</li>
+<li><strong>Anahtar kelime araması (keyword search)</strong> — Bire bir kelime eşleşmesi (<code>LIKE '%...%'</code>). Eş anlamlıları kaçırır.</li>
+<li><strong>Anlamsal arama (semantic search)</strong> — Sorgu ve dokümanlar embedding'e çevrilir, en benzer vektörler getirilir. "araba bozuldu" → "Otomobilim marş basmıyor".</li>
+<li><strong>Vektör veri tabanı (vector database)</strong> — Embedding'leri saklayan, benzerlik aramasını indekslerle hızlı yapan DB. Kullanım: anlamsal arama, RAG, görsel benzerlik araması.</li>
+<li><strong>Benzerlik ve mesafe ölçüleri</strong> — Kosinüs benzerliği (büyük = daha benzer), Öklid / L2 mesafesi (küçük = daha yakın), k-en yakın komşu (k-NN).</li>
+<li><strong>LSH / HNSW</strong> — Vektör DB'lerin indeksleme teknikleri; benzer vektörleri yakın yerlere yerleştirerek aramayı hızlandırır.</li>
+<li><strong>Yaklaşık en yakın komşu araması (approximate search)</strong> — Kesin değil, yeterince iyi sonucu hızlı bulur. RAG'de "en ilgili birkaç doküman" için yeterli.</li>
+<li><strong>Sparse vs dense vektör</strong> — Sparse: çoğu değer sıfır (ör. 30.000 boyutlu sözlük vektörü); dense: düşük boyutlu, çoğu değeri sıfırdan farklı (embedding'ler). Sparse vektörler <code>indices</code> + <code>values</code> ile verimli saklanır.</li>
+<li><strong>Metadata ve hibrit arama</strong> — Vektör benzerliği + SQL tarzı filtreler (kategori, tarih, etiket) birlikte. Örnek: PostgreSQL + pgvector.</li>
+<li><strong>FAISS</strong> — Meta'nın vektör arama kütüphanesi; küçük deneyler ve RAG prototipleri için. <code>IndexFlatL2</code> = L2 mesafesiyle düz (tam/brute-force) arama.</li>
+</ul>
+<h3>Akış / mimari</h3>
+<p><strong>Anahtar kelime vs anlamsal arama</strong></p>
+<pre><code>Keyword:   sorgu metni → SQL LIKE '%kelime%' → yalnızca birebir geçen satırlar
+Semantic:  sorgu metni → embedding → benzerlik (cosine / L2) → en yakın k doküman
+</code></pre>
+<p><strong>Vektör DB ile arama (bu dersteki FAISS akışı)</strong></p>
+<pre><code>text_chunks → get_embedding() → np.array → float32 → faiss.IndexFlatL2(dim) → index.add()
+sorgu → get_embedding() → float32 → reshape(1, -1) → index.search(q, k) → (distances, indices) → text_chunks[i]
+</code></pre>
+<p><strong>RAG'deki yeri (gelecek ders)</strong></p>
+<pre><code>PDF / doküman → parçalama (chunking) → embedding → vektör DB'de sakla → kullanıcı sorusu → en ilgili chunk'lar → LLM
+</code></pre>
+<p><strong>Hibrit sorgu (çizimden)</strong></p>
+<pre><code>&quot;2024 sonrası, bilim kategorisinde, yapay zekâ ile ilgili en iyi 10 doküman&quot;
+ ├─ &quot;yapay zekâya benzeyen&quot;       → vektör benzerlik araması
+ ├─ category = 'science'          → metadata filtresi
+ ├─ publish_date &gt; '2024-01-01'   → tarih filtresi
+ └─ ilk 10                        → sıralama + limit
+</code></pre>
+<h3>Kod / uygulama</h3>
+<h4>1) Ortam kurulumu</h4>
+<pre><code class="language-bash">uv init --python 3.12
+uv add jupyter
+uv add ipykernel            # kernel görünmezse
+uv add sentence-transformers
+uv sync                     # başkasının projesindeki kütüphaneleri aynı sürümlerle kurar
+</code></pre>
+<ul>
+<li><code>uv init --python 3.12</code> → projeyi belirli Python sürümüyle başlatır.</li>
+<li><code>uv add ...</code> → kütüphaneyi projenin ortamına ekler (pyproject'e yazar).</li>
+<li><code>uv sync</code> → indirilen bir projenin bağımlılıklarını aynen kurar.</li>
+<li>Not: FAISS, OpenAI ve python-dotenv'in hangi komutla kurulduğu transkriptte geçmiyor (genellikle <code>uv add faiss-cpu openai python-dotenv</code>).</li>
+</ul>
+<h4>2) SQLite ile anahtar kelime araması (<code>01-Keyword-Search.ipynb</code>)</h4>
+<pre><code class="language-python">import sqlite3
+conn = sqlite3.connect(&quot;:memory:&quot;)
+cur = conn.cursor()
+cur.execute(&quot;CREATE TABLE dokumanlar (id INTEGER PRIMARY KEY, icerik TEXT)&quot;)
+cur.executemany(&quot;INSERT INTO dokumanlar (icerik) VALUES (?)&quot;, kayitlar)
+cur.execute(&quot;SELECT icerik FROM dokumanlar WHERE icerik LIKE '%araba bozuldu%'&quot;)
+sonuc = cur.fetchall()
+print(&quot;Bulunan satır:&quot;, len(sonuc))
+</code></pre>
+<ul>
+<li><code>sqlite3</code> Python ile birlikte gelir; kurulum gerekmez.</li>
+<li><code>":memory:"</code> → veri tabanı RAM'de; kernel kapanınca silinir.</li>
+<li><code>cursor()</code> → SQL komutlarını çalıştıracak imleç.</li>
+<li><code>CREATE TABLE</code> → <code>id</code> birincil anahtar (benzersiz), <code>icerik</code> metin.</li>
+<li><code>executemany(..., kayitlar)</code> → listedeki her tuple için bir <code>INSERT</code>; <code>?</code> yer tutucusu SQL enjeksiyonuna karşı da güvenlidir. Kayıtlar <code>("metin",)</code> şeklinde tek elemanlı tuple olmalı.</li>
+<li><code>LIKE '%araba bozuldu%'</code> → <strong>0 satır</strong>; <code>LIKE '%araba%'</code> → <strong>1 satır</strong> (sadece "Yeni arabamı…").</li>
+</ul>
+<h4>3) Sentence Transformers ile anlamsal arama (<code>02-Semantic-Search.ipynb</code>)</h4>
+<pre><code class="language-python">from sentence_transformers import SentenceTransformer
+model = SentenceTransformer(&quot;paraphrase-multilingual-MiniLM-L12-v2&quot;)
+metinler = [k[0] for k in kayitlar]
+vektorler = model.encode(metinler)
+print(vektorler.shape)          # (5, 384)
+sorgu = &quot;araba bozuldu&quot;
+sorgu_vek = model.encode(sorgu)
+skorlar = model.similarity(sorgu_vek, vektorler)[0]
+for i in np.argsort(-skorlar)[:3]:
+    print(f&quot;{skorlar[i]:.3f} {metinler[i]}&quot;)
+</code></pre>
+<ul>
+<li>Çok dilli (multilingual) küçük model → Türkçe için; yerel çalışır, API gerekmez.</li>
+<li><code>[k[0] for k in kayitlar]</code> → tuple'lardan düz metin listesi.</li>
+<li><code>encode</code> → her cümle için 384 boyutlu bağlamsal embedding.</li>
+<li>Sorgu da <strong>aynı modelle</strong> encode edilmeli.</li>
+<li><code>similarity</code> → benzerlik skoru; <strong>büyük = daha benzer</strong>. <code>[0]</code> tek sorgunun satırını alır.</li>
+<li><code>np.argsort(-skorlar)</code> → eksiyle çarpıp büyükten küçüğe sıralama; <code>[:3]</code> ilk üç.</li>
+<li>Sonuç: 1) "Otomobilim marş basmıyor…" 2) "Aracım çalışmıyor…" 3) "Yeni arabamı…".</li>
+</ul>
+<h4>4) OpenAI embedding + FAISS (<code>03-Vector-DB.ipynb</code>)</h4>
+<pre><code class="language-python">from dotenv import load_dotenv
+load_dotenv()
+from openai import OpenAI
+client = OpenAI()
+model = &quot;text-embedding-3-small&quot;
+
+def get_embedding(text):
+    response = client.embeddings.create(input=text, model=model)
+    return response.data[0].embedding
+</code></pre>
+<ul>
+<li><code>load_dotenv()</code> → <code>.env</code> içindeki <code>OPENAI_API_KEY</code>'i ortama yükler (ortam değişkeni zaten tanımlıysa gerekmez).</li>
+<li><code>OpenAI()</code> → anahtarı ortamdan otomatik okur.</li>
+<li><code>text-embedding-3-small</code> → 1536 boyutlu vektör; <code>large</code> daha büyük boyut üretir.</li>
+<li><code>response.data[0].embedding</code> → tek girdinin vektörü (Python listesi).</li>
+</ul>
+<pre><code class="language-python">document_embeddings = np.array([get_embedding(t) for t in text_chunks]).astype(&quot;float32&quot;)
+index = faiss.IndexFlatL2(document_embeddings.shape[1])
+index.add(document_embeddings)
+print(index.ntotal)                              # 6
+query_embedding = np.array(get_embedding(query)).astype(&quot;float32&quot;)
+distances, indices = index.search(query_embedding.reshape(1, -1), k)
+</code></pre>
+<ul>
+<li><code>.astype("float32")</code> → numpy varsayılanı float64; <strong>FAISS float32 ister</strong>.</li>
+<li><code>IndexFlatL2(dim)</code> → L2 (Öklid) mesafesiyle tam arama yapan indeks; <code>dim</code> = 1536.</li>
+<li><code>index.add</code> → vektörleri indekse ekler; <code>ntotal</code> toplam vektör sayısı.</li>
+<li><code>reshape(1, -1)</code> → <code>(1536,)</code> → <code>(1, 1536)</code>; FAISS her zaman 2B (sorgu sayısı × boyut) bekler.</li>
+<li><code>search(q, k)</code> → en yakın <code>k</code> vektörün mesafeleri ve indisleri; <strong>küçük mesafe = daha yakın</strong>.</li>
+<li>Sonuç ("Menekşeler ne renktir?"): Menekşeler mavidir → Gökyüzü mavidir → Dondurma lezzetlidir → Güneş parlıyor → Güller kırmızıdır.</li>
+</ul>
+<h4>5) Hibrit sorgu – PostgreSQL + pgvector (çizimden)</h4>
+<pre><code class="language-sql">SELECT title, category, publish_date, views,
+       embedding &lt;=&gt; :query_vector AS distance
+FROM documents
+WHERE category = 'science' AND publish_date &gt; '2023-01-01'
+ORDER BY distance ASC
+LIMIT 10;
+</code></pre>
+<ul>
+<li><code>&lt;=&gt;</code> → pgvector'ün mesafe operatörü (Not: pgvector'de <code>&lt;=&gt;</code> kosinüs mesafesi, <code>&lt;-&gt;</code> L2 mesafesidir).</li>
+<li><code>WHERE</code> → metadata filtreleri; <code>ORDER BY distance ASC LIMIT 10</code> → en yakın 10.</li>
+</ul>
+<h3>Hocanın vurguları &amp; pratik kurallar</h3>
+<ul>
+<li><strong>Klasik veri tabanlarını küçümsemeyin:</strong> SQL'i en azından temel seviyede bilmek şart; uygulamaların çoğu hâlâ klasik DB kullanıyor.</li>
+<li><strong>Her proje için ayrı ortam</strong> (uv) → sürüm çakışması olmaz.</li>
+<li><strong>Araç bağımlılığı olmasın:</strong> uv sorun çıkarırsa Conda, o da olmazsa pip. Hepsini bilmek fayda sağlar.</li>
+<li><strong>Türkçe metin için çok dilli embedding modeli</strong> seçin.</li>
+<li><strong>Embedding'e çevirmenin iki yolu:</strong> OpenAI (API, ücretli) veya Sentence Transformers (açık kaynak, lokal).</li>
+<li><strong>Yapay zekâ uygulamalarında yaklaşık sonuç yeterli</strong> — vektör DB'lerin hız avantajı buradan gelir.</li>
+<li><strong>Skor yönüne dikkat:</strong> benzerlik (cosine) → büyük iyi; mesafe (L2) → küçük iyi.</li>
+<li><strong>Vektör DB seçimi (çizimden):</strong></li>
+<li>Küçük deneyler / RAG prototipi → <strong>FAISS</strong> (Meta) veya <strong>Chroma</strong> (Python ile hızlı başlangıç, yerel RAG için ideal).</li>
+<li>Zaten PostgreSQL varsa → <strong>pgvector</strong>; MongoDB varsa → <strong>MongoDB Atlas Vector Search</strong>. Redis için RediSearch.</li>
+<li>Büyük ölçek / kurumsal → <strong>Qdrant, Weaviate, Milvus</strong> (açık kaynak, lokal + bulut), <strong>Pinecone</strong> (yalnız bulut).</li>
+<li><strong>Gerçek hayatta sadece vektör yetmez:</strong> tarih, kategori, etiket gibi metadata'yı da saklayıp hibrit arama yapın.</li>
+<li><strong>Ortam değişkeni adı büyük harf:</strong> <code>OPENAI_API_KEY</code>.</li>
+<li>Ders öncesi ortamı (klasör + kernel + "Merhaba Dünya") hazırlayıp gelin.</li>
+</ul>
+<h3>Sık hatalar / karşılaşılan sorunlar</h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Sorun</th>
+<th>Neden</th>
+<th>Çözüm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>executemany</code> hata verdi</td>
+<td>Kayıtlar tuple formatında değildi (eski not yapıştırıldı)</td>
+<td>Her kaydı <code>("metin",)</code> olarak yazmak</td>
+</tr>
+<tr>
+<td>"no such column" / sütun yok hatası</td>
+<td>Hücreler sırasız ya da eksik çalıştırıldı</td>
+<td>Restart → tüm hücreleri sırayla çalıştır</td>
+</tr>
+<tr>
+<td>Kernel listesinde proje ortamı görünmüyor</td>
+<td>VS Code ortamı algılamadı / ipykernel eksik</td>
+<td>VS Code'u kapat-aç; <code>uv add ipykernel</code></td>
+</tr>
+<tr>
+<td><code>uv add jupyter</code> sorun çıkardı</td>
+<td>Ortam/sürüm çakışması [belirsiz]</td>
+<td><code>pip install</code> veya Conda ile devam; klasörü silip yeniden kurmak bir öğrencide işe yaradı</td>
+</tr>
+<tr>
+<td><code>sentence_transformers</code> import edilemedi</td>
+<td>Kurulumdan sonra kernel eski haliyle çalışıyor</td>
+<td>Kernel'i restart etmek</td>
+</tr>
+<tr>
+<td>Model yükleme yavaş</td>
+<td>İlk seferde model indiriliyor (yavaş internet)</td>
+<td>Bekle; sonra önbellekten hızlı yüklenir</td>
+</tr>
+<tr>
+<td>FAISS indeks/arama hücresinde hata, tuhaf sonuçlar</td>
+<td>Hücre iki kez çalıştı, vektörler iki kez eklendi</td>
+<td>Restart → Run All (indeks bellekte olduğu için sıfırlanır)</td>
+</tr>
+<tr>
+<td>FAISS tip hatası riski</td>
+<td>numpy float64</td>
+<td><code>.astype("float32")</code></td>
+</tr>
+<tr>
+<td><code>search</code> boyut hatası riski</td>
+<td>Sorgu 1B <code>(1536,)</code></td>
+<td><code>.reshape(1, -1)</code></td>
+</tr>
+<tr>
+<td>OpenAI çağrısı hata verdi</td>
+<td>API kredisi bitmiş / anahtar tanımsız</td>
+<td>Kredi yükle; <code>OPENAI_API_KEY</code>'i ortamda veya <code>.env</code>'de tanımla</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Kendini test et</h3>
+<ol>
+<li>Anahtar kelime araması "araba bozuldu" sorgusunda neden hiç sonuç döndürmedi, <code>LIKE '%araba%'</code> neden sadece bir satır buldu?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Keyword search birebir metin eşleşmesi arar. "araba bozuldu" ifadesi hiçbir kayıtta aynen geçmiyor. "araba" sadece "Yeni arabamı…" cümlesinde geçiyor; "aracım", "otomobilim", "vasıtam" gibi eş anlamlılar yakalanamıyor.</p>
+</details>
+<ol start="2">
+<li>Statik ve bağlamsal embedding arasındaki fark nedir? "Apple" örneğiyle açıklayın.</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Statik embedding'de (Word2Vec) "Apple"ın tek bir vektörü vardır; şirket mi meyve mi ayrılamaz. Bağlamsal (Transformer tabanlı) embedding'de vektör cümleye göre değişir: "I ate an apple…" ile "Apple released a new iPhone." farklı temsil edilir.</p>
+</details>
+<ol start="3">
+<li><code>model.encode(metinler)</code> çıktısının şekli <code>(5, 384)</code>; bu sayılar ne anlama geliyor ve cümle vektörü nasıl elde ediliyor?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>5 = cümle sayısı, 384 = her cümlenin embedding boyutu. Token embedding'leri (bağlamsal olarak) hesaplanır, ardından ortalamaları alınarak tek bir cümle vektörü elde edilir.</p>
+</details>
+<ol start="4">
+<li><code>np.argsort(-skorlar)[:3]</code> satırında neden eksi işareti var?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>argsort</code> küçükten büyüğe sıralar. Benzerlik skorunda büyük değer daha iyidir; eksiyle çarparak büyükten küçüğe sıralama elde edilir ve ilk üç en benzer sonuç alınır.</p>
+</details>
+<ol start="5">
+<li>FAISS'e veri eklemeden önce neden <code>.astype("float32")</code> yapıyoruz, sorguda neden <code>reshape(1, -1)</code> kullanıyoruz?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>FAISS float32 ile çalışır, numpy ise varsayılan olarak float64 üretir. <code>search</code> iki boyutlu (sorgu sayısı × boyut) girdi bekler; tek sorgu vektörü <code>(1536,)</code> olduğundan <code>(1, 1536)</code> yapılır.</p>
+</details>
+<ol start="6">
+<li><code>IndexFlatL2</code> sonuçlarında küçük değer mi büyük değer mi daha iyi? <code>model.similarity</code>'de durum ne?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>L2 bir mesafedir: küçük = daha yakın. <code>similarity</code> bir benzerlik skorudur (Sentence Transformers'da varsayılan kosinüs): büyük = daha benzer.</p>
+</details>
+<ol start="7">
+<li>SQL veri tabanına embedding'i <code>VECTOR(768)</code> / <code>FLOAT[]</code> sütunu olarak koymak neden tek başına yetmez? Eklenti yaklaşımının dezavantajları nelerdir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>SQL DB sayı listesinin anlamını bilmez, sadece sayıları görür; benzerlik araması yapamaz. Eklentiyle genişletilirse performans sorunu, vektör işlemlerini iyi yapamama ve vektör sayısı arttıkça ölçeklenebilirlik sorunu ortaya çıkar.</p>
+</details>
+<ol start="8">
+<li>Vektör veri tabanlarının klasik DB'lere göre sunduğu dört ek özellik nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>(1) LSH/HNSW gibi indekslerle yüksek boyutlu veride hızlı arama, (2) kosinüs, Öklid, k-NN gibi vektör işlemlerini doğrudan destekleme, (3) yaklaşık aramayı hızlı yapma, (4) sparse vektörleri verimli saklama.</p>
+</details>
+<ol start="9">
+<li><code>[0, 0, 0.8, 0, 0, 0.3, 0]</code> vektörünün sparse gösterimi nedir, neden avantajlıdır?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>indices = [2, 5]</code>, <code>values = [0.8, 0.3]</code>. Sıfırlar saklanmadığı için bellek ve işlem tasarrufu sağlar.</p>
+</details>
+<ol start="10">
+<li>Şirketiniz zaten PostgreSQL kullanıyor ve "2024 sonrası, bilim kategorisinde, yapay zekâ ile ilgili 10 doküman" sorgusu gerekiyor. Hangi yaklaşımı ve aracı seçersiniz?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Hibrit yaklaşım: PostgreSQL + pgvector. Vektör benzerliği (<code>embedding &lt;=&gt; :query_vector</code>) ile metadata filtreleri (<code>category</code>, <code>publish_date</code>) birlikte, <code>ORDER BY distance LIMIT 10</code>.</p>
+</details>
+<h3>Hocaya sorulacaklar / belirsiz kalanlar</h3>
+<ul>
+<li><strong>02:07–02:51 aralığı transkriptte yok.</strong> Çizimdeki NoSQL vs vektör DB, hibrit yaklaşım, pgvector ve "doğru vektör DB seçimi" bölümlerinin sözlü anlatımı (varsa) videodan kontrol edilmeli. Bu kısım derste anlatıldı mı, yoksa sadece tahtaya mı kondu?</li>
+<li><strong>00:01–00:30 aralığı</strong> (dersin girişi: embedding uzayı, keyword vs semantic, Word2Vec, king–queen örneği) transkriptte yok.</li>
+<li>FAISS sonucundaki ilk mesafe transkriptte "sıfır nokta beş yüz doksan beş" gibi duyuluyor; kesin değer [belirsiz].</li>
+<li>FAISS, <code>openai</code>, <code>python-dotenv</code> kurulum komutları transkriptte geçmiyor (<code>faiss-cpu</code> mı kullanıldı?).</li>
+<li><code>IndexFlatL2</code> tam (brute-force) arama yapıyor; derste anlatılan HNSW/LSH gibi yaklaşık indeksler FAISS'te nasıl kullanılır (ör. <code>IndexHNSWFlat</code>)? Derste gösterilmedi.</li>
+<li>Kosinüs mi L2 mi? OpenAI embedding'leri normalize edildiği için iki ölçü aynı sıralamayı verir mi? (Not: OpenAI embedding'leri birim uzunlukta normalize edilir, bu durumda L2 ve kosinüs aynı sıralamayı verir; hocaya teyit ettirilebilir.)</li>
+<li>Çizimdeki zaman çizelgesinde Vald ve ChromaDB'nin yılları tam okunamıyor (≈2020 ve ≈2022).</li>
+</ul>

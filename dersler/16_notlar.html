@@ -1,0 +1,474 @@
+<h2>16 · Day12 - Deployment</h2>
+<p><strong>Bu derste ne var:</strong> 15. derste başlanan deployment projesi tamamlandı: Supabase'e hem Supabase istemcisiyle hem doğrudan PostgreSQL (<code>psycopg</code>) ile bağlanıldı, Supabase MCP ile Claude Code/Codex'ten veritabanıyla doğal dilde konuşuldu, LangSmith ile izleme kuruldu. Ardından pgvector'lü <code>documents</code> tablosu ve <code>match_documents</code> arama fonksiyonu kodla oluşturuldu, dokümanlar embedding'leriyle eklendi, <code>search_course_notes</code> tool'lu bir RAG agent LangGraph yerel sunucusunda yayınlandı; SDK ile ve Streamlit sohbet arayüzüyle test edildi (Streamlit'te cevabın JSON görünmesi hatası derste çözülemedi).</p>
+<blockquote>
+<p><strong>Altyazı boşlukları:</strong> ≈01:02–01:16 (mola), ≈01:40–01:46 (sessiz kodlama: <code>vector_store.py</code>), ≈02:04–02:17 (mola) ve ≈02:17–02:45 (boş ses: <code>agent.py</code>, <code>langgraph.json</code>, <code>langgraph dev</code>). Bu kısımlar kaynak koddan "Not:" ile dolduruldu.</p>
+<p><strong>Güvenlik:</strong> Bu notlarda hiçbir anahtar, veritabanı adresi veya proje kimliği yok; yalnızca değişken adları (<code>OPENAI_API_KEY</code>, <code>SUPABASE_URL</code>, <code>SUPABASE_SECRET_KEY</code>, <code>DATABASE_URL</code>, <code>LANGSMITH_*</code>) geçer.</p>
+</blockquote>
+<hr>
+<h3>15. dersten kısa hatırlatma</h3>
+<p>Supabase'de proje açıldı, SQL ile <code>students</code> tablosu oluşturulup RLS açıldı (policy sadece <code>service_role</code>), <code>.env</code>'e <code>SUPABASE_URL</code>, <code>SUPABASE_SECRET_KEY</code>, <code>DATABASE_URL</code> yazıldı ve <code>test_supabase.py</code> ile secret key kullanılarak satırlar okundu. Publishable key RLS'e takıldığı için boş liste döndürüyordu. Bu derste aynı proje (<code>D12</code> klasörü, <code>uv sync</code>) üzerinden devam edildi.</p>
+<h3>Ana kavramlar</h3>
+<ul>
+<li><strong>Deployment (canlıya alma)</strong>: Yerelde çalışan uygulamayı müşterilerin/başkalarının erişebileceği hale getirmek. <em>Neden önemli:</em> Yerelde çalışan bir demo başkasına gösterilemez; "binanın çatısı".</li>
+<li>Not: Derste uygulama yerel LangGraph sunucusunda (<code>127.0.0.1:2024</code>) ve yerel Streamlit'te çalıştırıldı; bulut platformuna (LangSmith Deployment, Streamlit Cloud, Render vb.) gerçek yükleme adımı altyazıda yok.</li>
+<li><strong>RAG agent</strong>: Soruyu değerlendirip gerekiyorsa vektör veritabanından bilgi getiren bir tool'u çağıran, gerekmiyorsa kendi bilgisiyle cevap veren agent. (Hoca bunu "agentic RAG"dan ayrı bir şey olarak andı.)</li>
+<li><strong>Supabase</strong>: "Bulutta çalışan PostgreSQL". Veritabanı + <code>vector</code> eklentisiyle vektör veritabanı. İki bağlantı yolu: Supabase istemcisi (<code>SUPABASE_URL</code> + <code>SUPABASE_SECRET_KEY</code>) veya doğrudan PostgreSQL (<code>DATABASE_URL</code>).</li>
+<li><strong>psycopg</strong>: Python'dan PostgreSQL'e bağlanma kütüphanesi. <code>with</code> ile açılan bağlantı blok bitince otomatik kapanır.</li>
+<li><strong>Cursor (imleç)</strong>: Veritabanında SQL çalıştırmayı sağlayan nesne (<code>cursor.execute</code>, <code>fetchone</code>).</li>
+<li><strong>Supabase MCP</strong>: Supabase'in MCP sunucusu; Claude Code / Codex / Cursor / VS Code'a eklenince veritabanıyla doğal dilde konuşulabilir (Codex'te 20 tool göründü). <em>Neden önemli:</em> Kod yazmadan sorgu/inceleme.</li>
+<li><strong>LangSmith</strong>: LangChain ekosisteminin izleme (tracing) aracı: token, maliyet, model, girdi/çıktı, metadata, agent adımları. <em>Neden önemli:</em> İzlemeyen sürpriz faturayla karşılaşır; agent'ın nasıl çalıştığını görmek, kurmak kadar önemli.</li>
+<li><strong>pgvector / <code>vector</code> eklentisi</strong>: PostgreSQL'i vektör veritabanına çeviren eklenti; <code>VECTOR(1536)</code> sütun tipi ve <code>&lt;=&gt;</code> (kosinüs uzaklığı) operatörü.</li>
+<li><strong>HNSW indeksi</strong>: Vektör aramalarını hızlandıran yaklaşık en yakın komşu indeksi (<code>USING hnsw (embedding vector_cosine_ops)</code>). Normal indeksler vektör aramasını hızlandıramaz.</li>
+<li><strong><code>match_documents</code></strong>: SQL'de yazılan arama fonksiyonu: sorgu embedding'i + kaç sonuç + metadata filtresi → en benzer dokümanlar ve benzerlik skoru.</li>
+<li><strong>RLS (Row Level Security)</strong>: Satır düzeyi güvenlik; <code>documents</code> tablosunda da açıldı (policy tanımlanmadı, secret key/servis rolü ile erişiliyor).</li>
+<li><strong>Embedding modeli <code>text-embedding-3-small</code></strong>: OpenAI'ın 1536 boyutlu vektör üreten modeli; tablo boyutu bununla aynı olmalı.</li>
+<li><strong><code>SupabaseVectorStore</code></strong>: LangChain'in Supabase sarmalayıcısı; <code>add_documents</code> ile metni embedding'e çevirip yazar, <code>similarity_search</code> ile sorguyu embedding'e çevirip <code>match_documents</code>'ı çağırır.</li>
+<li><strong>Tool (<code>@tool</code>)</strong>: Fonksiyonu agent'ın çağırabileceği araca çevirir; docstring, modelin aracı ne zaman kullanacağını anlamasını sağlar.</li>
+<li><strong><code>create_agent</code></strong>: LangChain'in model + tools + system prompt'tan agent (LangGraph graph'ı) oluşturan fonksiyonu; model <code>"sağlayıcı:model"</code> biçiminde yazılır.</li>
+<li><strong><code>langgraph.json</code></strong>: LangGraph sunucusuna hangi graph'ın hangi adla yayınlanacağını ve <code>.env</code>'i söyleyen yapılandırma.</li>
+<li><strong>Agent Server / <code>langgraph dev</code></strong>: Graph'ı HTTP API olarak sunan yerel sunucu (<code>http://127.0.0.1:2024</code>). (Not: komut altyazıda geçmiyor; <code>langgraph-cli[inmem]</code> bağımlılığı ve adres bunu gösteriyor.)</li>
+<li><strong>Thread / Run / Assistant</strong> (eklenen dokümanların içeriği): Thread = konuşma geçmişini ve state'i saklayan kalıcı konteyner; Run = assistant'ın bir kez çalıştırılması (thread üzerinde çalışırsa state kalıcı olur); Assistant = graph'ın model, system prompt ve tool ayarlarıyla yapılandırılmış çalıştırılabilir sürümü.</li>
+<li><strong>LangGraph SDK (<code>get_sync_client</code>)</strong>: Agent Server'a Python'dan istek atan istemci (<code>threads.create</code>, <code>runs.stream</code>).</li>
+<li><strong>Streamlit <code>session_state</code></strong>: Sayfa her etkileşimde yeniden çalışsa da oturum boyunca değer saklayan sözlük; thread ID ve mesaj geçmişi burada tutulur.</li>
+</ul>
+<h3>Akış / mimari</h3>
+<p><strong>Genel yığın</strong></p>
+<pre><code>OpenAI (LLM + embedding) · Supabase/pgvector (vektör DB) · LangGraph Agent Server (sunucu)
+· LangSmith (izleme) · Streamlit (UI)
+</code></pre>
+<p><strong>Proje adımları (15 → 16)</strong></p>
+<pre><code>uv sync → .env (OpenAI, Supabase, DATABASE_URL, LangSmith) → bağlantı testleri
+  (test_supabase / test_postgres / test_langsmith) → Supabase MCP (isteğe bağlı)
+  → setup_database.py (vector eklentisi, documents, HNSW, match_documents, RLS)
+  → vector_store.py → add_documents.py → test_vector_store.py
+  → agent.py + langgraph.json → langgraph dev (127.0.0.1:2024)
+  → test_local_api.py (SDK) → app.py (Streamlit) → [bulut deploy: derste yok]
+</code></pre>
+<p><strong>RAG agent'ın karar akışı</strong></p>
+<pre><code>Soru → Agent ─ ders notlarıyla ilgili mi?
+          ├─ evet → search_course_notes(query) → embedding (text-embedding-3-small)
+          │          → match_documents (&lt;=&gt; kosinüs, k=3) → içerikler → LLM → cevap
+          └─ hayır → LLM kendi bilgisiyle cevap
+</code></pre>
+<p><strong>İstek akışı (çalışma zamanı)</strong></p>
+<pre><code>Streamlit (app.py) / test_local_api.py
+   → langgraph_sdk client → http://127.0.0.1:2024 (Agent Server, graph &quot;agent&quot;)
+   → agent → tool → SupabaseVectorStore → Supabase (documents)
+   → LangSmith'e trace
+</code></pre>
+<p><strong>Terminal düzeni</strong></p>
+<pre><code>Terminal 1: Agent Server (kapatılmaz)   Terminal 2: uv run scripts/test_local_api.py
+                                         ya da   uv run streamlit run app.py
+</code></pre>
+<h3>Kod / uygulama</h3>
+<h4>1) Kurulum ve bağlantı testleri</h4>
+<pre><code class="language-bash">uv sync
+uv run test_supabase.py
+uv run test_postgres.py
+uv run test_langsmith.py
+</code></pre>
+<ul>
+<li><code>uv sync</code> → <code>pyproject.toml</code>/<code>uv.lock</code>'taki tüm paketleri kurar, sanal ortamı oluşturur (hocanın paylaştığı zip ile başlayanlar için tek komut).</li>
+</ul>
+<h4>2) <code>test_postgres.py</code> — doğrudan PostgreSQL</h4>
+<pre><code class="language-python">with psycopg.connect(os.getenv(&quot;DATABASE_URL&quot;)) as connection:
+    with connection.cursor() as cursor:
+        cursor.execute(
+            &quot;SELECT current_database(), current_user;&quot;
+        )
+        database, user = cursor.fetchone()
+</code></pre>
+<ul>
+<li><code>psycopg.connect(DATABASE_URL)</code> → Supabase'in connection string'iyle (Session pooler) bağlanır.</li>
+<li><code>with</code> → blok bitince bağlantıyı/cursor'ı kendisi kapatır.</li>
+<li><code>fetchone()</code> → tek satırı tuple olarak döndürür; iki değişkene açılır. Sonuç: <code>postgres</code> / <code>postgres</code>.</li>
+</ul>
+<h4>3) <code>.env</code>'e eklenen LangSmith değişkenleri</h4>
+<pre><code>LANGSMITH_TRACING=true
+LANGSMITH_API_KEY=&lt;gizli&gt;
+LANGSMITH_PROJECT=&lt;proje adı&gt;
+</code></pre>
+<ul>
+<li><code>TRACING=true</code> → LangChain çağrıları kod değişmeden izlenir.</li>
+<li><code>PROJECT</code> → trace'lerin toplanacağı proje adı.</li>
+<li><code>test_langsmith.py</code>: <code>ChatOpenAI(model="gpt-6-luna").invoke("AI engineering nedir? Kısaca açıkla.")</code> → LangSmith → Tracing Projects'te girdi, çıktı, token, maliyet görüldü.</li>
+<li>Dikkat: <code>load_dotenv()</code> <code>ChatOpenAI</code> import'undan <strong>önce</strong> çağrılıyor; değişkenler en başta yüklenmiş olur.</li>
+</ul>
+<h4>4) <code>scripts/setup_database.py</code> — vektör şeması (özet)</h4>
+<pre><code class="language-sql">SET LOCAL search_path = public, extensions;
+CREATE EXTENSION IF NOT EXISTS vector;
+
+CREATE TABLE IF NOT EXISTS documents (
+    id BIGSERIAL PRIMARY KEY,
+    content TEXT NOT NULL,
+    metadata JSONB NOT NULL,
+    embedding VECTOR(1536) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS documents_embedding_hnsw_idx
+ON documents USING hnsw (embedding vector_cosine_ops);
+
+-- match_documents(query_embedding VECTOR(1536), match_count INT, filter JSONB)
+SELECT d.id, d.content, d.metadata,
+       (d.embedding::TEXT)::JSONB AS embedding,
+       1 - (d.embedding &lt;=&gt; query_embedding) AS similarity
+FROM documents AS d
+WHERE d.metadata @&gt; filter
+ORDER BY d.embedding &lt;=&gt; query_embedding
+LIMIT match_count;
+
+ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
+</code></pre>
+<p>(Python dosyasında her ifade ayrı <code>cursor.execute(...)</code> içinde; tam hali Ders Metni'nde.)
+- <code>search_path</code> → nesneler <code>public</code>'te oluşur, <code>vector</code> tipi <code>extensions</code> şemasından bulunur.
+- <code>CREATE EXTENSION ... vector</code> → PostgreSQL'e vektör tipi ve operatörleri ekler.
+- <code>IF NOT EXISTS</code> → betik tekrar çalıştırılınca "zaten var" hatası vermez.
+- <code>VECTOR(1536)</code> → embedding modelinin boyutuyla aynı olmak zorunda.
+- <code>NOT NULL</code> → içerik, metadata, embedding, tarih boş geçilemez.
+- <code>hnsw ... vector_cosine_ops</code> → kosinüs uzaklığına göre hızlı arama indeksi.
+- <code>$$ ... $$</code> → fonksiyon gövdesi; <code>LANGUAGE sql</code> → SQL ile yazıldığını belirtir.
+- <code>metadata @&gt; filter</code> → metadata filtreyi <strong>içeriyorsa</strong> (ör. <code>{"chapter": 9}</code>); varsayılan <code>'{}'</code> her satırı geçirir.
+- <code>&lt;=&gt;</code> → kosinüs <strong>uzaklığı</strong>; küçük = daha benzer. <code>1 - uzaklık</code> = benzerlik skoru.
+- <code>ORDER BY ... LIMIT match_count</code> → en benzer k doküman.
+- <code>(embedding::TEXT)::JSONB</code> → Not: vektörü LangChain'in okuyabileceği JSON'a çeviriyor (fonksiyonun dönüş tipi <code>embedding JSONB</code>).
+- <code>ENABLE ROW LEVEL SECURITY</code> → satır düzeyi güvenlik açık.</p>
+<p>Çalıştırma: <code>uv run scripts\setup_database.py</code> (Windows) / <code>uv run scripts/setup_database.py</code> (Mac).</p>
+<h4>5) <code>src/deployment_demo/vector_store.py</code></h4>
+<pre><code class="language-python">supabase_client = create_client(
+    os.environ[&quot;SUPABASE_URL&quot;],
+    os.environ[&quot;SUPABASE_SECRET_KEY&quot;],
+)
+embeddings = OpenAIEmbeddings(model=&quot;text-embedding-3-small&quot;)
+vector_store = SupabaseVectorStore(
+    client=supabase_client,
+    embedding=embeddings,
+    table_name=&quot;documents&quot;,
+    query_name=&quot;match_documents&quot;,
+)
+</code></pre>
+<ul>
+<li><code>create_client(..., SECRET_KEY)</code> → RLS'li tabloya servis rolüyle erişen Supabase istemcisi.</li>
+<li><code>OpenAIEmbeddings</code> → metni/sorguyu 1536 boyutlu vektöre çevirir.</li>
+<li><code>table_name</code> / <code>query_name</code> → SQL'de kurulan tablo ve fonksiyonla eşleşmeli; adlar tutmazsa arama çalışmaz.</li>
+<li>Modül seviyesinde tek bir <code>vector_store</code> nesnesi oluşturulur; diğer dosyalar bu nesneyi import eder (fonksiyon tanımlamaya gerek yok).</li>
+</ul>
+<h4>6) <code>scripts/add_documents.py</code></h4>
+<pre><code class="language-python">from langchain_core.documents import Document
+from deployment_demo.vector_store import vector_store
+
+documents = [
+    Document(
+        page_content=&quot;LangGraph thread, ... kalıcı bir konteynerdir.&quot;,
+        metadata={&quot;course&quot;: &quot;ai-engineering&quot;, &quot;chapter&quot;: 9, &quot;topic&quot;: &quot;threads&quot;},
+    ),
+    # ... runs, assistants
+]
+
+ids = vector_store.add_documents(documents)
+print(f&quot;{len(ids)} doküman Supabase'e eklendi.&quot;)
+</code></pre>
+<ul>
+<li><code>from deployment_demo...</code> → <strong><code>src.</code> yazılmaz</strong>; <code>src</code> kaynak kod klasörü, paket adı <code>deployment_demo</code>.</li>
+<li><code>Document(page_content, metadata)</code> → metin + filtrelemede kullanılacak metadata.</li>
+<li><code>add_documents</code> → her dokümanı embedding'e çevirip <code>documents</code> tablosuna yazar, eklenen satırların id'lerini döndürür.</li>
+<li>Her çalıştırmada <strong>yeniden ekler</strong> (tekilleştirme yok) → iki kez çalıştırınca kayıtlar ikiye katlandı.</li>
+</ul>
+<h4>7) <code>test_vector_store.py</code></h4>
+<pre><code class="language-python">documents = vector_store.similarity_search(&quot;LangGraph thread nedir?&quot;, k=3)
+for document in documents:
+    print(&quot;Content:&quot;, document.page_content)
+    print(&quot;Metadata:&quot;, document.metadata)
+</code></pre>
+<ul>
+<li><code>similarity_search</code> → sorguyu embedding'e çevirir, <code>match_documents</code>'ı çağırır, en benzer 3 dokümanı döndürür. İlk sonuç "threads" dokümanı oldu.</li>
+</ul>
+<h4>8) <code>src/deployment_demo/agent.py</code></h4>
+<pre><code class="language-python">@tool
+def search_course_notes(query: str) -&gt; str:
+    &quot;&quot;&quot;AI Engineering Bootcamp ders notlarında anlamsal arama yapar.&quot;&quot;&quot;
+    documents = vector_store.similarity_search(query, k=3)
+    if not documents:
+        return &quot;Ders notlarında ilgili bilgi bulunamadı.&quot;
+    return &quot;\n\n&quot;.join(document.page_content for document in documents)
+
+agent = create_agent(
+    model=&quot;openai:gpt-4.1-mini&quot;,
+    tools=[search_course_notes],
+    system_prompt=(
+        &quot;Sen AI Engineering Bootcamp ders asistanısın. &quot;
+        &quot;Ders içeriğiyle ilgili sorularda önce &quot;
+        &quot;search_course_notes aracını kullan. &quot;
+        &quot;Bulamadığın bilgiyi bulmuş gibi söyleme.&quot;
+    ),
+)
+</code></pre>
+<ul>
+<li><code>@tool</code> + docstring → model aracın ne işe yaradığını açıklamadan öğrenir.</li>
+<li><code>from .vector_store import vector_store</code> → aynı paket içinden göreli import.</li>
+<li><code>if not documents</code> → boş sonuçta açık bir mesaj döner; model "bulamadım" diyebilir.</li>
+<li><code>"\n\n".join(...)</code> → 3 dokümanın metnini tek bağlam metni olarak modele verir (metadata gönderilmez).</li>
+<li><code>model="openai:gpt-4.1-mini"</code> → <code>sağlayıcı:model</code> biçimi; yanlış yazım hataya yol açar (derste konuşuldu).</li>
+<li><code>system_prompt</code> → ders sorularında önce tool'u kullan; <strong>uydurma</strong> (halüsinasyona karşı kural).</li>
+</ul>
+<h4>9) <code>langgraph.json</code></h4>
+<pre><code class="language-json">{
+  &quot;dependencies&quot;: [&quot;.&quot;],
+  &quot;graphs&quot;: { &quot;agent&quot;: &quot;deployment_demo.agent:agent&quot; },
+  &quot;env&quot;: &quot;.env&quot;
+}
+</code></pre>
+<ul>
+<li><code>dependencies: ["."]</code> → mevcut projeyi (pyproject) paket olarak kur.</li>
+<li><code>graphs.agent</code> → <code>"agent"</code> adıyla <code>deployment_demo/agent.py</code> içindeki <code>agent</code> nesnesini yayınla; istemcilerde geçen <code>"agent"</code> bu addır.</li>
+<li><code>env</code> → ortam değişkenleri <code>.env</code>'den.</li>
+<li>Not: Sunucu <code>uv run langgraph dev</code> ile başlatılır (altyazıda yok); sohbet test arayüzü tarayıcıda açılır.</li>
+</ul>
+<h4>10) <code>scripts/test_local_api.py</code></h4>
+<pre><code class="language-python">client = get_sync_client(url=&quot;http://127.0.0.1:2024&quot;)
+thread = client.threads.create()
+for event in client.runs.stream(
+    thread[&quot;thread_id&quot;], &quot;agent&quot;,
+    input={&quot;messages&quot;: [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;Run ile thread arasındaki ilişki nedir?&quot;}]},
+    stream_mode=&quot;updates&quot;,
+):
+    print(&quot;Event:&quot;, event.event)
+    print(event.data)
+</code></pre>
+<ul>
+<li><code>threads.create()</code> → konuşma konteyneri; run'lar bunun üzerinde çalışır, state kalıcı olur.</li>
+<li><code>runs.stream(thread_id, "agent", ...)</code> → graph'ı bir kez çalıştırır (run) ve olayları akıtır.</li>
+<li><code>stream_mode="updates"</code> → her adımda (model → tool → model) yalnızca değişen kısmı verir; adımları görmek için ideal.</li>
+<li>Çıktıda: metadata → model tool çağrısı → tool sonucu → modelin son cevabı.</li>
+</ul>
+<h4>11) <code>app.py</code> (Streamlit) — kritik satırlar</h4>
+<pre><code class="language-python">if &quot;thread_id&quot; not in st.session_state:
+    thread = client.threads.create()
+    st.session_state.thread_id = thread[&quot;thread_id&quot;]
+
+if &quot;messages&quot; not in st.session_state:
+    st.session_state.messages = []
+
+question = st.chat_input(&quot;Ders notları hakkında bir soru sor...&quot;)
+...
+for event in client.runs.stream(st.session_state.thread_id, &quot;agent&quot;,
+                                input={...}, stream_mode=&quot;values&quot;):
+    if event.event == &quot;values&quot;:
+        messages = event.data.get(&quot;messages&quot;, [])
+        if messages:
+            last_message = messages[-1]
+            if isinstance(last_message, dict):
+                final_answer = last_message.get(&quot;content&quot;, &quot;&quot;)
+</code></pre>
+<ul>
+<li><code>session_state</code> kontrolü → Streamlit her etkileşimde betiği baştan çalıştırır; kontrol olmasa her mesajda yeni thread açılır ve sohbet geçmişi kaybolur.</li>
+<li><code>messages</code> listesi → ekrandaki geçmiş (UI hafızası); agent'ın hafızası ise thread'de.</li>
+<li><code>for message in st.session_state.messages</code> + <code>st.chat_message(role)</code> → eski mesajları sırayla çizer.</li>
+<li><code>st.chat_input</code> → alttaki sohbet kutusu; yazılınca <code>question</code> dolar, <code>if question:</code> bloğu çalışır.</li>
+<li><code>stream_mode="values"</code> → her adımda <strong>tam state</strong> gelir; son değer listedeki son mesajdır = agent'ın son cevabı.</li>
+<li><code>last_message.get("content")</code> → Derste burada cevap düz metin yerine JSON/yapı olarak göründü. Not: <code>content</code> içerik blokları listesi (<code>[{"type":"text","text":...}]</code>) geldiğinde metni <code>text</code> alanlarından birleştirmek gerekir (benim önerim, derste doğrulanmadı).</li>
+<li>Çalıştırma: <code>uv add streamlit</code> → <code>uv run streamlit run app.py</code> (sunucu terminali açıkken).</li>
+</ul>
+<h3>Hocanın vurguları &amp; pratik kurallar</h3>
+<ul>
+<li><strong>Ayrıntıyı ezberlemeyin, mimariyi bilin:</strong> SQL fonksiyonu, HNSW vb. kodları yapay zekâ yazabiliyor; sizin işiniz mimariyi kurmak ve genel çalışma mantığını bilmek.</li>
+<li><strong>Ama yapay zekâya her şeyi bırakmayın:</strong> Basit işlerde bile çok token harcayabiliyor, uzun yollardan gidiyor. Konuları genel olarak bilmek maliyeti düşürür.</li>
+<li><strong>İzleme şart:</strong> Agent'ı kurmak yetmez; LangSmith ile token, maliyet, model ve adımları izleyin, yoksa sürpriz faturayla karşılaşırsınız.</li>
+<li><strong>Kendi API anahtarlarınızla çalışın:</strong> AI mühendisinin çalışma alanı API; sohbet arayüzleri esnek değil. Hocanın paylaşılan <code>.env</code>'i yalnızca bu ders içindi.</li>
+<li><strong><code>with</code> ile veritabanı bağlantısı</strong> açın; kapatmayı unutma riskini ortadan kaldırır.</li>
+<li><strong>Kodla tablo oluşturmak</strong> arayüzden oluşturmaktan daha kolay ve tekrarlanabilir.</li>
+<li><strong>Kopyala-yapıştırda görünmez karakterler</strong> girinti/sözdizimi hatası yaratır; satırı temizleyin veya yeniden yazın.</li>
+<li><strong>Sunucu terminalini kapatmayın;</strong> istemciler (test betiği, Streamlit) ikinci terminalde çalışır.</li>
+<li><strong>Fine-tuning donanımı:</strong> LoRA/QLoRA belleği çok azaltır; asıl darboğaz <strong>VRAM</strong>; RAM taşmayı destekler ama çok yavaş; çekirdek sayısı da önemli.</li>
+<li><strong>RAG mı fine-tuning mi?</strong> Ayrı alanlar; projeye göre seçin (maliyet/performans), hibrit de olabilir.</li>
+<li><strong>Yerel LLM'ler:</strong> veri gizliliği ve artan abonelik fiyatları nedeniyle önemli; 27B–35B civarı modeller kişisel bilgisayarda çalışabiliyor.</li>
+<li><strong>Model tercihi (hocanın görüşü):</strong> Kod ve problem çözmede Opus, Türkçe yazımda ChatGPT daha iyi; karşılaştırma için Artificial Analysis.</li>
+<li><strong>Öğrenme:</strong> Her konu ayrı bir bootcamp; ellerinizi kirletin, araştırın, farklı projeler yapın. Andrew Ng: bu konular artık beyaz yakalılar için temel bilgi.</li>
+<li><strong>Mülakat:</strong> Büyük şirketlerde sorular ağırlıklı olarak veri yapılarından gelir.</li>
+<li><strong>Bitirme projesi:</strong></li>
+<li>Süre: yaklaşık <strong>bir hafta</strong> — "haftaya Cumartesi (31'i)", belki "1–2'sine kadar" [belirsiz]. (Not: Perşembe 29'u tatil dendiğine göre 31 Ekim Cumartesi olmalı.)</li>
+<li>Hoca bu hafta (muhtemelen Cuma) öğrencilerle <strong>birebir</strong> proje fikri konuşacak.</li>
+<li>Teslim: İsteyen <strong>son derste sunum</strong> yapar, isteyen <strong>proje dosyalarını doğrudan hocaya gönderir</strong>.</li>
+<li>Proje yapana <strong>başarı sertifikası</strong>, yapmayana <strong>katılım sertifikası</strong>; proje CV'ye eklenir.</li>
+<li>Fikir: Derste yapılan projeyi geliştirmek (15. derste önerildiği gibi); sadece izleyenler hocanın paylaşacağı çalışmayı adım adım yapıp kendileri geliştirebilir.</li>
+<li><strong>Sonraki (son) ders:</strong> HuggingFace ile <strong>fine-tuning</strong> — <code>transformers</code>, <code>peft</code>, <code>datasets</code>; indirilecek model WhatsApp'tan bildirilecek.</li>
+</ul>
+<h3>Sık hatalar / karşılaşılan sorunlar</h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Sorun</th>
+<th>Neden</th>
+<th>Çözüm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DATABASE_URL</code> parse edilemiyor (URL birkaç satıra bölünmüş görünüyor)</td>
+<td>Bağlantı dizesi/şifre bozuk [belirsiz]</td>
+<td>Öğrenci yeni Supabase projesi açınca düzeldi; dizeyi tek satır, köşeli parantezsiz yazın</td>
+</tr>
+<tr>
+<td>Kod yapıştırınca satırlar kırmızı (girinti hatası)</td>
+<td>Kopyala-yapıştırla gelen görünmez karakterler</td>
+<td>Girintiyi düzelt / satırı yeniden yaz / AI'a düzelttir</td>
+</tr>
+<tr>
+<td>Eski deneme tablosu ile çakışma</td>
+<td>Daha önce aynı adla <code>documents</code> oluşturulmuş</td>
+<td>Table Editor → Delete table; ya da <code>IF NOT EXISTS</code></td>
+</tr>
+<tr>
+<td>Windows/Mac yol farkı</td>
+<td><code>scripts\...</code> vs <code>scripts/...</code></td>
+<td>Mac'te normal slash kullanın</td>
+</tr>
+<tr>
+<td><code>vector_store</code> iki kez tanımlı</td>
+<td>Kopyala-yapıştır</td>
+<td>Fazlasını sil</td>
+</tr>
+<tr>
+<td><code>src...</code> import bulunamıyor</td>
+<td><code>src</code> paket adı değil, kaynak klasörü</td>
+<td><code>from deployment_demo.vector_store import vector_store</code></td>
+</tr>
+<tr>
+<td>Import gri/soluk görünüyor</td>
+<td>Import edilen nesne kullanılmıyor (kod eksik)</td>
+<td><code>vector_store.add_documents(...)</code> ve <code>print</code> satırlarını ekle</td>
+</tr>
+<tr>
+<td>Dosyaları kök klasöre taşıyınca import hatası</td>
+<td>Proje/paket yapısı bozuldu</td>
+<td>Yapıyı değiştirmeyin; <code>src/deployment_demo</code> içinde bırakın</td>
+</tr>
+<tr>
+<td>Kayıtlar çift görünüyor</td>
+<td><code>add_documents.py</code> iki kez çalıştı; ortak <code>.env</code> ile başkaları da aynı DB'ye yazdı</td>
+<td>Fazla satırları sil; kendi Supabase projenizi kullanın</td>
+</tr>
+<tr>
+<td>Model adı hatası (agent)</td>
+<td><code>"openai:gpt-4.1-mini"</code> biçimi yanlış yazılmış [belirsiz]</td>
+<td><code>sağlayıcı:model</code> biçimini kontrol et</td>
+</tr>
+<tr>
+<td>LangSmith trace hemen görünmüyor</td>
+<td>Trace gecikmeli düşüyor</td>
+<td>Biraz bekleyip sayfayı yenile</td>
+</tr>
+<tr>
+<td>Codex'te MCP görünmüyor</td>
+<td>MCP ekledikten sonra yeniden başlatılmadı</td>
+<td>Codex'ten çık, yeniden başlat, <code>/mcp</code></td>
+</tr>
+<tr>
+<td>VS Code terminalinde sarı uyarı</td>
+<td>Muhtemelen warning, hata değil</td>
+<td>Görmezden gelinebilir</td>
+</tr>
+<tr>
+<td>Streamlit'te cevap JSON olarak görünüyor</td>
+<td><code>content</code> düz metin değil yapı (bloklar) olarak geliyor</td>
+<td><strong>Derste çözülmedi</strong>; hoca sonraki derste bakacak. Not: <code>text</code> alanlarını çekmek gerekir</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Kendini test et</h3>
+<ol>
+<li>Supabase'e bağlanmanın iki yolu nedir ve her biri hangi ortam değişkenlerini kullanır?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Supabase istemcisi (<code>create_client(SUPABASE_URL, SUPABASE_SECRET_KEY)</code>) ve doğrudan PostgreSQL bağlantısı (<code>psycopg.connect(DATABASE_URL)</code>). Bu projede vektör store istemciyi, şema kurulumu ise doğrudan PostgreSQL'i kullandı.</p>
+</details>
+<ol start="2">
+<li><code>psycopg.connect(...)</code> neden <code>with</code> bloğuyla açıldı?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Veritabanı bağlantısının iş bitince kapatılması gerekir; <code>with</code> bloğu bitince bağlantıyı (ve cursor'ı) otomatik kapatır, ayrıca <code>close()</code> çağırmaya gerek kalmaz.</p>
+</details>
+<ol start="3">
+<li><code>documents</code> tablosundaki <code>VECTOR(1536)</code> sayısı nereden geliyor, farklı olsaydı ne olurdu?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>text-embedding-3-small</code> modelinin ürettiği vektör boyutu 1536'dır. Boyut uyuşmazsa eklemede/aramada boyut hatası alınır; başka bir embedding modeline geçilirse tablo ve fonksiyon tipi de değişmelidir.</p>
+</details>
+<ol start="4">
+<li>HNSW indeksi ve <code>&lt;=&gt;</code> operatörü ne işe yarar?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>&lt;=&gt;</code> iki vektör arasındaki kosinüs uzaklığını hesaplar (küçük = benzer; <code>1 - uzaklık</code> benzerlik skoru). HNSW (<code>vector_cosine_ops</code>) bu uzaklığa göre en yakın komşuların hızlı bulunmasını sağlayan indekstir; normal indeksler vektör aramasını hızlandıramaz.</p>
+</details>
+<ol start="5">
+<li><code>match_documents</code> fonksiyonunun üç parametresi nedir, <code>filter</code> nasıl çalışır?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>query_embedding</code> (sorgu vektörü), <code>match_count</code> (kaç sonuç), <code>filter</code> (JSONB metadata filtresi). <code>metadata @&gt; filter</code> ile metadata filtreyi içeren satırlar aranır; varsayılan <code>'{}'</code> tüm satırları kapsar (ör. <code>{"chapter": 9}</code> ya da yıl filtresi).</p>
+</details>
+<ol start="6">
+<li><code>vector_store.similarity_search(query, k=3)</code> çağrıldığında arka planda hangi adımlar olur?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Sorgu OpenAI embedding modeliyle vektöre çevrilir → Supabase'deki <code>match_documents</code> fonksiyonu çağrılır → kosinüs uzaklığına göre en yakın 3 doküman (içerik + metadata) döner.</p>
+</details>
+<ol start="7">
+<li><code>add_documents.py</code>'de <code>from src.deployment_demo...</code> yazmak neden hata verdi?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>src</code> sadece kaynak kod klasörüdür; uv proje yapısında kurulan paketin adı <code>deployment_demo</code>'dur. Doğru import <code>from deployment_demo.vector_store import vector_store</code>.</p>
+</details>
+<ol start="8">
+<li>Agent'ın system prompt'undaki "Bulamadığın bilgiyi bulmuş gibi söyleme" cümlesi ve tool'daki <code>if not documents</code> kontrolü birlikte neyi amaçlar?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Halüsinasyonu azaltmak: Tool boş sonuçta açıkça "ilgili bilgi bulunamadı" döndürür, prompt da modelin bu durumda uydurmamasını ister. Ayrıca prompt ders sorularında önce tool'un kullanılmasını söyler.</p>
+</details>
+<ol start="9">
+<li><code>langgraph.json</code>'daki <code>"agent": "deployment_demo.agent:agent"</code> satırı ile <code>client.runs.stream(thread_id, "agent", ...)</code> arasındaki ilişki nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>langgraph.json</code> <code>deployment_demo/agent.py</code> içindeki <code>agent</code> nesnesini sunucuda <code>"agent"</code> adlı graph olarak yayınlar; istemci <code>runs.stream</code>'de bu adı vererek o graph'ı çalıştırır.</p>
+</details>
+<ol start="10">
+<li>Streamlit uygulamasında thread ID'yi <code>session_state</code>'te saklamasaydık ne olurdu?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Streamlit her etkileşimde betiği yeniden çalıştırdığı için her mesajda yeni thread oluşturulurdu; agent önceki konuşmayı hatırlamaz, her soru yeni bir sohbet gibi olurdu.</p>
+</details>
+<ol start="11">
+<li><code>stream_mode="updates"</code> ile <code>stream_mode="values"</code> farkı derste nasıl kullanıldı?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>updates</code> her adımda yalnızca değişikliği verir (test betiğinde model → tool → model adımlarını görmek için). <code>values</code> her adımda tam state'i verir; Streamlit'te son değerdeki son mesaj nihai cevap olarak alındı.</p>
+</details>
+<ol start="12">
+<li>LangSmith izlemesini açmak için kodda ne değiştirildi?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Kodda değişiklik gerekmedi; <code>.env</code>'e <code>LANGSMITH_TRACING=true</code>, <code>LANGSMITH_API_KEY</code>, <code>LANGSMITH_PROJECT</code> eklendi ve <code>load_dotenv()</code> ile yüklendi. LangChain çağrıları otomatik olarak o projeye trace olarak düştü.</p>
+</details>
+<h3>Hocaya sorulacaklar / belirsiz kalanlar</h3>
+<ul>
+<li><strong>Gerçek deployment adımı:</strong> Uygulama derste yalnızca yerelde (<code>127.0.0.1:2024</code> + yerel Streamlit) çalıştırıldı. Bulut adımı (LangSmith Deployment / LangGraph Platform, Streamlit Community Cloud, Render, Railway vb.) hangisiyle ve nasıl yapılacak? Altyazısız ≈02:17–02:45 aralığında böyle bir şey yapıldı mı?</li>
+<li><strong>Streamlit JSON hatası:</strong> Cevap neden düz metin yerine JSON göründü ve düzeltilmiş <code>app.py</code> paylaşılacak mı? (Hoca sonraki derste bakacağını söyledi.)</li>
+<li><strong><code>langgraph dev</code> adımı:</strong> Sunucunun başlatma komutu ve tarayıcıda açılan test arayüzü (Studio) altyazıda yok; doğrulanmalı.</li>
+<li><strong>Model adı:</strong> <code>agent.py</code>'de <code>openai:gpt-4.1-mini</code> var; LangSmith trace'inde "GPT-6 luna" [belirsiz] görüldü. Derste model değiştirildi mi? Öğrencinin aldığı model hatasının kesin nedeni neydi?</li>
+<li><strong>Bitirme projesi teslim tarihi:</strong> 31'i Cumartesi mi, 1–2'si mi? Sunum hangi gün/saatte?</li>
+<li><strong>Son ders (fine-tuning):</strong> Günü/saati ve indirilecek model (WhatsApp'tan bildirilecek).</li>
+<li>Kitap önerisinin tam adı ve yazarı ("… for Coders" ve yeni fine-tuning kitabı) [belirsiz].</li>
+<li><code>documents</code> tablosunda RLS açık ama policy yok: Bu, yalnızca secret key (servis rolü) ile erişilebileceği anlamına mı geliyor; publishable key'li bir istemci (ör. tarayıcıdaki Streamlit) doğrudan okuyabilir mi?</li>
+<li><code>add_documents.py</code> her çalıştırmada aynı dokümanları yeniden ekliyor; tekilleştirme (id/upsert) için önerilen yol nedir?</li>
+</ul>

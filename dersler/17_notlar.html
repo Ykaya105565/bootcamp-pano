@@ -1,0 +1,338 @@
+<h2>17 · Bonus Ders – Fine-tuning</h2>
+<p><strong>Bu derste ne var:</strong> Kursun son dersi. Bir öğrencinin finansal raporlar için agentic RAG projesinin sunumuyla açıldı; ardından RAG ile fine-tuning'in ne zaman tercih edileceği, LoRA ve QLoRA'nın mantığı anlatıldı. Uygulamada Colab'da <strong>Qwen3-8B</strong> 4-bit (NF4) yüklendi, <strong>databricks-dolly-15k</strong>'nın 800 örneği sohbet formatına çevrildi, PEFT + TRL <code>SFTTrainer</code> ile 20 adımlık QLoRA eğitimi yapıldı; 43,7 MB'lık LoRA adaptörü HuggingFace Hub'a yüklendi, geri çekilip temel modele takıldı ve modele soru soruldu.</p>
+<blockquote>
+<p><strong>Altyazı boşlukları:</strong> ≈01:10–01:53 (mola + model yükleme), ≈02:10–02:21 (<code>SFTTrainer</code> + <code>trainer.train()</code>), ≈02:26–02:30 (temel model + adaptör yükleme), ≈02:36–02:51 (dersin sonu; kapanış konuşması kayıtta yok). Bu kısımlar notebook'tan "Not:" ile dolduruldu.</p>
+<p><strong>Güvenlik:</strong> Bu notlarda hiçbir token/anahtar yok; yalnızca adı geçer (<code>HF_TOKEN</code>, HuggingFace erişim token'ı).</p>
+</blockquote>
+<hr>
+<h3>16. dersten kısa hatırlatma</h3>
+<p>Supabase/pgvector'lü bir RAG agent LangGraph yerel sunucusunda yayınlanmış, LangSmith ile izlenmiş, Streamlit arayüzüyle denenmişti. Ders sonunda son dersin HuggingFace ile fine-tuning (<code>transformers</code>, <code>peft</code>, <code>datasets</code>) olacağı ve bitirme projelerinin son derste sunulabileceği söylenmişti.</p>
+<h3>Ana kavramlar</h3>
+<ul>
+<li><strong>Fine-tuning (ince ayar)</strong>: Önceden eğitilmiş bir modelin parametrelerini kendi verimizle güncellemek. <em>Neden önemli:</em> Modelin davranışını/formatını/alan dilini kalıcı olarak değiştirir; çok veride RAG'in token maliyetinden kurtarır.</li>
+<li><strong>Parametrik vs parametrik olmayan</strong>: Fine-tuning parametrik (ağırlıklar değişir); RAG parametrik değil (ağırlıklar sabit, bilgi bağlamla gelir).</li>
+<li><strong>RAG mı, fine-tuning mi? (hocanın kuralı)</strong>: Sınırlı sayıda kaliteli ve <strong>sık güncellenen</strong> veri, güncel bilgi ihtiyacı → <strong>RAG</strong>. <strong>Çok fazla veri</strong>, "bir kez eğit, sonra kullan" → <strong>fine-tuning</strong>. Hibrit de olur: alana göre fine-tune + üstüne RAG.</li>
+<li><strong>Full fine-tuning</strong>: Tüm parametreleri eğitmek. Pahalı, uzun, uzmanlık ister.</li>
+<li><strong>LoRA (Low-Rank Adaptation)</strong>: Ağırlıklar dondurulur; yanına küçük eğitilebilir matrisler (<strong>adaptör</strong>: <code>lora_A</code>, <code>lora_B</code>) eklenir; yalnızca bunlar eğitilir, sonra temel ağırlıklarla birleştirilir. <em>Neden önemli:</em> Az GPU, az disk (adaptör ≈ onlarca MB).</li>
+<li><strong>Quantization</strong>: Parametrelerin bit sayısını düşürmek (float32/16 → 4 bit). Bellek ihtiyacını büyük ölçüde azaltır.</li>
+<li><strong>QLoRA</strong>: 4-bit quantize edilmiş temel model + LoRA adaptörleri. <em>Neden burada:</em> Düz LoRA bu model için ≈50–60 GB GPU belleği isterdi.</li>
+<li><strong>NF4 / double quant / compute dtype</strong>: <code>bitsandbytes</code> ayarları: 4-bit "normal float" tipi, quantization sabitlerinin de quantize edilmesi, hesaplamaların bfloat16 ile yapılması.</li>
+<li><strong>Pre-training vs post-training</strong>: Ön eğitimde model bir sonraki token'ı tahmin etmeyi öğrenir (soruya cevap vermeyi bilmez); son eğitimde talimat–cevap örnekleriyle cevap vermeyi öğrenir.</li>
+<li><strong>SFT (Supervised Fine-Tuning)</strong>: Girdi–beklenen çıktı çiftleriyle denetimli eğitim; TRL'nin <code>SFTTrainer</code>/<code>SFTConfig</code> sınıfları.</li>
+<li><strong>Chat template / messages formatı</strong>: Her modelin kendi girdi formatı vardır; veriyi <code>{"role": "user"/"assistant", "content": ...}</code> listesine çevirmek gerekir.</li>
+<li><strong>rank <code>r</code>, <code>lora_alpha</code>, <code>lora_dropout</code>, <code>target_modules</code></strong>: Adaptör boyutu (büyük r → daha çok parametre), adaptör katkısının ölçeği, ezberlemeyi önleyen dropout, adaptörün takılacağı katmanlar.</li>
+<li><strong>Loss, gradyan, backpropagation</strong>: Tahmin–gerçek farkı (kayıp) geriye dağıtılırken gradyanlar hesaplanır, katsayılar güncellenir.</li>
+<li><strong>Gradient accumulation</strong>: Gradyanları birkaç adım biriktirip sonra güncellemek; küçük batch'le büyük batch etkisi.</li>
+<li><strong>Gradient checkpointing</strong>: Not: Bellek tasarrufu; aktivasyonlar yeniden hesaplanır (hoca "kontrol noktası" diye anlattı).</li>
+<li><strong>KV cache (<code>use_cache</code>)</strong>: Üretimde önceki token hesaplarını saklar; eğitimde kapatılır, çıkarımda açılır.</li>
+<li><strong>MoE (Mixture of Experts)</strong>: Router'ın yalnızca ilgili uzmanları çalıştırdığı LLM mimarisi; LoRA buna da uygulanabilir.</li>
+<li><strong>HuggingFace Hub</strong>: Adaptörün yüklendiği (<code>push_to_hub</code>) ve geri çekildiği (<code>PeftModel.from_pretrained</code>) depo.</li>
+<li><strong>Agentic RAG (öğrenci projesi)</strong>: Router + tool'lar + (isteğe bağlı) multi-agent ile RAG; kararlar evaluation ile verildi.</li>
+<li><strong>Agent tasarım kalıpları</strong>: Router, reflection, ReAct, planner, RAG, guardrails. Framework'ler değişir, kalıplar kalır.</li>
+</ul>
+<h3>Akış / mimari</h3>
+<p><strong>RAG mı fine-tuning mi? (karar şeması)</strong></p>
+<pre><code>Özel/güncel veri ihtiyacı
+ ├─ veri az + sık güncelleniyor + güncel bilgi lazım → RAG (embedding → vektör DB)
+ ├─ veri çok + bir kez eğitip kullanılacak            → fine-tuning (LoRA/QLoRA)
+ └─ ikisi birden                                      → hibrit: alana fine-tune + üstüne RAG
+Güncel dış bilgi → tool / MCP
+</code></pre>
+<p><strong>Full fine-tuning vs LoRA vs QLoRA</strong></p>
+<pre><code>Full FT : girdi → [tüm ağırlıklar eğitilir] → yeni model           (pahalı, uzun)
+LoRA    : girdi → [ağırlıklar donuk] + [A·B adaptör eğitilir] → birleştir
+QLoRA   : girdi → [ağırlıklar donuk + 4-bit NF4] + [A·B adaptör, bf16] → birleştir
+</code></pre>
+<p><strong>Uygulama akışı (QLoRA.ipynb)</strong></p>
+<pre><code>pip install → AutoTokenizer (Qwen/Qwen3-8B) → BitsAndBytesConfig (4-bit nf4)
+ → AutoModelForCausalLM (4-bit, device_map=&quot;auto&quot;)
+ → load_dataset(dolly-15k): train[0:800], train[800:1000]
+ → generate_prompt + map  → &quot;messages&quot; (user / assistant)
+ → prepare_model_for_kbit_training → LoraConfig (r=8, alpha=16, all-linear)
+ → notebook_login (HF_TOKEN) → SFTConfig (20 adım) → use_cache=False
+ → SFTTrainer(... peft_config) → print_trainable_parameters (%0,27) → train()
+ → push_to_hub(&quot;qwen3-8b-dolly-qlora&quot;)  [adaptör 43,7 MB]
+ ── (ayrı oturumda da yapılabilir) ──
+ → PeftConfig (base_model_name_or_path) → temel model 4-bit → PeftModel.from_pretrained
+ → eval() + use_cache=True → apply_chat_template → generate (no_grad) → decode
+</code></pre>
+<p><strong>Öğrenci projesi (agentic RAG) mimarisi — özet</strong></p>
+<pre><code>Soru → Router ─ kapsam dışı / tavsiye → reddet
+          └─ diğer → tek agent (varsayılan) | supervisor → [finansal veri, dipnot] → sentez
+Tool'lar: financials CSV (hesap kodla) · dipnot RAG (Chroma + BM25) · fiyat (Yahoo Finance) · ...
+Kontrol: sayı / dönem / birim / tavsiye dili → kaynaklı cevap · Streamlit + MCP sunucusu
+</code></pre>
+<h3>Kod / uygulama</h3>
+<h4>1) Kurulum</h4>
+<pre><code class="language-python">!pip install -q -U transformers datasets peft trl bitsandbytes accelerate
+</code></pre>
+<ul>
+<li><code>transformers</code>: model/tokenizer; <code>datasets</code>: veri seti; <code>peft</code>: LoRA; <code>trl</code>: SFT eğitimi; <code>bitsandbytes</code>: 4-bit quantization; <code>accelerate</code>: cihaz yerleşimi (<code>device_map</code>).</li>
+<li>Pip'in bağımlılık uyarısı (Colab'daki başka bir paketin <code>pyarrow</code> sürümü) zararsızdı. Sürüm: <code>transformers 5.22.1</code>.</li>
+</ul>
+<h4>2) Tokenizer ve 4-bit model</h4>
+<pre><code class="language-python">base_model = &quot;Qwen/Qwen3-8B&quot;
+tokenizer = AutoTokenizer.from_pretrained(base_model, padding_side = &quot;right&quot;,)
+
+bnb_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_quant_type=&quot;nf4&quot;,
+    bnb_4bit_use_double_quant=True,
+    bnb_4bit_compute_dtype=torch.bfloat16
+    )
+
+model = AutoModelForCausalLM.from_pretrained(
+    base_model, quantization_config=bnb_config, device_map=&quot;auto&quot;,)
+</code></pre>
+<ul>
+<li><code>padding_side="right"</code>: Eğitimde dolgu token'ları sağa eklenir (causal LM eğitiminde yaygın tercih).</li>
+<li><code>load_in_4bit=True</code>: Ağırlıklar 4 bit'e indirilir → QLoRA'nın "Q"su.</li>
+<li><code>bnb_4bit_quant_type="nf4"</code>: Ağırlık dağılımına uygun 4-bit "normal float" tipi.</li>
+<li><code>bnb_4bit_use_double_quant=True</code>: Quantization sabitleri de quantize edilir → ek bellek tasarrufu.</li>
+<li><code>bnb_4bit_compute_dtype=torch.bfloat16</code>: Depolama 4 bit, hesaplama bf16. <strong>T4'te bf16 yok → <code>torch.float16</code></strong> (Not).</li>
+<li><code>AutoModelForCausalLM</code>: Token üreten (causal) model sınıfı; <code>device_map="auto"</code> modeli GPU'ya yerleştirir.</li>
+</ul>
+<h4>3) Veri seti ve sohbet formatı</h4>
+<pre><code class="language-python">dataset_name = &quot;databricks/databricks-dolly-15k&quot;
+train_dataset = load_dataset(dataset_name, split=&quot;train[0:800]&quot;)
+eval_dataset = load_dataset(dataset_name, split=&quot;train[800:1000]&quot;)
+
+def generate_prompt(sample):
+    user_content = sample[&quot;instruction&quot;]
+    if sample[&quot;context&quot;]:
+        user_content += f&quot;\n\nContext:\n{sample['context']}&quot;
+    return {&quot;messages&quot;: [
+        {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: user_content},
+        {&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: sample[&quot;response&quot;]}]}
+
+generated_train_dataset = train_dataset.map(generate_prompt)
+generated_val_dataset = eval_dataset.map(generate_prompt)
+</code></pre>
+<ul>
+<li><code>split="train[0:800]"</code>: Dolly'nin tek bölümü olan <code>train</code>'den dilimle eğitim (800) ve değerlendirme (200) kümesi oluşturulur; iki küme çakışmaz.</li>
+<li><code>if sample["context"]</code>: Bağlam boş değilse talimatın altına "Context:" ile eklenir (bağlam her örnekte yok).</li>
+<li><code>messages</code> listesi: Modelin sohbet şablonunun beklediği <code>role</code>/<code>content</code> yapısı; <code>assistant</code> içeriği öğrenilecek cevaptır.</li>
+<li><code>map</code>: Fonksiyonu her örneğe uygular, yeni <code>messages</code> sütununu ekler.</li>
+<li>Kategori dağılımı (800 örnek): open_qa 202, general_qa 132, classification 111, brainstorming 95, closed_qa 90, information_extraction 68, summarization 63, creative_writing 39.</li>
+</ul>
+<h4>4) PEFT hazırlığı ve <code>LoraConfig</code></h4>
+<pre><code class="language-python">model = prepare_model_for_kbit_training(model)
+
+lora_config = LoraConfig(r=8, lora_alpha=16, target_modules=&quot;all-linear&quot;,
+    bias=&quot;none&quot;, lora_dropout=0.05, task_type=&quot;CAUSAL_LM&quot;,)
+</code></pre>
+<ul>
+<li><code>prepare_model_for_kbit_training</code>: 4-bit modeli eğitime hazırlar (temel ağırlıkları dondurur, kararlılık için bazı katmanları uygun tipe çevirir, gradient checkpointing'e hazırlar).</li>
+<li><code>r=8</code>: Adaptör matrislerinin rank'ı; <code>lora_A</code> 4096→8, <code>lora_B</code> 8→4096 (<code>eval()</code> çıktısında görüldü).</li>
+<li><code>lora_alpha=16</code>: Adaptör katkısının ölçeği (Not: etkin ölçek genellikle alpha/r = 2).</li>
+<li><code>target_modules="all-linear"</code>: Tüm linear katmanlara (q/k/v/o projeksiyonları, MLP) adaptör.</li>
+<li><code>bias="none"</code>, <code>lora_dropout=0.05</code>, <code>task_type="CAUSAL_LM"</code>: bias eğitilmez; %5 dropout ezberlemeye karşı; görev: token üretimi.</li>
+</ul>
+<h4>5) Hub girişi ve eğitim ayarları</h4>
+<pre><code class="language-python">notebook_login()     # HF_TOKEN (yazma yetkili) — değeri asla notebook'a yazılmaz
+
+training_arguments = SFTConfig(output_dir=&quot;./results&quot;,
+    per_device_train_batch_size=1, gradient_accumulation_steps=4,
+    gradient_checkpointing=True, learning_rate=2e-4, weight_decay=0.001,
+    max_steps=20, logging_steps=5, save_strategy=&quot;steps&quot;, save_steps=10,
+    eval_strategy=&quot;steps&quot;, eval_steps=10, bf16=True, report_to=&quot;none&quot;,)
+model.config.use_cache = False
+</code></pre>
+<ul>
+<li>Etkin batch = 1 × 4 = <strong>4 örnek/adım</strong>; 20 adım → ≈80 örnek (epoch 0,1).</li>
+<li><code>learning_rate=2e-4</code>: LoRA için tipik görece yüksek öğrenme oranı (yalnızca küçük adaptörler eğitiliyor).</li>
+<li><code>weight_decay=0.001</code>: Ağırlıkları küçük tutarak aşırı uyumu azaltan düzenlileştirme.</li>
+<li><code>save_steps=10</code> / <code>eval_steps=10</code>: 10 adımda bir checkpoint (<code>./results</code>) ve doğrulama kaybı.</li>
+<li><code>bf16=True</code>: A100'de çalışır; <strong>T4'te <code>bf16=False, fp16=True</code></strong> (Not).</li>
+<li><code>report_to="none"</code>: W&amp;B vb. izleme aracı kullanılmıyor.</li>
+<li><code>use_cache=False</code>: KV cache eğitimde gereksiz, gradient checkpointing ile çakışır.</li>
+</ul>
+<h4>6) Trainer, eğitim, Hub'a yükleme</h4>
+<pre><code class="language-python">trainer = SFTTrainer(model=model, args=training_arguments, processing_class=tokenizer,
+    train_dataset=generated_train_dataset, eval_dataset=generated_val_dataset,
+    peft_config=lora_config,)
+trainer.model.print_trainable_parameters()
+# trainable params: 21,823,488 || all params: 8,212,558,848 || trainable%: 0.2657
+trainer.train()        # 20 adım, ≈101 sn, training_loss ≈ 2,10
+trainer.model.push_to_hub(&quot;qwen3-8b-dolly-qlora&quot;)   # adapter_model.safetensors 43,7 MB
+</code></pre>
+<ul>
+<li><code>processing_class=tokenizer</code>: TRL, <code>messages</code>'i tokenizer'ın chat şablonuyla metne/token'a çevirir, etiketleri oluşturur, uzunları kırpar.</li>
+<li><code>peft_config=lora_config</code>: Adaptörleri trainer takar; ayrıca <code>get_peft_model</code> çağırmaya gerek kalmaz.</li>
+<li><code>%0,27</code>: 8,2 milyar parametrenin yalnızca 21,8 milyonu eğitiliyor.</li>
+<li><code>push_to_hub</code>: Yalnızca adaptör ağırlıkları ve <code>adapter_config.json</code> yüklenir, 8B modelin kendisi değil.</li>
+</ul>
+<h4>7) Adaptörü geri yükleme ve çıkarım</h4>
+<pre><code class="language-python">peft_model_id = &quot;Tirendaz/qwen3-8b-dolly-qlora&quot;
+config = PeftConfig.from_pretrained(peft_model_id)      # base: Qwen/Qwen3-8B
+base_model = AutoModelForCausalLM.from_pretrained(config.base_model_name_or_path,
+    quantization_config=bnb_config, device_map=&quot;auto&quot;,)
+tokenizer = AutoTokenizer.from_pretrained(config.base_model_name_or_path,)
+fine_tuned_model = PeftModel.from_pretrained(base_model, peft_model_id,)
+fine_tuned_model.eval(); fine_tuned_model.config.use_cache = True
+
+inputs = tokenizer.apply_chat_template(messages, add_generation_prompt=True,
+    tokenize=True, return_dict=True, return_tensors=&quot;pt&quot;, enable_thinking=False,)
+inputs = inputs.to(fine_tuned_model.device)
+with torch.no_grad():
+    outputs = fine_tuned_model.generate(**inputs, max_new_tokens=100, do_sample=False,)
+response = tokenizer.decode(outputs[0, inputs[&quot;input_ids&quot;].shape[1]:], skip_special_tokens=True,)
+</code></pre>
+<ul>
+<li><code>PeftConfig.base_model_name_or_path</code>: Adaptör hangi temel modelle eğitildiyse onu söyler; doğru temel modeli yüklemenin güvenli yolu.</li>
+<li><code>PeftModel.from_pretrained</code>: Adaptörü temel modelin üstüne takar (kalıcı birleştirme değil).</li>
+<li><code>eval()</code>: Dropout vb. eğitim davranışlarını kapatır.</li>
+<li><code>add_generation_prompt=True</code>: Şablonun sonuna "şimdi asistan konuşacak" işaretini ekler.</li>
+<li><code>enable_thinking=False</code>: Qwen3'ün düşünme (reasoning) modunu kapatır, doğrudan cevap.</li>
+<li><code>torch.no_grad()</code>: Çıkarımda gradyan hesaplanmaz → daha az bellek, daha hızlı.</li>
+<li><code>do_sample=False</code>: Greedy, deterministik çıktı; <code>max_new_tokens=100</code>: en çok 100 yeni token.</li>
+<li><code>outputs[0, inputs["input_ids"].shape[1]:]</code>: Çıktı girdiyi de içerir; girdinin uzunluğu kadar token atlanıp yalnızca yeni üretilenler çözülür.</li>
+<li>Sonuçlar: Python sorusuna tek cümlelik doğru cevap; "When was Tomoaki Komorida born?" sorusuna "April 17, 1987" (hocanın kontrolüne göre veri setiyle uyuşmadı [belirsiz]).</li>
+</ul>
+<h3>Hocanın vurguları &amp; pratik kurallar</h3>
+<ul>
+<li><strong>RAG ve fine-tuning rakip değil, araç:</strong> Biri diğerinden üstün değil; durumu bilip seçin. Az + sık değişen veri → RAG; çok veri + bir kez eğit → fine-tuning; hibrit mümkün.</li>
+<li><strong>Çok fazla bağlam modeli şaşırtır:</strong> Büyük veriyi RAG ile vermek hem çok token yakar hem modelin "kafasını karıştırabilir".</li>
+<li><strong>Fine-tuning artık ucuz:</strong> LoRA/QLoRA ile tüm modeli eğitmek gerekmiyor; adaptör ≈30–40 MB (uygulamada 43,7 MB).</li>
+<li><strong>Neden QLoRA:</strong> Düz LoRA ≈50–60 GB GPU belleği isterdi.</li>
+<li><strong>Veri her şeydir:</strong> Kaliteli veri → kaliteli model; bugünün açık modelleri zaten çok iyi, fark veriyle yaratılır (Fei-Fei Li / ImageNet örneği).</li>
+<li><strong>Her modelin girdi şablonu farklı:</strong> Veriyi modelin formatına (messages/chat template) çevirin.</li>
+<li><strong>Hiperparametreler projeye göre:</strong> <code>r</code>, gradient accumulation, adım sayısı vb. veriye ve projeye göre ayarlanır; 20 adım yalnızca ders için.</li>
+<li><strong>Fine-tuning formatı öğretir, bilgiyi değil:</strong> "Bu bilgiyi öğretmedik; soruya cevap vermeyi öğrettik." (Komorida örneği.)</li>
+<li><strong>Modelin eğitildiğini test etmek için</strong> ham modele aynı soruyu sorup karşılaştırın (Not: Qwen3-8B zaten sohbet modeli; adaptörsüz/adaptörlü karşılaştırma daha anlamlı).</li>
+<li><strong>Projelerde ölçün:</strong> Öğrenci sunumundaki gibi doğruluk ve gecikmeyi ölçerek karar verin (tek agent %95 / 3,6 sn vs multi-agent %92; critic agent kapatıldı).</li>
+<li><strong>İzleyin:</strong> Token, maliyet, evaluation ve agent'ın izlediği yol (trajectory) için LangSmith gibi araçlar.</li>
+<li><strong>Mükemmeli beklemeyin:</strong> Projeyi açık kaynak yapıp paylaşın, geri bildirimle iterasyonla geliştirin.</li>
+<li><strong>Tasarım kalıpları kalıcıdır:</strong> Router, reflection, ReAct, planner, guardrails; "hangisi en iyi" → projeye göre. Evaluation yükselen bir alan; bilmek işe girişi kolaylaştırır.</li>
+<li><strong>Kaynaklar:</strong> Laurence Moroney (AI and ML for Coders; fine-tuning kitabı [belirsiz]), Manning yayınları, Sebastian Raschka (LLM / reasoning model from scratch), Chip Huyen (güncellenmesi gerekiyor), agent tasarım kalıpları ve evaluation kitapları.</li>
+</ul>
+<h3>Sık hatalar / karşılaşılan sorunlar</h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Sorun</th>
+<th>Neden</th>
+<th>Çözüm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Öğrencilerde eğitim/yüklemede hata, hocada yok</td>
+<td>GPU tipi farkı (hoca A100'de)</td>
+<td>Not: T4'te bf16 yok → <code>bf16=False, fp16=True</code>, <code>bnb_4bit_compute_dtype=torch.float16</code></td>
+</tr>
+<tr>
+<td><code>notebook_login</code>'de token kutusu yerine kısa kod çıktı</td>
+<td>HuggingFace'in cihaz onay akışı</td>
+<td>Kodu HuggingFace'te onayla; "device connected" + yeşil tik; bir kez yeterli</td>
+</tr>
+<tr>
+<td>Hocada giriş ekranı hiç çıkmadı</td>
+<td>Colab'da token zaten tanımlı (Colab–HF entegrasyonu)</td>
+<td>Normal; yeniden girişe gerek yok</td>
+</tr>
+<tr>
+<td>Pip bağımlılık uyarısı (<code>pyarrow</code>)</td>
+<td>Colab'daki başka bir paketle sürüm çakışması</td>
+<td>Bu akış için zararsız; görmezden gelinebilir</td>
+</tr>
+<tr>
+<td>Eğitimde bellek/hız sorunu</td>
+<td>KV cache açık</td>
+<td><code>model.config.use_cache = False</code>; çıkarımda <code>True</code></td>
+</tr>
+<tr>
+<td>Model veri setindeki olguyu yanlış söyledi (Komorida)</td>
+<td>Fine-tuning olgu ezberletmez; 20 adımda ≈80 örnek görüldü</td>
+<td>Olgular için RAG; davranış/format için fine-tuning</td>
+</tr>
+<tr>
+<td>"Eğitildiğini nereden anlarız?" belirsizliği</td>
+<td>Qwen3-8B zaten instruct/sohbet modeli</td>
+<td>Not: Adaptörsüz model ile ve doğrulama kaybıyla karşılaştır</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Kendini test et</h3>
+<ol>
+<li>Hocanın kuralına göre RAG ve fine-tuning hangi durumlarda tercih edilir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Sınırlı sayıda kaliteli ve sık güncellenen veri ile güncel bilgi ihtiyacı varsa RAG (ağırlıklar değişmez, veri vektör DB'de hızla güncellenir). Çok fazla veri varsa ve "bir kez eğitip kullanacağım" deniyorsa fine-tuning. İkisi birlikte (hibrit) de kullanılabilir.</p>
+</details>
+<ol start="2">
+<li>"RAG parametrik değil, fine-tuning parametrik" ne demek?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>RAG'de modelin ağırlıkları değişmez; bilgi her sorguda bağlam olarak verilir. Fine-tuning'de modelin (ya da adaptörün) parametreleri eğitimle güncellenir; bilgi/davranış ağırlıklara yerleşir.</p>
+</details>
+<ol start="3">
+<li>LoRA, full fine-tuning'den nasıl farklı ve neden daha ucuz?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Full fine-tuning tüm ağırlıkları eğitir. LoRA ağırlıkları dondurur, yanına küçük düşük rank'lı matrisler (adaptör) ekleyip yalnızca onları eğitir. Bu derste 8,2 milyar parametrenin yalnızca 21,8 milyonu (%0,27) eğitildi; adaptör 43,7 MB.</p>
+</details>
+<ol start="4">
+<li>QLoRA'daki "Q" neyi ekliyor ve bu derste neden gerekliydi?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Quantization: Temel modelin ağırlıkları 4 bit'e (NF4) indirilir, adaptörler bunun üstünde eğitilir. Düz LoRA Qwen3-8B için ≈50–60 GB GPU belleği isterdi; 4-bit ile Colab GPU'suna sığıyor.</p>
+</details>
+<ol start="5">
+<li><code>generate_prompt</code> fonksiyonu neden yazıldı; <code>context</code> boşsa ne olur?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Her modelin kendi girdi şablonu var; Dolly'nin instruction/context/response sütunları sohbet formatına (<code>messages</code>: user + assistant) çevrilmeli ki <code>SFTTrainer</code> modeli doğru şablonla eğitebilsin. Bağlam boşsa yalnızca talimat kullanıcı içeriği olur; doluysa "Context:" başlığıyla eklenir.</p>
+</details>
+<ol start="6">
+<li><code>per_device_train_batch_size=1</code>, <code>gradient_accumulation_steps=4</code>, <code>max_steps=20</code> birlikte ne anlama gelir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Her ileri geçişte 1 örnek işlenir, 4 adımın gradyanı biriktirilip bir güncelleme yapılır (etkin batch 4). 20 güncelleme → ≈80 örnek, yani 800'lük eğitim kümesinin onda biri (epoch 0,1).</p>
+</details>
+<ol start="7">
+<li><code>model.config.use_cache</code> eğitimde neden <code>False</code>, çıkarımda neden <code>True</code>?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Cache (KV cache) üretim sırasında önceki token hesaplarını saklayıp hızlandırır ama bellek ister. Eğitimde gereksizdir ve gradient checkpointing ile çakışır; çıkarımda hız için yeniden açılır.</p>
+</details>
+<ol start="8">
+<li>Adaptör Hub'dan geri yüklenirken <code>PeftConfig</code> neden önce okunur?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>adapter_config.json</code> içindeki <code>base_model_name_or_path</code> adaptörün hangi temel modelle (Qwen/Qwen3-8B) eğitildiğini söyler. Önce o temel model 4-bit yüklenir, sonra <code>PeftModel.from_pretrained</code> ile adaptör üstüne takılır.</p>
+</details>
+<ol start="9">
+<li><code>outputs[0, inputs["input_ids"].shape[1]:]</code> satırı neden var?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>generate</code> çıktısı girdi token'larını da içerir. Girdi uzunluğu kadar token atlanarak yalnızca modelin yeni ürettiği kısım <code>decode</code> edilir; böylece soru cevabın başında tekrar görünmez.</p>
+</details>
+<ol start="10">
+<li>Model Komorida sorusuna veri setiyle uyuşmayan bir tarih verdi. Bu neyi gösteriyor ve doğru çözüm ne olurdu?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Fine-tuning modele soruya nasıl cevap verileceğini (format/davranış) öğretti; tek tek olguları güvenilir biçimde ezberletmedi (üstelik 20 adımda ≈80 örnek görüldü). Olgusal doğruluk gerekiyorsa RAG ile ilgili dokümanı bağlam olarak vermek gerekir.</p>
+</details>
+<h3>Hocaya sorulacaklar / belirsiz kalanlar</h3>
+<ul>
+<li><strong>Bitirme projesi:</strong> Bu dersin altyazısında teslim tarihi, sunum takvimi ve sertifikalar hiç geçmiyor (16. derste "31'i Cumartesi" [belirsiz] ve "son derste sunum veya dosya gönderimi" denmişti). Açılıştaki öğrenci sunumu bitirme projesi sunumu muydu? Diğer projeler ne zaman/nasıl teslim edilecek? Başarı/katılım sertifikaları ne zaman verilecek?</li>
+<li><strong>Kapanış:</strong> ≈02:36–02:51 arası altyazı yok; hocanın kapanış konuşması ve "bootcamp'ten sonra ne yapmalı" tavsiyeleri kayıtta yok.</li>
+<li><strong>T4 ayarları:</strong> Öğrencilerin aldığı "GPU tipinden kaynaklanan" hatanın tam metni neydi; T4 için <code>fp16</code>/<code>float16</code> ayarları doğru çözüm mü?</li>
+<li><strong>Eğitim metrikleri:</strong> ≈02:22'de ekranda görülen doğrulama kaybı ve doğruluk değerleri neydi (altyazıda net değil)?</li>
+<li><strong>Değerlendirme:</strong> Fine-tuning'in işe yaradığı nasıl ölçülmeli? Qwen3-8B zaten sohbet modeli olduğuna göre adaptörsüz modelle karşılaştırma ya da <code>Qwen3-8B-Base</code> ile deneme yapılmalı mı?</li>
+<li><strong>Kalıcı birleştirme:</strong> Adaptörü <code>PeftModel</code> ile takmak yerine temel modele kalıcı birleştirip (merge) tek model olarak kaydetmek ya da Ollama gibi yerel araçlara aktarmak için önerilen yol nedir?</li>
+<li><strong><code>r</code> ve <code>lora_alpha</code> seçimi:</strong> Gerçek bir alan veri setinde (ör. birkaç bin örnek) hangi aralıklarla başlanmalı; kaç adım/epoch makul?</li>
+<li><strong>16. dersten kalan:</strong> Streamlit'te cevabın JSON görünmesi hatasının düzeltilmiş <code>app.py</code>'si paylaşılacak mı?</li>
+<li>Önerilen kitapların tam adları (Moroney'nin fine-tuning kitabı, agent tasarım kalıpları kitabı, Kanadalı yazarın ML kitabı) [belirsiz].</li>
+</ul>

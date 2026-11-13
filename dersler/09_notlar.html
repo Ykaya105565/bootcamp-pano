@@ -1,0 +1,353 @@
+<h2>09 · Day05 - RAG Giriş</h2>
+<p><strong>Bu derste ne var:</strong> Geçen dersin tekrarı (veri türleri, embedding, vektör veritabanları) ve Kahoot'un ardından RAG'ın ne olduğu, neden gerektiği ve fine-tuning'den farkı anlatıldı. RAG pipeline'ının 3 aşaması (indexing → retrieval → generation) çizildi, ardından LangChain ile uçtan uca bir RAG uygulaması kuruldu: metin yükleme → Document → RecursiveCharacterTextSplitter ile chunking → OpenAI embedding + Chroma → retriever → ChatPromptTemplate → LLM → <code>@chain</code> ile kaynak gösteren QA fonksiyonu.</p>
+<blockquote>
+<p>Kayıt notu: ≈02:00–02:33 arası videoda ses yok (mola + kayıt boşluğu). <strong>Embedding ve Chroma'ya kaydetme</strong> adımı bu aralıkta kaldığı için <code>indexing.ipynb</code>'den tamamlandı; o kısımlardaki açıklamalar hocanın değil, "Not:" olarak benim eklememdir.</p>
+</blockquote>
+<hr>
+<h3>Ana kavramlar</h3>
+<ul>
+<li><strong>Yapılandırılmış veri (structured):</strong> Tablo, sütun ve satırlardan oluşur; SQL veritabanlarında saklanır. <em>Önemi:</em> Analizi kolaydır; LLM'in "anlamadığı" karmaşık verilerle karşılaştırma noktası.</li>
+<li><strong>Yapılandırılmamış veri (unstructured):</strong> Görüntü, metin, ses, video; NoSQL (ör. MongoDB) ile saklanır. <em>Önemi:</em> RAG'ın işlediği PDF/metin dokümanları bu sınıftadır.</li>
+<li><strong>Embedding:</strong> Girdileri sayısal temsillere (vektörlere) çevirme. <em>Önemi:</em> LLM yalnızca sayısal veriden anlar; semantik aramanın temeli.</li>
+<li><strong>Keyword arama vs. semantik arama:</strong> Keyword birebir kelime eşleşmesine, semantik arama anlam benzerliğine bakar ("araba bozuldu" ≈ "aracım çalışmıyor"). <em>Önemi:</em> RAG'ın retrieval adımı semantik aramadır.</li>
+<li><strong>pgvector:</strong> PostgreSQL'e vektör sütunu ve HNSW/IVFFlat indeksleri ekleyen eklenti; semantik ve hibrit (vektör + SQL) sorgu sağlar. <em>Önemi:</em> Şirket zaten PostgreSQL kullanıyorsa en pratik yol. Dezavantajı: çok büyük veride yavaşlar.</li>
+<li><strong>Vektör veritabanı:</strong> Vektör benzerlik aramasına özel DB. Küçük ölçek: <strong>FAISS</strong> (Meta, kütüphane, in-memory), <strong>Chroma</strong>. Büyük ölçek: <strong>Qdrant, Weaviate, Milvus, Pinecone</strong> (Pinecone yalnız bulut).</li>
+<li><strong>Fine-tuning:</strong> Base/foundation modeli alana özgü veriyle yeniden eğitmek; <strong>parametreler (ağırlıklar) güncellenir.</strong> <em>Önemi:</em> Masraflı, zaman alıcı, uzmanlık ister.</li>
+<li><strong>Parametre:</strong> Sinir ağındaki nöronlar arası bağlantıların ağırlıkları (weights).</li>
+<li><strong>RAG (Retrieval-Augmented Generation):</strong> 2020'de çıktı. İlgili veriyi getir (retrieval) → promptu/bağlamı zenginleştir (augmented) → cevabı üret (generation). Parametreler eğitilmez. <em>Önemi:</em> Ucuz, veriler lokalde kalabilir, güncel/özel bilgi verir, halüsinasyonu azaltır; şirketler genelde bunu tercih eder. Hocaya göre "AI engineer'ın Hello World'ü".</li>
+<li><strong>Context:</strong> Modele soru ile birlikte verilen bilgi. "Context her şeydir."</li>
+<li><strong>Chunk / chunking:</strong> Dokümanı küçük parçalara bölme. <em>Önemi:</em> Token maliyetini ve context uzunluğunu azaltır; modele sadece ilgili parça gider.</li>
+<li><strong>Chunk size:</strong> Parça uzunluğu (karakter). Çok büyük → gereksiz bilgi; çok küçük → doğru bilgi yakalanamaz.</li>
+<li><strong>Chunk overlap:</strong> Ardışık parçalar arasındaki ortak bölüm. <em>Önemi:</em> Anlam bütünlüğünü korur.</li>
+<li><strong>RecursiveCharacterTextSplitter:</strong> Metni doğal yerlerden böler: önce paragraf → satır → boşluk (→ karakter).</li>
+<li><strong>Document (LangChain):</strong> <code>page_content</code> + <code>metadata</code>. <em>Önemi:</em> Cevabın kaynağını (dosya, parça, sayfa) takip etmeyi sağlar.</li>
+<li><strong>Retriever (<code>as_retriever</code>):</strong> Sorguyu embedding'e çevirir, vektör DB'deki embedding'lerle karşılaştırır, en benzer k dokümanı döndürür. Varsayılan k=4.</li>
+<li><strong>ChatPromptTemplate:</strong> <code>system</code>/<code>human</code> mesajlarından oluşan, <code>{değişken}</code> alanları olan prompt şablonu.</li>
+<li><strong>Temperature:</strong> 0 → deterministik, kesin; 1'e yaklaştıkça yaratıcı/rastgele.</li>
+<li><strong>Pipe (<code>|</code>) ve <code>@chain</code>:</strong> LangChain'de adımları zincirleme bağlama; <code>@chain</code> dekoratörü normal bir Python fonksiyonunu zincir (Runnable) gibi çalıştırır.</li>
+<li><strong>LangChain ekosistemi:</strong> LangChain Core (prompt/context araçları), LangGraph (ajanlar), LangSmith (observability). Alternatifler: <strong>LlamaIndex</strong> (RAG öncelikli), <strong>Haystack</strong> (deepset; kurumsal destek var, topluluk az).</li>
+</ul>
+<h3>Akış / mimari</h3>
+<p><strong>Genel yol haritası (derslerin sırası):</strong></p>
+<pre><code>LLM → prompt engineering → context engineering → embedding → vektör DB → RAG
+</code></pre>
+<p><strong>RAG pipeline — 3 aşama:</strong></p>
+<pre><code>1) INDEXING   : Dokümanları yükle → chunk'lara böl → embedding'e çevir → vektör DB'de sakla
+2) RETRIEVAL  : Kullanıcı sorusu → embedding → vektör DB'de benzerlik araması → Top-K chunk (sıralı)
+3) GENERATION : {context = Top-K chunk} + {question} → prompt template → LLM → cevap
+</code></pre>
+<p><strong>Bu dersin kod akışı (indexing.ipynb):</strong></p>
+<pre><code>Path(&quot;docs/test.txt&quot;) → read_text → Document(page_content, metadata)
+  → RecursiveCharacterTextSplitter(600, 120, add_start_index) → documents (chunk listesi)
+  → OpenAIEmbeddings(&quot;text-embedding-3-small&quot;)
+  → Chroma.from_documents(... persist_directory=&quot;./chroma_db&quot;, collection_name=&quot;antik_yunan&quot;)
+  → vector_store.as_retriever(k=3)
+  → format_docs(docs) → ChatPromptTemplate(system+context, human+question)
+  → ChatOpenAI(temperature=0) → cevap (+ kaynak dokümanlar)
+</code></pre>
+<p><strong>Fine-tuning vs RAG:</strong></p>
+<pre><code>Fine-tuning : Devasa veri → pre-training → Base model → (+ alana özgü veri) → Fine-tuned LLM ⇄ kullanıcı
+RAG         : Base model sabit → (sorguya göre vektör DB'den getirilen context) → cevap
+</code></pre>
+<div class="tw"><table>
+<thead>
+<tr>
+<th></th>
+<th>Fine-tuning</th>
+<th>RAG</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Parametreler</td>
+<td>Yeniden eğitilir</td>
+<td>Eğitilmez</td>
+</tr>
+<tr>
+<td>Maliyet</td>
+<td>Yüksek (güçlü GPU)</td>
+<td>Düşük</td>
+</tr>
+<tr>
+<td>Süre</td>
+<td>Uzun (gün mertebesi)</td>
+<td>Hızlı</td>
+</tr>
+<tr>
+<td>Uzmanlık</td>
+<td>Gerekir</td>
+<td>Daha az</td>
+</tr>
+<tr>
+<td>Güncel/özel veri</td>
+<td>Yeniden eğitim gerekir</td>
+<td>Dokümanı ekle, yeter</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Kod / uygulama</h3>
+<h4>1) Ortam kurulumu</h4>
+<pre><code class="language-bash">uv init --python 3.12
+uv add langchain jupyter
+uv add langchain-text-splitters
+# Not: aşağıdaki satır transkriptte yok (kayıt boşluğu); notebook'taki import'lardan çıkarıldı
+uv add langchain-openai langchain-chroma python-dotenv
+</code></pre>
+<ul>
+<li><code>uv init --python 3.12</code>: Projeyi Python 3.12 ile başlatır, <code>pyproject.toml</code> ve <code>.gitignore</code> oluşturur.</li>
+<li><code>uv add ...</code>: Paketi kurar ve sürümünü <code>pyproject.toml</code>'a yazar (pip'e göre çok hızlı).</li>
+<li>Notebook kernel'i: <strong>Select Kernel → Python Environments → day05</strong>.</li>
+</ul>
+<h4>2) Dokümanı yükleme ve Document'e çevirme</h4>
+<pre><code class="language-python">from pathlib import Path 
+path = Path(&quot;./docs/test.txt&quot;)
+text = path.read_text(encoding=&quot;utf-8&quot;)
+
+from langchain_core.documents import Document
+raw_documents = [
+    Document(
+    page_content=text,
+    metadata={&quot;source&quot;: &quot;docs/test.txt&quot;},
+    )
+]
+</code></pre>
+<ul>
+<li><code>Path(...)</code>: Yolu işletim sisteminden bağımsız bir nesneye çevirir (yol ayırıcı hatalarını önler).</li>
+<li><code>encoding="utf-8"</code>: Türkçe karakterlerin bozulmaması için.</li>
+<li><code>Document(page_content=..., metadata=...)</code>: Metni LangChain'in standart yapısına koyar; <code>source</code> metadata'sı cevabın kaynağını izlemek için.</li>
+<li>Liste olmasının nedeni: splitter'lar ve vektör DB'ler doküman <strong>listesi</strong> bekler; ileride birden çok dosya eklenebilir.</li>
+</ul>
+<h4>3) Chunking</h4>
+<pre><code class="language-python">from langchain_text_splitters import RecursiveCharacterTextSplitter 
+
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=600,
+    chunk_overlap=120,
+    add_start_index=True  
+)
+documents = text_splitter.split_documents(raw_documents)
+len(documents)
+</code></pre>
+<ul>
+<li><code>chunk_size=600</code>: Bir parça en fazla ~600 karakter (kısa/orta metin için).</li>
+<li><code>chunk_overlap=120</code>: 600'ün %20'si; parça sınırında bağlam kopmasın diye.</li>
+<li><code>add_start_index=True</code>: Her chunk'ın metadata'sına <code>start_index</code> (orijinal metinde başladığı karakter) eklenir; kaynak gösterirken işe yarar.</li>
+<li><code>split_documents</code>: Metadata'yı koruyarak her Document'i chunk'lara böler; sonuç yine Document listesi.</li>
+<li><code>len(documents)</code>: Kaç chunk oluştuğunu verir (index out of range almamak için).</li>
+<li>Derste: paragraflar 600'den kısa olduğu için her paragraf ayrı chunk oldu (ilk chunk 411 karakter) ve <strong>overlap oluşmadı.</strong></li>
+</ul>
+<h4>4) Embedding ve vektör DB <em>(kayıt boşluğu — notebook'tan)</em></h4>
+<pre><code class="language-python">from dotenv import load_dotenv 
+load_dotenv()
+
+from langchain_openai import OpenAIEmbeddings
+embeddings = OpenAIEmbeddings(model=&quot;text-embedding-3-small&quot;)
+
+texts = [doc.page_content for doc in documents]
+vectors = embeddings.embed_documents(texts)
+print(&quot;Parça sayısı:&quot;, len(documents))
+print(&quot;Vektör sayısı:&quot;, len(vectors))
+print(&quot;Vektör boyutu:&quot;, len(vectors[0]))
+print(&quot;İlk 5 değer:&quot;, vectors[0][:5])
+
+from langchain_chroma import Chroma
+import shutil
+PERSIST_DIR = &quot;./chroma_db&quot;
+shutil.rmtree(PERSIST_DIR, ignore_errors=True)
+
+vector_store = Chroma.from_documents(
+    documents=documents,
+    embedding=embeddings,
+    persist_directory=PERSIST_DIR,
+    collection_name=&quot;antik_yunan&quot;,
+)
+</code></pre>
+<ul>
+<li><code>load_dotenv()</code>: <code>.env</code> dosyasındaki <code>OPENAI_API_KEY</code>'i ortam değişkenine yükler.</li>
+<li><code>OpenAIEmbeddings(...)</code>: Embedding modelini tanımlar (Not: <code>text-embedding-3-small</code> varsayılan 1536 boyut).</li>
+<li><code>embed_documents(texts)</code>: Sadece göstermek için manuel embedding; her chunk → bir vektör (parça sayısı = vektör sayısı).</li>
+<li><code>shutil.rmtree(...)</code>: Notebook tekrar çalıştırılınca eski DB'yi silip kopya (duplicate) chunk birikmesini önler.</li>
+<li><code>Chroma.from_documents(...)</code>: Chunk'ları embed edip <code>./chroma_db</code>'ye, <code>antik_yunan</code> koleksiyonuna kalıcı yazar. (Embedding'i burada Chroma kendisi tekrar hesaplar; üstteki <code>embed_documents</code> yalnızca gözlem içindir.)</li>
+</ul>
+<h4>5) Retriever</h4>
+<pre><code class="language-python">retriever = vector_store.as_retriever(search_kwargs={&quot;k&quot;: 3})
+docs = retriever.invoke(&quot;Antik Yunan'da kadınların toplumdaki rolü nedir?&quot;)
+len(docs)   # 3
+</code></pre>
+<ul>
+<li><code>as_retriever()</code>: Vektör DB'yi "soru al → embed et → benzerlik ara → doküman döndür" yapan bir nesneye çevirir.</li>
+<li><code>search_kwargs={"k": 3}</code>: Varsayılan 4 yerine 3 chunk döndür (context şişmesin).</li>
+<li><code>.invoke(soru)</code>: LangChain Runnable arayüzüyle çalıştırma.</li>
+</ul>
+<h4>6) Prompt şablonu ve doküman biçimlendirme</h4>
+<pre><code class="language-python">from langchain_core.prompts import ChatPromptTemplate
+
+SYSTEM_PROMPT = ( 
+    &quot;Answer the question based only on the following context. &quot; 
+    &quot;If the answer isn't in the context, say you don't know.\n\n&quot; 
+    &quot;Context:\n{context}&quot; )
+
+prompt = ChatPromptTemplate([ 
+    (&quot;system&quot;, SYSTEM_PROMPT), 
+    (&quot;human&quot;, &quot;{question}&quot;), 
+])
+prompt.pretty_print()
+prompt.input_variables   # ['context', 'question']
+
+def format_docs(docs):
+ return &quot;\n\n&quot;.join(doc.page_content for doc in docs)
+</code></pre>
+<ul>
+<li>System prompt: "<strong>Sadece</strong> bağlama göre cevap ver; yoksa bilmediğini söyle" → halüsinasyonu engelleyen asıl kural.</li>
+<li><code>{context}</code>, <code>{question}</code>: Şablon değişkenleri; çalışma anında doldurulur.</li>
+<li><code>pretty_print()</code> / <code>input_variables</code>: Şablonu ve beklediği değişkenleri kontrol etmek için.</li>
+<li><code>format_docs</code>: Document listesinden sadece <code>page_content</code>'leri alıp aralarına boş satır koyarak tek bir düz metin yapar (metadata modele gitmez).</li>
+</ul>
+<h4>7) LLM ve zincir</h4>
+<pre><code class="language-python">from langchain_openai import ChatOpenAI
+llm = ChatOpenAI(model=&quot;gpt-5.6-luna&quot;, temperature=0)
+
+rag_chain = prompt | llm
+response = rag_chain.invoke({&quot;context&quot;: docs, &quot;question&quot;: question})
+print(response.content)
+</code></pre>
+<ul>
+<li><code>temperature=0</code>: Kesin, tekrarlanabilir cevap.</li>
+<li><code>prompt | llm</code>: Prompt'un çıktısı LLM'in girdisi olur (pipeline).</li>
+<li>Not: Burada <code>context</code> olarak <code>docs</code> listesi doğrudan verilmiş (format_docs uygulanmamış); şablon listeyi metne çevirdiğinde metadata da araya girer. Bir sonraki adımdaki <code>qa</code> fonksiyonu bunu <code>format_docs</code> ile düzeltir.</li>
+</ul>
+<h4>8) <code>@chain</code> ile tek fonksiyon + kaynaklar</h4>
+<pre><code class="language-python">from langchain_core.runnables import chain
+
+@chain 
+def qa_with_sources(question: str): 
+    docs = retriever.invoke(question)              # 1) retrieval
+    context = format_docs(docs)                    # 2) düz metin context
+    formatted_prompt = prompt.invoke({             # 3) şablonu doldur
+        &quot;context&quot;: context, 
+        &quot;question&quot;: question 
+    }) 
+    answer = llm.invoke(formatted_prompt)          # 4) generation
+    return {&quot;answer&quot;: answer.content, &quot;docs&quot;: docs}  # 5) cevap + kaynaklar
+
+result = qa_with_sources.invoke(&quot;Antik Yunan'da günlük yaşam nasıldı?&quot;)
+for doc in result[&quot;docs&quot;]:
+    print(doc.page_content); print(doc.metadata); print(&quot;-&quot; * 50)
+
+# RAG'in en kritik davranışı: bilmediğini bilmek
+result = qa_with_sources.invoke(&quot;Antik Yunan'da hangi kripto paralar kullanılıyordu?&quot;)
+print(result[&quot;answer&quot;])
+</code></pre>
+<ul>
+<li><code>@chain</code>: Fonksiyonu Runnable yapar → <code>.invoke()</code> ile çağrılır, diğer zincirlerle <code>|</code> ile birleştirilebilir.</li>
+<li><code>"docs": docs</code> döndürmek: Cevabın hangi chunk'lardan geldiğini (<code>source</code>, <code>start_index</code> — derste 0, 940, 2003) gösterir.</li>
+<li>Kripto sorusu: Bağlamda yok → model "metinde yer almıyor / bilmiyorum" dedi.</li>
+</ul>
+<h3>Hocanın vurguları &amp; pratik kurallar</h3>
+<ul>
+<li><strong>Chunk size başparmak kuralı:</strong> kısa metin <strong>300–600</strong>, makale/ders notu <strong>600–1000</strong>, uzun metin <strong>1000–2000</strong> karakter. Projeye/metne göre seçin.</li>
+<li><strong>Overlap:</strong> chunk size'ın <strong>%10–20'si</strong> (600 → 60–120; 1000 → 100–200). Az → bağlantı kopar; çok → gereksiz tekrar.</li>
+<li><strong>Retriever k:</strong> Varsayılan 4; context şişmesin diye 2–3'e indirilebilir.</li>
+<li><strong>Vektör DB seçimi proje bazlı:</strong> "Bakkaldan ekmek almak için Ferrari'ye gerek yok." Küçük/prototip → FAISS, Chroma; büyük ölçek → Qdrant, Weaviate, Milvus, Pinecone; şirket PostgreSQL kullanıyorsa → pgvector. En büyük hata: ihtiyaca bakmadan en popüler/güçlü olanı seçmek.</li>
+<li><strong>RAG ölmez:</strong> Context window büyüse de context şişince cevap kalitesi düşer ve maliyet artar.</li>
+<li><strong>Şirketler RAG'ı tercih eder:</strong> Ucuz, veri lokalde kalabilir, yeniden eğitim yok.</li>
+<li><strong>Matematiği ezberlemeye gerek yok, ama teoriyi bilin:</strong> Mülakatlarda soruluyor; asıl iş problemi anlayıp doğru mimariyi kurmak.</li>
+<li><strong>Vibe coding uyarısı:</strong> Mimariyi baştan siz söyleyin (backend Python, frontend Streamlit vb.), önce plan yaptırın; kodu okuyup anlatabilmeli, hata çözebilmelisiniz. Çalışan şey ≠ ürün (güvenlik, yük, entegrasyon testleri).</li>
+<li><strong>Proje = CV:</strong> Özellikle yurt dışında projelere bakılıyor.</li>
+<li><strong>Yeni rol:</strong> Forward deployed engineer / AI solutions engineer — şirketin süreçlerini öğrenip yapay zekâya taşımak.</li>
+<li><strong>Gizlilik:</strong> Ucuz Çin modelleri cazip ama veri gönderiliyor; hassas veride maskeleme ya da lokal model düşünülmeli.</li>
+<li><strong>Model takibi:</strong> LMArena ve Artificial Analysis.</li>
+</ul>
+<h3>Sık hatalar / karşılaşılan sorunlar</h3>
+<ul>
+<li><strong><code>langchain_core.documents</code> bulunamadı / modül yok:</strong> Bağımlılık eksik ya da kernel paketi görmedi → <code>uv add ...</code> ile tekrar yükle, gerekirse VS Code'u/kernel'i yeniden başlat.</li>
+<li><strong><code>langchain_text_splitters</code> import hatası (paket kurulu olmasına rağmen):</strong> Kernel yeni paketi görmemiş → kapatıp açın / <strong>Restart</strong>.</li>
+<li><strong><code>IndexError</code> (ör. <code>documents[16]</code>):</strong> Kaç chunk olduğunu <code>len(documents)</code> ile kontrol edin. Tek dokümanlı <code>raw_documents</code>'ta <code>[1]</code> de hata verir.</li>
+<li><strong>Overlap görünmüyor:</strong> Hata değil; paragraflar <code>chunk_size</code>'dan kısaysa splitter paragraf sınırından keser, overlap gerekmez.</li>
+<li><strong>Yeni modelde <code>temperature=0</code> hatası:</strong> Daha yeni bir OpenAI modeli (adı <strong>[belirsiz]</strong>) <code>temperature</code> ile hata verdi; <code>gpt-5.6-luna</code>'ya dönülünce düzeldi. (Hocanın tahmini: yeni modelde parametre kaldırılmış.) Not: Bazı yeni/akıl yürütme modelleri <code>temperature</code> desteklemiyor; parametreyi kaldırmak da çözüm olabilir.</li>
+<li><strong>Notebook'ta karışan hücre sırası:</strong> Model adını düzeltip <strong>Restart → Run All</strong>.</li>
+<li><strong>Cevabın sonunda tuhaf karakterler:</strong> Bir öğrencide kripto sorusunun cevabının sonunda Yunan harfine benzer karakterler çıktı; nedeni netleşmedi.</li>
+<li><strong>WhatsApp'tan yanlış kod parçası:</strong> Hoca birkaç kez kodu yanlış yere/eksik gönderdi; komple tekrar paylaşıldı — kaynak notebook'a bakmak en güvenlisi.</li>
+</ul>
+<h3>Kendini test et</h3>
+<ol>
+<li>RAG'ın açılımı nedir ve her harf hangi adıma karşılık gelir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Retrieval-Augmented Generation. Retrieval: sorguyla ilgili veriyi vektör DB'den getir; Augmented: promptu/context'i bu veriyle zenginleştir; Generation: LLM cevabı üretir.</p>
+</details>
+<ol start="2">
+<li>Fine-tuning ile RAG arasındaki temel fark nedir? Şirketler neden genelde RAG'ı tercih eder?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Fine-tuning'de modelin parametreleri (ağırlıkları) alana özgü veriyle yeniden eğitilir; RAG'da eğitilmez, bilgi sorgu anında context olarak verilir. RAG daha ucuz ve hızlıdır, uzmanlık/GPU gerektirmez, veriler lokalde kalabilir, güncel bilgiyi doküman ekleyerek verirsiniz.</p>
+</details>
+<ol start="3">
+<li>RAG pipeline'ının 3 aşamasını alt adımlarıyla sayın.</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>1) Indexing: yükle → chunk'la → embed et → vektör DB'de sakla. 2) Retrieval: soruyu embed et → benzerlik araması → Top-K chunk. 3) Generation: context + soru → prompt → LLM → cevap.</p>
+</details>
+<ol start="4">
+<li>Neden tüm dokümanı doğrudan LLM'e vermiyoruz? "RAG öldü mü?" tartışmasına hocanın cevabı neydi?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Çok token harcanır (maliyet), context şişer ve cevap kalitesi düşer. Context window'lar büyüse de bu iki sorun devam ettiği için RAG ölmez.</p>
+</details>
+<ol start="5">
+<li>5.000 karakterlik ders notu için chunk_size ve overlap ne seçersiniz?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Makale/ders notu kuralına göre chunk_size 600–1000 (ör. 800), overlap bunun %10–20'si (ör. 80–160).</p>
+</details>
+<ol start="6">
+<li>RecursiveCharacterTextSplitter metni hangi sırayla böler? Derste neden overlap oluşmadı?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Önce paragraf, sonra satır, sonra boşluk (en son karakter). Derste paragraflar 600 karakterden kısa olduğu için her paragraf tek chunk oldu (ilki 411 karakter); paragraf sınırında kesildiği için overlap'a gerek kalmadı.</p>
+</details>
+<ol start="7">
+<li>Metni neden LangChain <code>Document</code> nesnesine çeviriyoruz? <code>add_start_index=True</code> ne ekler?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Metadata'yı (ör. <code>source</code>) taşımak ve cevabın kaynağını takip etmek için. <code>add_start_index=True</code> her chunk'ın metadata'sına orijinal metindeki başlangıç karakter konumunu (<code>start_index</code>) ekler.</p>
+</details>
+<ol start="8">
+<li><code>vector_store.as_retriever(search_kwargs={"k": 3})</code> çağrıldığında <code>invoke(soru)</code> arka planda hangi üç işi yapar?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Soruyu embedding'e çevirir, vektör DB'deki embedding'lerle benzerlik karşılaştırması yapar, en benzer 3 dokümanı döndürür. (k verilmezse varsayılan 4.)</p>
+</details>
+<ol start="9">
+<li>System prompt'taki "If the answer isn't in the context, say you don't know" satırı neden kritik? Derste nasıl test edildi?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Modelin kendi bilgisiyle uydurmasını (halüsinasyon) engeller; RAG'ın "bilmediğini bilmek" davranışı. Dokümanda olmayan "Antik Yunan'da hangi kripto paralar kullanılıyordu?" sorusu soruldu, model bilginin metinde olmadığını söyledi.</p>
+</details>
+<ol start="10">
+<li>Küçük bir prototip, 5 milyon kayıtlı kurumsal sistem ve zaten PostgreSQL kullanan bir şirket için hangi vektör depolama çözümlerini önerirsiniz?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Prototip: FAISS veya Chroma. Büyük kurumsal sistem: Qdrant, Weaviate, Milvus veya Pinecone (yalnız bulut). PostgreSQL kullanan şirket: pgvector eklentisi (hibrit vektör + SQL sorgu).</p>
+</details>
+<h3>Hocaya sorulacaklar / belirsiz kalanlar</h3>
+<ul>
+<li><strong>Kayıt boşluğu (≈02:00–02:33):</strong> Embedding ve Chroma adımı sözlü olarak nasıl anlatıldı? <code>embed_documents</code> ile manuel vektör üretimi neden ayrıca yapıldı (sadece gösterim mi)? Hangi paketler kuruldu (<code>langchain-openai</code>, <code>langchain-chroma</code>, <code>python-dotenv</code> varsayıldı)?</li>
+<li>Overlap demosunda kullanılan tam ayar neydi (<code>separators=[" ", ""]</code> mi; "yüz elli yapalım" denen parametre hangisi)?</li>
+<li><code>rag_chain.invoke({"context": docs, ...})</code> adımında <code>format_docs</code> uygulanmadan liste verilmesi bilinçli mi? (Not: metadata da prompt'a karışıyor.)</li>
+<li>Derste <code>temperature=0</code> ile hata veren yeni model hangisiydi; yeni modellerde temperature yerine ne kullanılmalı?</li>
+<li>Kahoot'un son sorusunun (büyük ölçekli vektör DB) doğru şıkkı tam olarak neydi (Weaviate ve Milvus?)?</li>
+<li>Hoca "RAG ile modeller halüsinasyon görmez" dedi. Not: Pratikte RAG halüsinasyonu <strong>azaltır</strong> ama tamamen sıfırlamaz (yanlış chunk getirilmesi, bağlamın yanlış yorumlanması gibi durumlar olabilir); bu nüansı sormakta fayda var.</li>
+<li>Hoca RAG'ı "non-parametric" teknik olarak niteledi; literatürdeki "parametric memory vs non-parametric memory" ayrımıyla ilişkisi.</li>
+<li>Demo uygulamasındaki (PDF yükleme, API key girme) arayüz Streamlit mi? Bir sonraki derste yapılacak.</li>
+</ul>

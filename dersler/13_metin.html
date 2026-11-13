@@ -1,0 +1,414 @@
+<h2>13 · Day10-MCP — Ders Metni (ayıklanmış)</h2>
+<blockquote>
+<p>Kaynak: Skool canlı ders kaydı (otomatik Türkçe altyazı) + hocanın ders dosyaları (<code>01-calling.ipynb</code>, <code>02-server-demo.py</code>, <code>03-server.py</code>, <code>mcp.json</code>).
+Kod blokları hocanın dosyalarından alınmıştır. Zaman damgaları yaklaşıktır.
+Atlanan kısımlar: ders öncesi sohbet ve tanışma (≈00:00–00:18), aralar (≈01:06–01:21 ve ≈02:22–02:30), öğrencilerin ekran paylaşımı ile tek tek hata ayıklama konuşmalarının tekrar eden bölümleri.</p>
+</blockquote>
+<hr>
+<h3>Ders öncesi: kurs dosyaları ve kurulum (≈00:00–00:05)</h3>
+<ul>
+<li>Hazırlık haftasında Python dersleri, AI Engineering yol haritası ve çalışma ortamı kurulumu var. Kurulumda Anaconda yerine <strong>uv</strong> anlatılıyor; hoca uv'yi tercih ediyor çünkü Rust tabanlı, çok hızlı ve paketleri kısa sürede kuruyor. Eskiden pip ile paketlerin tek tek çözülmesi beklenirdi.</li>
+<li>Bir öğrencinin önerisiyle Pandas yerine kullanılan <strong>Polars</strong> da konuşuldu (Rust tabanlı, çok hızlı, Parquet gibi formatlarda başarılı).</li>
+<li>Repo'daki ders klasörlerinin numaralandırması atlamalı görünüyor (01, 02, 03 → 07 …). Hoca bunun eksik ders olmadığını, aradaki numaraların muhtemelen kendi demo/proje denemelerinden kaldığını söyledi; sırayla izleyip kodları çalıştırmak yeterli. Dersler 3–4 ay erişime açık kalacak.</li>
+</ul>
+<h3>Ders dışı ama içerik sayılabilecek tavsiyeler (≈00:08–00:18)</h3>
+<ul>
+<li><strong>Alan uzmanlığı + yapay zekâ:</strong> Hoca, kendi alanında uzman olup yapay zekâyı o alana uygulayan kişilerin çok güçlü projeler çıkarabileceğini vurguladı. Örnek olarak uydu verisi (Sentinel radar/optik görüntüler, zemin deformasyonu) ile yapay zekânın birleştirilmesinin henüz "emekleme aşamasında" olduğunu, burada büyük fırsat olduğunu söyledi.</li>
+<li><strong>Açıklanabilir yapay zekâ (Explainable AI, XAI):</strong> Regresyon veya lojistik regresyonda değişkenlerin etkisini biliyoruz; derin öğrenmeye dayalı modellerde ise kara kutu var. Nasıl çalıştığını bilmediğimiz için yanlı sonuçlara gidebiliyoruz. Bu yüzden XAI önemli bir alan.</li>
+<li><strong>Model değerlendirme:</strong> Şirketlerin kendi benchmark'larından çok, gerçek kullanıcı oylarına dayanan bağımsız platformların (ör. <strong>Arena / LMArena</strong> — transkriptte "Arena AI") sonuçları daha anlamlı hâle geldi.</li>
+<li><strong>Azure DevOps (hocanın verdiği kurumsal eğitim):</strong> Eğitim özellikle <em>Boards</em> kısmına odaklanmış: proje planlama, atama, yetkilendirme, backlog, sprint, sorgular (queries). Hoca Microsoft ekosisteminin gücünü araçların birbirine entegre olmasında görüyor: DevOps'ta doğrudan otomasyon yoksa Power Automate ile, görselleştirme için Power BI ile entegre edilebiliyor.</li>
+</ul>
+<h3>Dersin planı (≈00:18–00:21)</h3>
+<p>MCP 2024 sonunda çıktı, 2025'te çok popüler oldu ve şu anda yaygın kullanılıyor. Dersin akışı:</p>
+<ol>
+<li>Fonksiyon çağırma (function calling) nedir, kodla uygulaması.</li>
+<li>Function calling ile MCP arasındaki farklar; MCP nedir, neden gerekli?</li>
+<li>Bir aracı (tool) MCP'ye dönüştürmek.</li>
+<li>MCP'nin üç temel yapısı: <strong>Tools, Resources, Prompts</strong> — bir arayüzde (MCP Inspector) test edilecek.</li>
+<li>MCP mimarisi: <strong>Host, Client, Server</strong>.</li>
+<li>MCP sunucusunu VS Code'a bağlamak.</li>
+<li>Kendi sunucumuzu yazıp bir agent'ın onu kullanmasını sağlamak. <em>(Bu son adıma derste zaman yetmedi.)</em></li>
+</ol>
+<p>Soru: MCP işletmeler için neden önemli?
+Cevap: Kurumlar birçok sistemi standart bir yolla birbirine bağlamak istiyor; MCP bu standardı sağladığı için kurumsal tarafta çok önemli.</p>
+<h3>Yapay zekâ uygulamalarının üç aşaması (≈00:21–00:28)</h3>
+<p>Hoca, bir önceki derste gördüklerini üç aşamada özetledi:</p>
+<ol>
+<li><strong>LLM çağrısı (LLM call):</strong> En basit sistem. Tek bir LLM kullanılır, klasik chatbot gibi. ChatGPT ilk çıktığında böyle çalışıyordu. LLM, yapay zekâ uygulamasının "beyni"dir.</li>
+<li><strong>Araç kullanan sistemler (tool use / function calling):</strong> Beyin hâlâ pasiftir; yalnızca eğitim verisinin kesildiği tarihe kadarki bilgiyi bilir. Daha güncel bilgi için dış dünyaya açılması gerekir; bunu <strong>araçlar (tools)</strong> ile yapar. LLM araca konuşur, ondan bilgi alır, bu bilgiyle cevap üretir. Örnekler:
+   - <strong>Hesap makinesi:</strong> İlk LLM'ler çarpma işlemini düzgün yapamıyordu, çünkü bir sonraki token'ı tahmin eden olasılıksal modellerdi. Hesap makinesi aracı bağlanınca doğru cevap veriyor.
+   - <strong>Web arama:</strong> Bugünkü gram altın ya da dolar kuru gibi güncel bilgiler; araç internetten bağlam (context) bulur, LLM'e verir.
+   - <strong>Hava durumu:</strong> Hava durumu aracı sorgulanır, cevap LLM'e döner.
+   Literatürde bu çalışma biçimine <strong>function calling</strong> (fonksiyon çağırma) deniyor.</li>
+<li><strong>Ajan tabanlı (agentic) sistemler:</strong> Önceki sistemlerde LLM düşünmüyordu, düşünerek karar vermiyordu. Agentic sistemde uygulama düşünür, karar verir, gerekirse tekrar düşünür, araca tekrar gider, gelen cevaba göre yeniden plan yapar; nihai karara varınca sonucu döndürür. Ayrıca <strong>bilgiyi hafızaya alır</strong> ve <strong>aksiyona geçer</strong> (ör. "bana en ucuz bileti bul" → bulur, gerekirse satın alır). Hoca 2026'yı "agentic yılı" olarak niteledi; ChatGPT, Claude ve Gemini'nin arkasındaki sistem de bu.</li>
+</ol>
+<p>Kullanılabilecek araç örnekleri: hesap makinesi, hava durumu, web search, veritabanları, dosya sistemleri, çeşitli API'ler, web servisleri.</p>
+<h3>MCP neden gerekli? (≈00:28–00:34)</h3>
+<ul>
+<li>Uygulamayı her araca bağlamak için ayrı <strong>entegrasyon kodu</strong> yazmak gerekiyor; her araç için ayrı kod yazmak uzun ve yorucu.</li>
+<li><strong>MCP</strong>, uygulamaları araçlara bağlamak için bir <strong>standart iletişim protokolü</strong>.</li>
+<li><strong>USB-C benzetmesi:</strong> 10–15 yıl önce her telefon markasının ayrı şarj girişi vardı; bir firmanın şarj aletini başka telefonda kullanamazdınız. USB-C ile tek standart geldi. MCP de aynı standardı yapay zekâ uygulamaları ile araçlar arasında sağlıyor.</li>
+<li><strong>Sinir sistemi benzetmesi:</strong> Uygulama bir vücutsa LLM beyindir; beyin karar verir ("elini oynat"), bu emrin ele ulaşması sinir sistemiyle olur. MCP de bu iletişimi sağlayan standart katmandır.</li>
+<li><strong>Önemli vurgu:</strong> <em>MCP yapay zekâyı daha zeki yapmaz.</em> MCP bir bağlantı ve iletişim katmanıdır.</li>
+<li><strong>M × N problemi:</strong> 3 yapay zekâ uygulaması (ör. AI Agent, AI IDE, AI Chat) ve 5 araç (GitHub, Slack, PostgreSQL, hava durumu API, Stripe) varsa, doğrudan bağlamak için 3 × 5 = <strong>15 ayrı entegrasyon</strong> gerekir. Araya tek bir MCP katmanı koyunca her uygulama bu katmana, katman da araçlara bağlanır; tek bir standartla iş çözülür.</li>
+<li>MCP'yi <strong>Anthropic</strong> geliştirdi (Claude'un şirketi). Önce sürüm 1, sonra sürüm 2 çıktı; derste kurulan <code>mcp</code> paketi sürümü <strong>2.3.0</strong>. n8n gibi araçlar ve Supabase de MCP destekliyor; artık neredeyse her araçta MCP bağlantısı var.</li>
+</ul>
+<p>Soru: MCP sadece Anthropic'in standardı mı, yoksa tüm sektörün mü? (Öğrenci, işlemci mimarilerinin zamanla AMD64 gibi ortak bir standarda yakınsamasını örnek verdi.)
+Cevap: Anthropic geliştirdi ama artık fiilen standart: OpenAI, Google ve diğer şirketler de kullanıyor. Benzer şekilde Google'ın geliştirdiği <strong>A2A</strong> (Agent2Agent) protokolü de standartlaşıyor. Model çağırırken ise <strong>OpenAI API formatı</strong> fiilen standart; açık kaynak modelleri (ör. Qwen) kullanırken de OpenAI uyumlu API ile client oluşturup response alıyoruz. Bağlantı standardı olarak da MCP kullanılıyor.</p>
+<h3>Ara soru-cevaplar: yerel model ve donanım (≈00:37–00:51)</h3>
+<ul>
+<li>Hoca, bir model platformunda (Alibaba'nın, Hugging Face benzeri bir site — transkriptte adı tam anlaşılmıyor, muhtemelen ModelScope [belirsiz]) modelleri ve ücretsiz kullanım haklarını gösterdi; buradaki API fiyatlarının daha uygun olduğunu söyledi.</li>
+<li><strong>~27B parametreli bir Qwen modelini</strong> önerdi [model adı/boyutu tam belirsiz: transkriptte "27 beye", "20'de bey"]. Yerelde çalıştırmak için yaklaşık <strong>24 GB VRAM</strong> gerekiyor; 16 GB VRAM'li bir kartta tam sığmıyor ve yavaş çalışıyor. RTX 5090 laptop sürümünde 24 GB, masaüstü sürümünde 32 GB VRAM var. Apple'da tümleşik bellek (unified memory) olduğundan 24 GB+ belleğe sahip bir Mac'te de çalışıyor.</li>
+<li><strong>Mac mini önerisi:</strong> Otomasyon işleri için 32 GB belleğe sahip Mac mini (M-serisi) öneriyor; düşük elektrik tüketimi, monitörsüz 24 saat açık bırakılabilmesi avantaj. Öğrenci indirimiyle yaklaşık 89 bin TL [fiyat dersin yapıldığı tarihe ait]. Alternatif: bulutta bir <strong>VPS</strong> (Hostinger örneği, aylık birkaç yüz TL). Mac'te Windows yerel olarak çalışmıyor.</li>
+</ul>
+<p>Soru: Kurumdaki GPU sunucularında (ör. A30) bir model sürekli yer tutuyor; ihtiyaca göre bazen LLM, bazen embedding modeli yüklenecek şekilde nasıl optimize edilir?
+Cevap: Hocanın bu konuda doğrudan deneyimi yok; <strong>Ollama</strong> ile farklı modeller arasında geçiş yapılabileceğini, belki bu şekilde kalıcı yer tutma sorununun çözülebileceğini söyledi ve araştırıp dönmeyi önerdi.</p>
+<h3>MCP nedir? (≈00:51–00:52)</h3>
+<ul>
+<li><strong>MCP = Model Context Protocol.</strong> M: model, C: context (bağlam), P: protocol.</li>
+<li>Anthropic tarafından geliştirildi (transkriptte "2004" geçiyor, doğrusu 2024) ve standart hâline geldi.</li>
+<li>Uygulamamızı bir veri kaynağına ya da araca bağlarken MCP standardını kullanarak standart bir bağlantı kurmuş oluyoruz.</li>
+<li><strong>MCP, function calling'in genişletilmiş hâlidir.</strong> Bu yüzden önce function calling'i iyi anlamak gerekiyor.</li>
+</ul>
+<h3>Function calling akışı (≈00:52–00:58)</h3>
+<p>Akış adım adım:</p>
+<ol>
+<li><strong>Kullanıcı</strong> uygulamaya bir istek gönderir (ör. ChatGPT'ye bir yazı yazmak).</li>
+<li><strong>Uygulama</strong> bu prompt'u arka planda düzenler (eksik veya gereksiz kısımları düzeltebilir) ve <strong>modele</strong> gönderir.</li>
+<li><strong>Model</strong>, mevcut araçların <strong>açıklamalarına, parametre açıklamalarına ve fonksiyon adlarına</strong> bakarak gerekiyorsa bir araç seçer ve gerekli parametreleri belirler. Bu kararı bir <strong>function call</strong> olarak uygulamaya gönderir ("şu fonksiyonu, şu parametrelerle kullan").</li>
+<li><strong>Uygulama</strong> fonksiyonu çalıştırır. <em>Önemli: aracı model çalıştırmaz; uygulamanın kendisi çalıştırır.</em></li>
+<li>Uygulama sonucu tekrar <strong>modele</strong> gönderir.</li>
+<li>Model bu bilgiye göre <strong>cevap</strong> üretir ve uygulamaya gönderir; uygulama da kullanıcıya döndürür.</li>
+</ol>
+<p>Örnek: "3 kere 5 kaçtır?" → model "bu çarpma ile ilgili, hesap makinesi aracını kullanabilirim" der → parametreleri gönderir → uygulama aracı çalıştırır → 15 sonucu modele gider → model "cevap 15" der.</p>
+<p>Hoca, araç yazarken <strong>açıklamaya (description), parametre açıklamalarına ve fonksiyon adına</strong> çok dikkat edilmesi gerektiğini vurguladı.</p>
+<p>Soru: Çok fazla araç bağlanırsa bekleme süresi artar mı?
+Cevap: Evet, kesinlikle. Model tüm araçları, açıklamaları, parametreleri ve fonksiyon adlarını inceleyip seçim yapıyor. Fazla araç bağlanırsa model kapasitesi zorlanabilir veya geç cevap verebilir. <strong>Sadece gerekli araçları bağlayın.</strong>
+(Bir öğrenci, açıklamaları bölmeye gerek kalmadan modelin araç seçebildiği ve token kullanımını %32–35 azaltan yeni bir yaklaşımla ilgili bir yazı gördüğünü paylaştı; hoca yeni yaklaşımları takip etmenin önemini vurguladı ve örnek olarak CSV yerine daha kısa yanıt veren yeni bir veri formatı yaklaşımından söz etti [adı belirsiz].)</p>
+<h3>Uygulama 1: Function calling (≈00:58–01:42)</h3>
+<h4>Ortam kurulumu</h4>
+<p>Masaüstünde yeni bir klasör (<code>MCP</code>) oluşturulup VS Code'da açıldı. Terminalde:</p>
+<pre><code class="language-bash">uv init --python 3.12
+uv add openai ipykernel python-dotenv
+</code></pre>
+<ul>
+<li><code>uv init</code> sırasında "3.12 bulunamadı" hatası alındı; <code>--python 3.12</code> şeklinde <strong>iki tire</strong> ile yazılması gerekiyor.</li>
+<li><code>ipykernel</code> notebook'ta çekirdek seçebilmek için (transkriptte "cübütler" olarak geçiyor; [belirsiz]: <code>ipykernel</code> mi <code>jupyter</code> mı tam anlaşılmıyor).</li>
+<li>Ardından <code>01-calling.ipynb</code> oluşturuldu (önce <code>.ipynb</code> uzantısı unutuldu), çekirdek olarak projenin <code>.venv</code> ortamı seçildi.</li>
+<li><code>.env</code> dosyasına <code>OPENAI_API_KEY</code> yazıldı; önceden oluşturulmuş bir <code>.env</code> dosyası sürükle-bırak ile klasöre kopyalanabilir.</li>
+</ul>
+<p>Soru: Daha önce kullandığımız API anahtarı da bir tür MCP bağlantısı mı?
+Cevap: Hayır; API anahtarıyla bir API'ye çağrıda bulunuyoruz. Bu MCP'nin çok daha basit bir versiyonu gibi düşünülebilir. MCP, function calling'in daha kapsamlı, daha standart, daha gelişmiş hâli.</p>
+<p>Soru: MCP parametreleri function calling'e göre daha akıllı mı seçiyor?
+Cevap: Hoca bunu ileride göstereceğini söyledi: MCP'de aracı bir <strong>sunucuya (server)</strong> dönüştürüyoruz ve diğer uygulamalar bu sunucuya bağlanabiliyor; yapılandırma için de bir <strong>JSON formatı (mcp.json)</strong> var.</p>
+<blockquote>
+<p><em>(≈01:06–01:21 arası 15 dakikalık ara.)</em></p>
+</blockquote>
+<h4>Client ve fonksiyon</h4>
+<pre><code class="language-python">from openai import OpenAI
+
+client = OpenAI()
+</code></pre>
+<p><code>OpenAI</code> sınıfı import edilip bir client oluşturuldu; bu client ile OpenAI modelleriyle konuşuluyor.</p>
+<pre><code class="language-python">def add(a: int, b: int) -&gt; int:
+    &quot;&quot;&quot;İki tam sayıyı toplar.&quot;&quot;&quot;
+    return a + b
+</code></pre>
+<ul>
+<li><code>def</code> ile <code>add</code> adlı fonksiyon tanımlandı.</li>
+<li><strong>Type hint</strong> kullanıldı (<code>a: int</code>, <code>b: int</code>, <code>-&gt; int</code>). Python'da normalde veri tipleri önceden belirtilmez; ama belirtince agent/model daha doğru yönlendirilmiş olur.</li>
+<li><strong>Docstring</strong> ("İki tam sayıyı toplar.") fonksiyonun açıklaması; model bu açıklamaya bakarak aracı kullanıp kullanmayacağına karar veriyor.</li>
+</ul>
+<h4>Aracı modele tanıtmak: <code>tools</code></h4>
+<pre><code class="language-python">tools = [
+    {
+        &quot;type&quot;: &quot;function&quot;,
+        &quot;name&quot;: &quot;add&quot;,
+        &quot;description&quot;: &quot;İki tam sayıyı toplar ve sonucu döndürür.&quot;,
+        &quot;parameters&quot;: {
+            &quot;type&quot;: &quot;object&quot;,
+            &quot;properties&quot;: {
+                &quot;a&quot;: {
+                    &quot;type&quot;: &quot;integer&quot;,
+                    &quot;description&quot;: &quot;Toplanacak ilk sayı&quot;
+                },
+                &quot;b&quot;: {
+                    &quot;type&quot;: &quot;integer&quot;,
+                    &quot;description&quot;: &quot;Toplanacak ikinci sayı&quot;
+                }
+            },
+            &quot;required&quot;: [&quot;a&quot;, &quot;b&quot;],
+            &quot;additionalProperties&quot;: False
+        },
+        &quot;strict&quot;: True
+    }
+]
+</code></pre>
+<ul>
+<li><code>type: function</code> → bir fonksiyon tanıtıyoruz; <code>name</code> → fonksiyonun adı; <code>description</code> → tanımı.</li>
+<li><code>parameters</code> bir <code>object</code>; <code>properties</code> içinde <code>a</code> ve <code>b</code> integer tipinde, açıklamalarıyla.</li>
+<li><code>required</code> → <code>a</code> ve <code>b</code> zorunlu.</li>
+<li><code>additionalProperties: False</code> → ekstra bir özellik/parametre olmasın.</li>
+<li><code>strict: True</code> → "Aklından başka parametre uydurma, sadece bu parametreleri kullan."</li>
+<li>Bu yapının belirli bir kuralı var; ayrıntılar OpenAI dokümantasyonunda.</li>
+<li>Bu hücreyle henüz model tanıtılmış olmuyor; <code>tools</code> sadece tanıtmak için kullanılacak değişken.</li>
+</ul>
+<h4>Kullanıcı mesajı: neden liste?</h4>
+<pre><code class="language-python">input_list = [
+    {
+        &quot;role&quot;: &quot;user&quot;,
+        &quot;content&quot;: &quot;125 ile 375'i topla.&quot;
+    }
+]
+</code></pre>
+<p>Liste kullanılıyor çünkü karşılıklı konuşma olabilir: kullanıcı girdisi, modelin cevabı, aracın cevabı, tekrar kullanıcı girdisi… Hepsi bu listeye eklenerek <strong>konuşma geçmişi</strong> oluşur ve model kimin ne dediğini takip eder (kullanıcı sorusu → model araç kullanmış → aracın cevabı). Veri aktarımında genellikle JSON formatı kullanılıyor.</p>
+<p>Soru: <code>role</code> sadece <code>user</code> mı olur?
+Cevap: Hayır. Modelden gelen cevap tekrar modele verilirken <code>assistant</code> rolü, aracın cevabı için araç çıktısı tipi kullanılır. Böylece model konuşma geçmişini daha iyi takip eder.</p>
+<h4>Modeli çağırmak (Responses API)</h4>
+<pre><code class="language-python">response = client.responses.create(
+    model=&quot;gpt-6-luna&quot;,
+    input=input_list,
+    tools=tools,
+)
+</code></pre>
+<ul>
+<li>OpenAI'ın <strong>Responses API</strong>'si (<code>client.responses.create</code>) kullanıldı.</li>
+<li>Modele girdi (<code>input</code>) ve kullanabileceği araçlar (<code>tools</code>) verildi.</li>
+<li>Vurgu: <code>add</code> fonksiyonu dışarıda; onu <strong>model değil, uygulama</strong> çalıştıracak.</li>
+</ul>
+<pre><code class="language-python">print(response.output)
+</code></pre>
+<p>Çıktıda modelin bir <strong>function call</strong> yaptığı görülüyor: <code>type="function_call"</code>, <code>name="add"</code>, <code>arguments</code> (a ve b), bir <code>call_id</code> ve <code>status="completed"</code>. Yani model "<code>add</code> aracı kullanılabilir" dedi.</p>
+<h4>Bağlamı genişletmek ve function call'u bulmak</h4>
+<pre><code class="language-python">input_list += response.output
+</code></pre>
+<p>Modelin çıktısı konuşma geçmişine eklenerek bağlam genişletildi.</p>
+<pre><code class="language-python">tool_call = next(
+    item
+    for item in response.output
+    if item.type == &quot;function_call&quot;
+)
+</code></pre>
+<p><code>response.output</code> içindeki öğeler arasında tipi <code>function_call</code> olan <strong>ilk</strong> öğe alınıyor (<code>next</code> ilk eşleşeni döndürür). Burada tek fonksiyon olduğu için tek seçenek var; birden fazla araç olduğunda <code>next</code> yapısı daha anlamlı hâle geliyor.</p>
+<pre><code class="language-python">import json
+arguments = json.loads(tool_call.arguments)
+
+print(&quot;Modelin seçtiği araç:&quot;, tool_call.name)
+print(&quot;Modelin oluşturduğu parametreler:&quot;, arguments)
+</code></pre>
+<p>Argümanlar JSON metni olarak geldiği için <code>json.loads</code> ile sözlüğe çevrildi. Çıktı: seçilen araç <code>add</code>, parametreler <code>a=125</code>, <code>b=375</code>. <strong>Model sadece hangi aracı ve hangi parametreleri kullanacağını belirliyor.</strong></p>
+<h4>Fonksiyonu uygulama çalıştırır</h4>
+<pre><code class="language-python">result = add(**arguments)
+print(&quot;Python fonksiyonunun sonucu:&quot;, result)
+</code></pre>
+<p><code>**arguments</code> ile sözlükteki değerler fonksiyona parametre olarak aktarıldı. Sonuç: <strong>500</strong>.</p>
+<h4>Araç sonucunu geçmişe eklemek</h4>
+<pre><code class="language-python">input_list.append(
+    {
+        &quot;type&quot;: &quot;function_call_output&quot;,
+        &quot;call_id&quot;: tool_call.call_id,
+        &quot;output&quot;: str(result)
+    }
+)
+</code></pre>
+<ul>
+<li><code>type</code>: <code>function_call_output</code> (aracın cevabı).</li>
+<li><code>call_id</code>: hangi çağrının cevabı olduğunu eşleştirmek için.</li>
+<li><code>output</code>: sonuç; tam sayı <code>str()</code> ile metne çevrildi.</li>
+</ul>
+<p><code>input_list</code> yazdırıldığında sıra şöyle: kullanıcının girdisi (<code>user</code>) → modelin function call'u → function call output (500). Model geçmişi takip edip "kullanıcı bunu sormuş, ben şu aracı kullan demişim, aracın cevabı 500 gelmiş; artık cevap üretebilirim" diyor.</p>
+<h4>Son cevap</h4>
+<pre><code class="language-python">final_response = client.responses.create(
+    model=&quot;gpt-6-luna&quot;,
+    input=input_list,
+    tools=tools
+)
+
+print(&quot;\nModelin son cevabı:&quot;)
+print(final_response.output_text)
+</code></pre>
+<p><code>tools</code> yine verildi; çünkü model sonuca bakıp gerekirse aracı tekrar kullanmak isteyebilir. Son cevap: "125 + 375 = 500".</p>
+<p>Bir öğrencinin isteği üzerine hoca bütün akışı baştan özetledi (yukarıdaki adımlar). Öğrencilerin çoğu 500 sonucunu aldı.</p>
+<h3>Function calling'den MCP'ye geçiş (≈01:42–01:44)</h3>
+<ul>
+<li>Bu <code>add</code> fonksiyonunu Claude Desktop'a, başka bir AI agent'a veya başka bir AI uygulamasına bağlamak isteseydik, function calling ile <strong>her biri için ayrı entegrasyon</strong> yazmak zorunda kalacaktık.</li>
+<li>Fonksiyonu bir <strong>MCP sunucusuna</strong> çevirirsek, ayrı entegrasyon yazmadan Claude Desktop, AI agent veya herhangi bir AI uygulaması bu sunucuya bağlanabilir.</li>
+</ul>
+<h3>Uygulama 2: İlk MCP sunucusu ve MCP Inspector (≈01:44–02:15)</h3>
+<h4>Dosya ve kurulum</h4>
+<ul>
+<li>Yeni dosya: <code>02-server-demo.py</code>. (Bir öğrencinin önerisiyle dosya adlarının başına sıra numarası konuyor: <code>01-…</code>, <code>02-…</code>; tekrar ederken sıra kolay takip edilsin.)</li>
+<li>Ders anlatımında çıktıyı hazır görmek için notebook kullanılıyor, ama <strong>sunucu yazarken <code>.py</code> dosyası</strong> kullanılıyor.</li>
+<li>MCP kütüphanesi CLI ekiyle kuruldu:</li>
+</ul>
+<pre><code class="language-bash">uv add &quot;mcp[cli]&quot;
+</code></pre>
+<ul>
+<li>Bazı öğrencilerde hata çıktı. İlk çözüm denemesi <code>uv sync</code> oldu (<code>pyproject.toml</code>'daki sürümlere bakıp kütüphaneleri yeniden kurar/günceller); düzelmeyince sıfırdan yeni bir proje klasörü açıldı ("Day09"), <code>uv init --python 3.12</code>, <code>uv add openai python-dotenv mcp</code> ile yeniden kuruldu ve dosyalar yeni klasöre taşındı. Kurulan sürüm: <strong>mcp 2.3.0</strong>.</li>
+<li><strong>Disk tavsiyesi:</strong> Her hafta yeni proje ve ortam oluşturuyoruz; yer kaplamaması için eski projelerdeki <code>.venv</code> klasörünü silebilirsiniz. Bütün kütüphaneler orada; kalan dosyalar küçük.</li>
+</ul>
+<h4>Sunucu kodu</h4>
+<pre><code class="language-python">from mcp.server import MCPServer
+
+mcp = MCPServer(&quot;Bootcamp MCP Server&quot;)
+
+@mcp.tool()
+def add(a: int, b: int) -&gt; int:
+    &quot;&quot;&quot;İki tam sayıyı toplar.&quot;&quot;&quot;
+    return a + b
+
+if __name__ == &quot;__main__&quot;:
+    mcp.run(transport=&quot;stdio&quot;)
+</code></pre>
+<ul>
+<li><code>mcp.server</code> modülünden <code>MCPServer</code> sınıfı import edildi; sınıftan "Bootcamp MCP Server" adıyla bir örnek (instance) alınıp <code>mcp</code> değişkenine atandı.</li>
+<li><code>@mcp.tool()</code> <strong>dekoratör</strong>ü: dekoratörler Python fonksiyonlarına ekstra özellik kazandırır. Fonksiyonun başına bu dekoratörü koymak, fonksiyonu bir <strong>MCP aracına</strong> çevirmek için yeterli.</li>
+<li><code>if __name__ == "__main__":</code> → dosya doğrudan çalıştırıldığında sunucu başlasın.</li>
+<li><code>transport="stdio"</code> → iletişim standart girdi/çıktı (standard input/output) üzerinden.</li>
+</ul>
+<h4>MCP Inspector ile test</h4>
+<pre><code class="language-bash">uv run mcp dev 02-server-demo.py
+</code></pre>
+<ul>
+<li>Bu komut tarayıcıda <strong>MCP Inspector</strong> adlı bir arayüz açar; sunucuyu buradan test edebiliyoruz. Varsayılan tarayıcıda açılır (hocada Firefox); açılmazsa terminalde çıkan link herhangi bir tarayıcıda açılabilir.</li>
+<li><strong>Node.js gerekli:</strong> Bazı öğrencilerde <code>npx</code> bulunamadı hatası çıktı. Inspector Node.js tabanlı olduğu için Node.js'in kurulu olması gerekiyor. nodejs.org'dan kurulum, <code>node --version</code> ile kontrol (hocada v24.x, npm 11.x [tam sürüm numaraları belirsiz]); <code>npx</code> paket aracı Node ile birlikte otomatik geliyor. Kurulumdan sonra terminali/VS Code'u kapatıp açmak faydalı.</li>
+<li>Bir öğrenci kurulumda "gerekli diğer araçları da otomatik kur" seçeneğini işaretleyince çok uzun süren ek kurulumlar (Chocolatey, Visual Studio build tools vb.) başladı; bu seçeneğin işaretlenmesine gerek yok, Node.js tek başına yeterli.</li>
+<li>Hoca: Node.js daha çok front-end/back-end geliştiriciler tarafından kullanılan bir JavaScript altyapısı.</li>
+<li>Inspector'da <strong>Connect</strong> ile sunucuya bağlanılıyor. Sekmeler: <strong>Tools, Prompts, Resources</strong>. Tools sekmesinde <code>add</code> aracı görünüyor; tıklayınca parametre alanları çıkıyor, değerler girilip <strong>Run Tool</strong> ile çalıştırılıyor (ör. 50 ve 75 → 125).</li>
+<li>Bağlantı sorunlarında: sunucuyu <code>Ctrl+C</code> ile durdurup <code>cls</code> ile terminali temizleyip yeniden başlatmak, dosya adını (<code>02-server-demo.py</code>) doğru yazdığınızı ve doğru klasörde olduğunuzu kontrol etmek.</li>
+</ul>
+<h3>Uygulama 3: Tools, Resources, Prompts (≈02:15–02:39)</h3>
+<p>Yeni dosya: <code>03-server.py</code>.</p>
+<pre><code class="language-python">from mcp.server import MCPServer
+
+mcp = MCPServer(&quot;AI Engineering MCP Demo&quot;)
+
+@mcp.tool()
+def add(a: int, b: int) -&gt; int:
+    &quot;&quot;&quot;İki tam sayıyı toplar.&quot;&quot;&quot;
+    return a + b
+
+@mcp.tool()
+def joke(topic: str | None = None) -&gt; str:
+    &quot;&quot;&quot;İsteğe bağlı bir konuya göre kısa bir şaka döndürür.&quot;&quot;&quot;
+    return f&quot;{topic} hakkında bir fıkra&quot;
+
+@mcp.resource(&quot;course://mcp&quot;)
+def course_info() -&gt; str:
+    &quot;&quot;&quot;MCP dersi hakkında kısa bilgi verir.&quot;&quot;&quot;
+    return (
+        &quot;Bu kaynak AI Engineering Bootcamp içindeki &quot;
+        &quot;Model Context Protocol dersine aittir.&quot;
+    )
+
+@mcp.prompt()
+def explain_mcp(level: str = &quot;başlangıç&quot;) -&gt; str:
+    &quot;&quot;&quot;MCP konusunu belirtilen seviyeye göre açıklayan prompt oluşturur.&quot;&quot;&quot;
+    return (
+        f&quot;Model Context Protocol konusunu {level} seviyesindeki &quot;
+        &quot;bir öğrenciye sade örneklerle açıkla.&quot;
+    )
+
+if __name__ == &quot;__main__&quot;:
+    mcp.run(transport=&quot;stdio&quot;)
+</code></pre>
+<h4>Tool (<code>joke</code>)</h4>
+<ul>
+<li>Yine <code>@mcp.tool()</code> dekoratörü + fonksiyon. Araç tasarlarken tekrar vurgu: <strong>açıklamayı yazın, parametreleri type hint ile belirtin</strong>; böyle yazınca uygulama daha iyi çalışıyor.</li>
+<li><code>topic: str | None = None</code> → string tipinde, isteğe bağlı parametre; hiçbir şey girilmezse <code>None</code>. Dönüş tipi <code>str</code>.</li>
+<li>Hoca ilk yazdığında dönüş metninde <code>topic</code>'i kullanmayı unuttu ve hata aldı; f-string ile <code>f"{topic} hakkında bir fıkra"</code> yazınca düzeldi.</li>
+<li>Yeni aracı görmek için sunucuyu <code>Ctrl+C</code> ile durdurup <code>uv run mcp dev 03-server.py</code> ile yeniden başlatmak ve Inspector'da yeniden bağlanmak gerekiyor. Tools sekmesinde artık <code>add</code> ve <code>joke</code> birlikte görünüyor. <code>joke</code>'a "AI" yazınca "AI hakkında bir fıkra" döndü. (Not: <code>add</code>'in alanlarına sadece sayı yazılabiliyor; tip tanımı arayüze de yansıyor.)</li>
+</ul>
+<h4>Resource (<code>course_info</code>)</h4>
+<ul>
+<li><code>@mcp.resource("course://mcp")</code> dekoratörüne bir URI veriliyor.</li>
+<li><strong>Resource</strong>, modele <strong>ekstra bilgi</strong> sağlamak demek; model bu bilgiye bakarak cevap döndürüyor.</li>
+<li>Inspector'da Resources sekmesinde bu kaynak görünüyor.</li>
+</ul>
+<h4>Prompt (<code>explain_mcp</code>)</h4>
+<ul>
+<li><code>@mcp.prompt()</code> dekoratörü. <code>level</code> parametresi string, varsayılan değeri "başlangıç".</li>
+<li><strong>Prompt</strong>, hazır <strong>şablon</strong> oluşturup modele vermek demek.</li>
+<li>Inspector'da Prompts sekmesinde <code>explain_mcp</code> görünüyor; <code>level</code> boş bırakılırsa varsayılan "başlangıç", "zor" yazılırsa "Model Context Protocol konusunu zor seviyesindeki bir öğrenciye sade örneklerle açıkla." üretiliyor.</li>
+</ul>
+<h4>Üç temel yapı (özet)</h4>
+<ul>
+<li><strong>Tools:</strong> Araçlar tanımlanır (aksiyon/fonksiyon).</li>
+<li><strong>Resources:</strong> Modele ekstra bilgi verilir.</li>
+<li><strong>Prompts:</strong> Şablonlar oluşturulup modele verilir.</li>
+</ul>
+<blockquote>
+<p><em>(≈02:22–02:30 arası 10 dakikalık ara.)</em></p>
+</blockquote>
+<p>Bir öğrencide Inspector'da "Connect" sonrası ~30 saniye bekleyip zaman aşımı (timeout) hatası verdi, sorun derste çözülemedi. Hoca kodun ve dosya adının kontrol edilmesini, <code>if __name__ == "__main__": mcp.run(...)</code> bloğunun eklendiğinden emin olunmasını, böyle hatalarda Claude veya Gemini'ye sormanın çoğu zaman işe yaradığını söyledi. (Diğer öğrencilerin tahminleri: güvenlik duvarı/antivirüs, <code>mcp</code> sürümü.)</p>
+<h3>MCP mimarisi: Host, Client, Server (≈02:39–02:47)</h3>
+<ul>
+<li><strong>Host:</strong> Yapay zekâ uygulamasının kendisi. Örnekler: <strong>Claude Desktop, VS Code</strong>, Streamlit ile yazdığınız bir uygulama. Görevi LLM'i çalıştırmak ve kullanıcıyla iletişim kurmak (kullanıcı input girer, output alır).</li>
+<li><strong>Client:</strong> Host ile server arasındaki iletişimi sağlar; MCP ile sunucu arasındaki bağlantıyı kurar. Bir host <strong>birden fazla MCP sunucusuna</strong> bağlanabilir (her client bir sunucu bağlantısını yönetir).</li>
+<li><strong>Server:</strong> Dış dünyadaki yetenekleri <strong>standart biçimde</strong> sunar. İçinde tools, prompts ve resources bulunur. Function calling'de bir fonksiyon/araç oluşturup onunla iletişim kuruyorduk; MCP'de bu aracı bir sunucuya çevirip birden fazla uygulamanın bağlanmasını sağlıyoruz. Yani aracı dış dünyaya açmış oluyoruz.</li>
+</ul>
+<p>Hocanın gösterdiği "MCP akışı" görseli: Host (ör. Claude Desktop) → bir MCP client → MCP protokolü → MySQL sunucusu; başka bir client → dosya sistemi sunucusu; başka bir client → internet/API sunucusu.</p>
+<p>Çalışma adımları:</p>
+<ol>
+<li>Host bir MCP client oluşturur.</li>
+<li>Client MCP sunucusuna bağlanır.</li>
+<li>Client sunucunun yeteneklerini <strong>keşfeder</strong> (hangi araçlar var, özellikleri ne).</li>
+<li>Client <strong>tools/list</strong> isteği gönderir ("hangi araçları kullanabilirim?").</li>
+<li>Server kullanılabilir araçları döndürür.</li>
+<li>LLM, kullanıcının isteğine en uygun aracı seçer.</li>
+<li>Client seçilen araç için sunucuya istek gönderir ("şu aracı kullanacağım").</li>
+<li>Server aracı çalıştırır.</li>
+<li>Sonuç client üzerinden host'a döner; host bunu LLM'e verir; LLM nihai cevabı üretir.</li>
+</ol>
+<p>Soru: Client kodda bir sınıf örneği gibi mi düşünülmeli?
+Cevap: Evet; host üzerinde client'lar var ve sunucuyla bağlantıyı onlar sağlıyor. (Bir öğrenci, ChatGPT'nin de "her host birden fazla client barındırabilir, her client ayrı bir MCP sunucu bağlantısı yönetir" şeklinde sınıf örneğiyle açıkladığını paylaştı.)</p>
+<p>Soru (SAP örneği): SAP gibi kurumsal sistemlerde veriler bir veritabanında tutuluyor ama doğrudan DB'ye erişemiyoruz; MCP burada devreye girebilir mi?
+Cevap: Evet; doğrudan erişilemeyen kurumsal veriye standart bir katman üzerinden erişim için MCP kullanılabilir. (Öğrenciler kendi kurumlarında Oracle/Hadoop gibi sistemlere MCP ile erişimi araştıracaklarını belirtti.)</p>
+<h3>Uygulama 4: Sunucuyu VS Code'a bağlamak — <code>mcp.json</code> (≈02:47–03:21)</h3>
+<p><strong><code>mcp.json</code></strong> bir <strong>yapılandırma dosyası</strong>; sunucu ile host arasındaki bağlantıyı bu dosyayla sağlıyoruz. Burada VS Code host olarak kullanılıyor.</p>
+<pre><code class="language-json">{
+  &quot;servers&quot;: {
+    &quot;ai-engineering-mcp&quot;: {
+      &quot;type&quot;: &quot;stdio&quot;,
+      &quot;command&quot;: &quot;uv&quot;,
+      &quot;args&quot;: [
+        &quot;run&quot;,
+        &quot;mcp&quot;,
+        &quot;run&quot;,
+        &quot;${workspaceFolder}/03-server.py&quot;
+      ],
+      &quot;cwd&quot;: &quot;${workspaceFolder}&quot;
+    }
+  }
+}
+</code></pre>
+<ul>
+<li><code>servers</code> altında <code>ai-engineering-mcp</code> adında bir sunucu tanımlanıyor.</li>
+<li><code>type: stdio</code> → standart girdi/çıktı ile iletişim.</li>
+<li><code>command: uv</code> → uv'yi çalıştır; <code>args</code> → <code>uv run mcp run &lt;dosya&gt;</code> komutu oluşur (<code>${workspaceFolder}</code> açık çalışma klasörü).</li>
+<li><code>cwd</code> → çalışma dizini.</li>
+</ul>
+<p>Adımlar:</p>
+<ol>
+<li>Sunucuyu terminalde çalıştırma (hoca derste <code>uv run mcp run 03-server.py</code> benzeri komutla başlattı; ekranda bir şey çıkmıyor ama sunucu ayakta).</li>
+<li><strong>Kritik nokta:</strong> <code>mcp.json</code> dosyası proje kökünde değil, <strong><code>.vscode</code> klasörünün içinde</strong> olmalı (<code>.vscode/mcp.json</code>). Hoca önce dosyayı köke koydu, VS Code sunucuyu görmedi; <code>.vscode</code> klasörü oluşturup dosyayı içine taşıyınca sunucu listelendi. Alternatif (bir öğrencinin yolu): <code>Ctrl+Shift+P</code> → "MCP: Open User Configuration" ile kullanıcı düzeyindeki <code>mcp.json</code>'ı açıp yapılandırmayı oraya yapıştırmak.</li>
+<li><code>Ctrl+Shift+P</code> → <strong>"MCP: List Servers"</strong> → sunucu listede görünüyor; seçilip başlatılabiliyor (durumu "Running").</li>
+<li>Dosya yolu hatalıysa VS Code "dosya bulunamadı" hatası veriyor (hoca dosya adını değiştirdiği için bir kez bu hatayı aldı; <code>args</code> içindeki adın gerçek dosya adıyla aynı olması gerekiyor).</li>
+<li><code>Ctrl+Shift+P</code> → <strong>"Chat: Open Chat"</strong> ile yan tarafta sohbet paneli açılıyor. Örnek istek:
+   <em>"ai-engineering MCP sunucusundaki add aracını kullanarak 18 ile 20'yi topla."</em>
+   VS Code, "<code>ai-engineering-mcp</code> içindeki <code>add</code> aracını kullanmaya izin veriyor musun?" diye soruyor; izin verilince araç kullanılıyor ve sonuç (38) dönüyor.</li>
+<li>Chat için GitHub Copilot'un etkin olması (GitHub/Google hesabıyla giriş) gerekebiliyor.</li>
+</ol>
+<ul>
+<li>Bir öğrenci, araç adını açıkça yazmadığında da modelin sunucuyu kendisi bulduğunu söyledi. Hoca: bazen model aracı kullanmadan kendisi cevap verebilir; aracın kullanılmasını garantilemek için istekte açıkça belirtmek iyi olur.</li>
+<li>Bazı öğrencilerde "MCP: List Servers" komutu komut paletinde hiç çıkmadı; sorun derste çözülemedi. Hoca normalde VS Code'da bu seçeneğin olması gerektiğini, muhtemelen bir ayarın kapalı olduğunu söyledi (bir öğrenci Copilot önerilerini kapattığı için çıkmadığını tahmin etti).</li>
+</ul>
+<h4>Dersin özeti</h4>
+<p>Bir sunucu oluşturduk; içinde tool, resource ve prompt var. VS Code'u host olarak kullandık, host'tan sunucuya bağlandık ve sunucudaki toplama aracını modelin kullanmasını sağladık. MCP bize <strong>standart</strong> sağlıyor: farklı farklı entegrasyonlar yazmak yerine tek bir sunucu oluşturuyor, ona standart bir şekilde bağlanıyoruz; böylece uygulamamızı dış dünyaya daha kolay açıyoruz.</p>
+<p>Planlanan "kendi agent'ımızın MCP sunucusunu kullanması" uygulaması zaman yetmediği için yapılmadı.</p>
+<h3>Kapanış ve sonraki ders (≈03:21–03:23)</h3>
+<ul>
+<li>Gelecek ders: <strong>açık kaynak büyük dil modelleri</strong> ile nasıl çalışılacağı.</li>
+</ul>
+<p>Soru: MCP'yi FastAPI üzerinden de yazabilir miydik?
+Cevap: Evet; ilerleyen derslerde bunu da göreceğiz.</p>

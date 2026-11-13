@@ -1,0 +1,302 @@
+<h2>01 · AI Engineer Yol Haritası</h2>
+<p><strong>Bu derste ne var:</strong> Bootcamp'in açılış niteliğindeki bu kayıtlı anlatımda hoca, AI mühendisliğinin veri biliminden ve ML mühendisliğinden farkını ortaya koyuyor ve dört aşamalı bir öğrenme yol haritası çiziyor: <strong>Temeller → LLM'ler → AI sistemleri → İş bulma</strong>. Kod yok; ders, bootcamp boyunca işlenecek tüm konuların kavram haritasını veriyor (RAG, ajanlar, MCP, production, evaluation, güvenlik/maliyet).</p>
+<p>Hocanın çizimi: <code>gorseller/01_konu_00.jpg … 01_konu_10.jpg</code> (aşağıda ilgili bölümlerde bağlantılı).</p>
+<hr>
+<h3>Yol haritası — tek bakışta</h3>
+<p><img loading="lazy" alt="Dört aşamanın özet tablosu" src="tahta/01_konu_10.jpg"></p>
+<pre><code>AI ENGINEER YOL HARİTASI
+│
+├─ 1. Aşama · TEMELLER
+│   ├─ Python ── değişkenler, veri yapıları, fonksiyonlar, sınıflar,
+│   │            hata yakalama, dosyalar, sanal ortam (uv)
+│   │            └─ projelerle öğren: basit uygulama → API'den veri al → JSON'a kaydet → analiz (pandas, matplotlib, NumPy)
+│   ├─ SQL ───── SELECT, WHERE, JOIN, GROUP BY (+ INSERT, UPDATE) · veritabanı önerisi: Supabase
+│   ├─ Git ───── sürüm takibi · GitHub = projelerin saklandığı yer
+│   └─ API ───── HTTP, GET/POST, JSON request, authentication, API key
+│
+├─ 2. Aşama · LLM'LERİ ÖĞREN
+│   ├─ Transformer mimarisi (2017, Google) → Claude, GPT, Gemini
+│   ├─ Prompt engineering → Context engineering (&quot;garbage in, garbage out&quot;)
+│   ├─ Model kullanımı: kapalı kaynak (GPT, Claude) vs açık kaynak (Gemma, Qwen · Ollama, Hugging Face)
+│   ├─ Model boyutları → VRAM → Quantization
+│   └─ Kendi verinle çalış: RAG | Fine-tuning (LoRA, QLoRA)
+│
+├─ 3. Aşama · AI SİSTEMLERİ GELİŞTİR
+│   ├─ LangChain (LangGraph · Deep Agents · LangSmith)
+│   ├─ RAG + ileri teknikler · embedding · vektör DB · semantic search
+│   ├─ AI Agents → agent workflows → tek agent → multi-agent
+│   ├─ MCP (host · client · server)
+│   ├─ Production: FastAPI / LangGraph Server → Docker → AWS/Azure/GCP → CI/CD
+│   ├─ Observability · Evaluation
+│   └─ Security · Cost
+│
+└─ 4. Aşama · İŞ BULMA
+    ├─ Güçlü portföy: LLM çağırma → RAG sistemi → Agentic AI projesi
+    ├─ GitHub repo: README · demo video · canlıya al
+    └─ Görünür ol: LinkedIn/X/YouTube · open-source · konferans · network
+</code></pre>
+<hr>
+<h3>Ana kavramlar</h3>
+<p><strong>Rol ve alan</strong>
+- <strong>AI Engineer (yapay zekâ mühendisi):</strong> Hazır büyük dil modellerini (Claude, GPT, Qwen, DeepSeek) alıp etraflarına uygulama/sistem kuran kişi. <em>Neden önemli:</em> Model eğitmek değil, <strong>modelin etrafındaki AI sistemini</strong> kurmak işin özü — bu, bootcamp'in bakış açısını belirliyor.
+- <strong>Veri bilimci vs ML mühendisi vs AI mühendisi:</strong> Veri bilimci sıfırdan model eğitir; ML mühendisi eğitilmiş modelle uçtan uca proje yapar; AI mühendisi LLM'lerle uygulama yapar ve onu production'da izler (güvenlik, maliyet, doğruluk). <em>Neden önemli:</em> Mülakatlarda sık sorulan ayrım.</p>
+<p><strong>1. Aşama</strong>
+- <strong>Sanal ortam / uv:</strong> Projeye özel izole Python ortamı; uv ile ortam kurmak ve proje yönetmek kolaylaştı. <em>Neden:</em> Bağımlılık çakışmalarını önler (bootcamp boyunca kullanılacak).
+- <strong>Supabase:</strong> PostgreSQL tabanlı bulut veritabanı; hocanın AI projeleri için önerisi.
+- <strong>Git / GitHub:</strong> Git sürüm takibi aracı; GitHub projelerin barındırıldığı platform. İkisi aynı şey değildir.
+- <strong>API temel kavramları:</strong> HTTP, GET/POST, JSON isteği, kimlik doğrulama, API anahtarı. <em>Neden:</em> Modellere ve araçlara erişimin tamamı API üzerinden.</p>
+<p><strong>2. Aşama</strong>
+- <strong>Transformer:</strong> 2017'de Google ekibinin geliştirdiği encoder–decoder mimarisi; neredeyse tüm LLM'lerin temeli.
+- <strong>Prompt:</strong> Modele verilen talimat.
+- <strong>Context (bağlam):</strong> Modele giden her şey — sistem prompt'u, önceki konuşmalar, tool çıktıları, dokümanlar.
+- <strong>Context engineering:</strong> Bu bağlamın tamamını bilinçli tasarlama. <em>Neden:</em> Hocaya göre kötü uygulamaların asıl sebebi kötü model değil, <strong>kötü bağlam</strong>.
+- <strong>Kapalı kaynak model:</strong> API ile erişilir, ücretlidir, veri sağlayıcıya gider.
+- <strong>Açık kaynak model:</strong> Lokalde çalışır, ücretsiz ve limitsizdir, veri dışarı çıkmaz. Araçlar: Ollama, Hugging Face.
+- <strong>VRAM:</strong> GPU belleği; lokal modelin sığıp sığmayacağını belirler.
+- <strong>Quantization:</strong> Modeli VRAM'e sığdırmak için sıkıştırma.
+- <strong>Fine-tuning:</strong> Modeli belirli bir alanda uzmanlaştırmak için ağırlıklarını güncellemek.
+- <strong>LoRA / QLoRA:</strong> Yalnızca belirli parametreleri eğiten pratik fine-tuning teknikleri; daha kısa eğitim, daha az yer.</p>
+<p><strong>3. Aşama</strong>
+- <strong>LangChain:</strong> LLM uygulaması geliştirme framework'ü. <strong>LangGraph</strong> = ajanlar, <strong>Deep Agents</strong> = karmaşık ajanlar, <strong>LangSmith</strong> = izleme ve değerlendirme.
+- <strong>RAG (Retrieval-Augmented Generation):</strong> Modelin bilmediği (ör. şirket içi) bilgiyi, ilgili parçaları getirip bağlama ekleyerek kullandırmak. <em>Neden:</em> Tüm bilgiyi modele vermek pahalı; RAG halüsinasyonu azaltır.
+- <strong>Chunk (parça):</strong> Dokümanların bölündüğü küçük metin parçası.
+- <strong>Embedding:</strong> Metnin sayısal (vektör) temsili.
+- <strong>Vektör veritabanı:</strong> Embedding'lerin saklandığı veritabanı.
+- <strong>Semantic search (anlamsal arama):</strong> Girdiye anlamca en yakın vektörleri bulma.
+- <strong>İleri RAG teknikleri:</strong> chunking stratejileri, hybrid search, reranking, query rewriting, multi-query.
+- <strong>AI Agent:</strong> Görevi yerine getirmek için karar veren, araç kullanan, düşünen ve aksiyon alan (API çağrısı, DB sorgusu, dosya okuma, kod çalıştırma) sistem. Chatbot yalnızca cevap verir; agent karar verir.
+- <strong>Agent workflow kavramları:</strong> planning, memory, state, human-in-the-loop, error handling.
+- <strong>MCP (Model Context Protocol):</strong> Anthropic'in 2024'te geliştirdiği, AI uygulamalarını dış dünyaya (GitHub, veritabanı, Slack) bağlayan protokol. Bileşenler: host, client, server.
+- <strong>FastAPI / LangGraph Server:</strong> Uygulamayı API'ye çevirme araçları.
+- <strong>Docker:</strong> Uygulamayı her ortamda çalışacak şekilde paketleme.
+- <strong>CI/CD:</strong> Değişiklikleri otomatik test edip otomatik yayına alma.
+- <strong>Observability (gözlemlenebilirlik):</strong> Hangi prompt, hangi model, hangi tool, kaç token, hangi adım hata verdi — bunları izleme.
+- <strong>Evaluation (değerlendirme):</strong> Test veri seti + test soruları + beklenen sonuçlar ile ölçüm. RAG → retrieval kalitesi; agent → görevi tamamladı mı; LLM çıktısı → LLM-as-a-Judge.
+- <strong>Security:</strong> prompt injection, guardrails, API key güvenliği, gereksiz yetki vermeme.
+- <strong>Cost:</strong> model seçimi, caching, prompt optimizasyonu, token takibi.</p>
+<p><strong>4. Aşama</strong>
+- <strong>Portföy:</strong> CV'ye yazmak yerine projeyle göstermek.
+- <strong>Görünürlük:</strong> Paylaşım, açık kaynak katkısı, konferans, network.</p>
+<hr>
+<h3>Akış / mimari</h3>
+<p><strong>AI mühendisinin işi</strong> (<a href="gorseller/01_konu_01.jpg">çizim</a>)</p>
+<pre><code>LLM (Claude / GPT / Qwen)
+   → uygulama geliştir (API · Tools · MCP · AI agents · RAG)
+   → Production
+   → uygulamayı izle (güvenlik · maliyet · doğru çalışıyor mu?)
+</code></pre>
+<p><strong>Context'in bileşenleri</strong> (<a href="gorseller/01_konu_04.jpg">çizim</a>)</p>
+<pre><code>Sistem prompt'u + önceki konuşmalar + tool bilgileri + dokümanlar  →  CONTEXT  →  LLM
+Kötü uygulama  ≠ kötü model   →   = kötü context
+</code></pre>
+<p><strong>Model seçimi</strong> (<a href="gorseller/01_konu_04.jpg">çizim</a>)</p>
+<pre><code>Modeller
+├─ Kapalı kaynak (GPT, Claude) → API ile iletişim → paralı → veri sağlayıcıya gider
+└─ Açık kaynak (Gemma, Qwen)   → lokal çalışır → ücretsiz → veri güvende → Ollama / Hugging Face → model indir
+                                  └─ model boyutları → VRAM → Quantization
+</code></pre>
+<p><strong>Kendi verinle çalışmak</strong> (<a href="gorseller/01_konu_05.jpg">çizim</a>)</p>
+<pre><code>Kendi verin ─┬─ RAG
+             └─ Fine-tuning (belirli alanda uzman LLM) ─┬─ LoRA
+                                                         └─ QLoRA   → sadece belirli parametreler eğitilir
+</code></pre>
+<p><strong>Temel RAG hattı (Basic RAG Pipeline)</strong> (<a href="gorseller/01_konu_06.jpg">çizim</a>)</p>
+<pre><code>İndeksleme:   Documents → (data loading) → Text chunks → (embedding) → Vector embeddings → Vector DB
+Sorgu:        User query → Vector embedding → Vector DB'de arama (retrieval) → Top-K chunks
+              Top-K chunks + User query → LLM (generation) → Response
+</code></pre>
+<p><strong>Agent</strong> (<a href="gorseller/01_konu_06.jpg">çizim</a>)</p>
+<pre><code>Chatbot  → sadece cevap verir
+AI Agent → karar verir ─┬─ Tools
+                        ├─ Düşünür
+                        └─ Aksiyon ─ API çağrısı · DB sorgusu · dosya okuma · kod okuma/çalıştırma
+Agent workflows: Planning · Memory · State · Human-in-the-loop · Error handling
+Tek agent  →  Multi-agent
+</code></pre>
+<p><strong>Öğrenme sırası (hocanın kesin vurgusu)</strong> (<a href="gorseller/01_konu_07.jpg">çizim</a>)</p>
+<pre><code>API → Tool Calling → AI Agent → MCP
+</code></pre>
+<p><strong>MCP</strong></p>
+<pre><code>Host (AI uygulaması: Claude, ChatGPT)  ⇄  Client  ⇄  Server  ⇄  GitHub / Veritabanı / Slack
+</code></pre>
+<p><strong>Production hattı</strong> (<a href="gorseller/01_konu_07.jpg">çizim</a>, <a href="gorseller/01_konu_08.jpg">devamı</a>)</p>
+<pre><code>Uygulamayı geliştir → dış dünyaya aç → API (FastAPI | LangGraph Server) → Docker
+  → Deploy (AWS | Azure | GCP) → CI/CD
+  → Observability → Evaluation → Security + Cost
+</code></pre>
+<p><strong>Evaluation</strong> (<a href="gorseller/01_konu_08.jpg">çizim</a>, <a href="gorseller/01_konu_09.jpg">devamı</a>)</p>
+<pre><code>&quot;Bana göre güzel çalışıyor&quot; ✗  →  ölçmek gerekiyor
+Test dataset + test soruları + beklenen sonuçlar
+  RAG       → retrieval kalitesi
+  AI Agent  → görevi tamamladı mı?
+  LLM çıktı → LLM-as-a-Judge
+</code></pre>
+<p><strong>Portföy merdiveni</strong> (<a href="gorseller/01_konu_09.jpg">çizim</a>)</p>
+<pre><code>LLM çağırma (Python, API, prompt eng., structured output)
+  → RAG sistemi (vektör DB, evaluation, FastAPI, Docker, deploy)
+  → Agentic AI / AI Research Agent (tool calling, memory, MCP, logging, evaluation, deploy)
+  → GitHub repo (README · demo video · canlıya al)
+  → Görünür ol (LinkedIn · X · YouTube · open-source · konferans · AI engineer'larla bağlantı)
+</code></pre>
+<hr>
+<h3>Kod / uygulama</h3>
+<p>Bu derste kod dosyası yok (kaynak klasörde yalnızca yol haritası görseli <code>1_Evren-Ozkip-AI-Engineer-Roadmap.png</code> var). Kod yerine, hocanın önerdiği <strong>pratik ilk adımlar</strong>:</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Aşama</th>
+<th>Ne yap</th>
+<th>Neden</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Hesap makinesi gibi basit bir Python uygulaması</td>
+<td>Değişken, fonksiyon, sınıf pratiği</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Bir API'den veri çek → JSON olarak kaydet → pandas/matplotlib/NumPy ile analiz et</td>
+<td>API + dosya + veri analizi zincirini birlikte öğrenmek</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Temel SQL komutlarını (SELECT, WHERE, JOIN, GROUP BY, INSERT, UPDATE) bir Supabase/PostgreSQL tablosunda dene</td>
+<td>Şirket verisi veritabanında durur</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Metin özetleyen LLM uygulaması</td>
+<td>İlk portföy projesi: API + prompt + structured output</td>
+</tr>
+<tr>
+<td>4</td>
+<td>PDF soru-cevap RAG uygulaması (FastAPI + Docker + deploy + evaluation)</td>
+<td>"Sadece demo" değil, uçtan uca sistem</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Web'de araştırıp kaynaklı rapor yazan AI Research Agent</td>
+<td>Ajan + tool calling + memory + MCP + logging</td>
+</tr>
+</tbody>
+</table></div>
+<hr>
+<h3>Hocanın vurguları &amp; pratik kurallar</h3>
+<ul>
+<li><strong>AI mühendisi model geliştirmez; modelin etrafındaki sistemi geliştirir.</strong></li>
+<li>Python konularını <strong>temel seviyede</strong> bilmek yeter; <strong>video izleyerek değil, yaparak</strong> öğrenin.</li>
+<li>SQL'de 4 komut (SELECT, WHERE, JOIN, GROUP BY) yeterli; INSERT ve UPDATE bilmek iyi olur.</li>
+<li>AI projeleri için veritabanı önerisi: <strong>Supabase</strong>.</li>
+<li><strong>Garbage in, garbage out:</strong> Kötü uygulamanın sebebi çoğunlukla kötü model değil, <strong>kötü context</strong>.</li>
+<li>Kapalı kaynak = paralı + veri dışarı gider; açık kaynak = ücretsiz + lokal + veri güvende.</li>
+<li>Lokal modelde VRAM kullanımını ve quantization'ı öğrenin.</li>
+<li>Fine-tuning için LoRA/QLoRA: sadece belirli parametreler eğitilir → daha az süre, daha az yer.</li>
+<li>RAG'de temel hattın ötesine geçin: chunking stratejileri, hybrid search, reranking, query rewriting, multi-query.</li>
+<li><strong>Önce tek agent, sonra multi-agent.</strong> Tek agent kötüyse sistem kötüdür.</li>
+<li><strong>Öğrenme sırası: API → Tool Calling → AI Agent → MCP.</strong></li>
+<li>Uygulamayı lokalde bırakmayın: API → Docker → bulut → CI/CD.</li>
+<li><strong>"Bana göre güzel çalışıyor" bir ölçüt değildir</strong> — test seti, test soruları ve beklenen sonuçlarla ölçün.</li>
+<li>Maliyet: basit görev → küçük/ucuz model, karmaşık görev → güçlü model; caching; prompt optimizasyonu; token takibi.</li>
+<li>Portföyde <strong>sadece çalışan bir demo bırakmayın</strong>; vektör DB, evaluation, FastAPI, Docker, deploy ekleyin.</li>
+<li>README'ye karşılaştığınız zorlukları, çözümlerinizi ve mimariyi yazın; demo video çekin; canlıya alın.</li>
+<li>Network'te <strong>önce kendini tanıt ve işini göster, referansı sonra iste.</strong></li>
+<li>Aşamaları sırayla bitirin; konular birbirine bağlı. En iyi öğrenme yolu <strong>gerçek sistemler geliştirmek</strong>.</li>
+</ul>
+<hr>
+<h3>Sık hatalar / yanlış anlamalar</h3>
+<ul>
+<li><strong>Git = GitHub sanmak:</strong> Git sürüm takip aracı, GitHub barındırma platformu.</li>
+<li><strong>AI Engineering'i veri bilimiyle karıştırmak:</strong> AI mühendisi genelde sıfırdan model eğitmez.</li>
+<li><strong>Sadece prompt'a odaklanmak:</strong> Sistem prompt'u, geçmiş konuşma, tool çıktıları ve dokümanlar da bağlamın parçası.</li>
+<li><strong>Kötü sonucu modele bağlamak:</strong> Önce context'e bakın.</li>
+<li><strong>Multi-agent'a doğrudan atlamak:</strong> Tek agent'ı oturtmadan çoklu ajan kurmak sistemi bozar.</li>
+<li><strong>Production'a alınca işi bitti sanmak:</strong> İzleme, değerlendirme, güvenlik ve maliyet takibi devam eder.</li>
+<li><strong>Projeyi göstermemek:</strong> Kaliteli proje görünmezse işe yaramaz.</li>
+<li><strong>Hemen referans istemek.</strong></li>
+</ul>
+<blockquote>
+<p>Not: Bu ders kayıtlı anlatım olduğu için derste yaşanan teknik hata/çözüm yok.</p>
+</blockquote>
+<hr>
+<h3>Kendini test et</h3>
+<ol>
+<li>Veri bilimci, ML mühendisi ve AI mühendisinin işini birer cümleyle ayırt edin.</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Veri bilimci sıfırdan model eğitir/geliştirir; ML mühendisi eğitilmiş modellerle uçtan uca proje kurar; AI mühendisi hazır LLM'leri alıp etraflarına uygulama/sistem kurar (API, tools, MCP, agents, RAG) ve production'da güvenlik, maliyet, doğruluk açısından izler.</p>
+</details>
+<ol start="2">
+<li>Context engineering neden prompt engineering'in yerini aldı? Context hangi bileşenlerden oluşur?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Modele yalnızca talimat (prompt) gitmediği anlaşıldı. Context = sistem prompt'ları + önceki konuşmalar + tool'lardan gelen bilgiler + dokümanlar. Kötü uygulamaların asıl sebebi kötü context olduğu için tüm girdiyi tasarlamak gerekiyor ("garbage in, garbage out").</p>
+</details>
+<ol start="3">
+<li>Kapalı ve açık kaynak modellerin avantaj/dezavantajlarını karşılaştırın; açık kaynak için hangi iki araç önerildi?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Kapalı (GPT, Claude): API ile erişim, ücretli, veri sağlayıcıya gönderilir. Açık (Gemma, Qwen): lokal çalışır, ücretsiz ve limitsiz, veri dışarı çıkmaz. Araçlar: Ollama ve Hugging Face.</p>
+</details>
+<ol start="4">
+<li>Quantization hangi problemi çözer?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Lokalde çalıştırılan modelin VRAM'e sığması için modeli sıkıştırır; açık kaynak modelleri daha verimli kullanmayı sağlar.</p>
+</details>
+<ol start="5">
+<li>Kendi verinizle çalışmanın iki yolu nedir? LoRA/QLoRA'nın avantajı nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>RAG ve fine-tuning. LoRA/QLoRA modelin tüm ağırlıkları yerine yalnızca belirli parametreleri eğitir; eğitim süresi kısalır ve daha az yer kaplar.</p>
+</details>
+<ol start="6">
+<li>Temel RAG'in iki aşamasını adım adım yazın.</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>(1) İndeksleme: doküman → chunk'lara böl → embedding → vektör veritabanına kaydet. (2) Getirme ve üretim: kullanıcı sorusu → embedding → vektör DB'de en yakınları bul → sırala (top-K) → soru + bulunan parçalar LLM'e → cevap.</p>
+</details>
+<ol start="7">
+<li>Hocanın saydığı beş ileri RAG tekniği hangileri?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Chunking stratejileri, hybrid search, reranking, query rewriting, multi-query.</p>
+</details>
+<ol start="8">
+<li>Bir chatbot ile AI agent arasındaki fark nedir? Agent workflow'da öğrenilmesi gereken beş kavramı sayın.</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Chatbot yalnızca cevap verir; agent görevi yerine getirmek için karar verir, tool kullanır, düşünür ve aksiyon alır (API çağrısı, DB sorgusu, dosya okuma, kod çalıştırma). Kavramlar: planning, memory, state, human-in-the-loop, error handling.</p>
+</details>
+<ol start="9">
+<li>Hocanın önerdiği öğrenme sırası (API'den MCP'ye) nedir? MCP'nin üç bileşeni nelerdir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>API → Tool Calling → AI Agent → MCP. Bileşenler: host (AI uygulaması, ör. Claude/ChatGPT), client (host ile server arasındaki bağlantı), server.</p>
+</details>
+<ol start="10">
+<li>Production'da bir RAG uygulamasını, bir agent'ı ve genel LLM çıktısını nasıl değerlendirirsiniz? Maliyeti düşürmenin dört yolu nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Önce test veri seti, test soruları ve beklenen sonuçlar hazırlanır. RAG → retrieval kalitesi; agent → görevi tamamladı mı; LLM çıktısı → LLM-as-a-Judge. Maliyet: model seçimi (basit işe küçük model), caching, prompt optimizasyonu, token takibi.</p>
+</details>
+<hr>
+<h3>Hocaya sorulacaklar / belirsiz kalanlar</h3>
+<ul>
+<li><strong>MCP server tanımı:</strong> Transkriptte server "host'un bağlandığı, esasında AI uygulaması" gibi karışık anlatılıyor. Standart tanımda AI uygulaması host'tur; server ise dış sistemin (GitHub, DB, Slack) yeteneklerini sunan taraftır. Hocanın kastı netleştirilebilir (MCP haftasında).</li>
+<li><strong>Transformer'da "encoder kodlar, decoder işler" ifadesi</strong> oldukça yüzeysel; GPT/Claude gibi modellerin decoder-only olduğu ayrımı derste geçmiyor. (Not: 1. hafta LLM dersinde muhtemelen detaylanacak.)</li>
+<li><strong>"RAG halüsinasyonu çözer" ifadesi:</strong> Pratikte azaltır, tamamen ortadan kaldırmaz; hocanın bu konudaki görüşü sorulabilir.</li>
+<li><strong>Gemma/Qwen ve "Google tarafından geliştirilen":</strong> Altyazıda Google ifadesi Qwen'e bağlanmış görünüyor; Gemma Google'ın, Qwen Alibaba'nın modelidir (muhtemelen söyleyiş/altyazı kayması).</li>
+<li><strong>Deep Agents:</strong> Transkriptte "agent kütüphanesi" diye geçiyor; adı çizimden (Deep Agents) alındı.</li>
+</ul>

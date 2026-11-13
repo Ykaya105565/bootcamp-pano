@@ -1,0 +1,431 @@
+<h2>17 · Bonus Ders – Fine-tuning — Ders Metni (ayıklanmış)</h2>
+<blockquote>
+<p>Kaynak: Skool otomatik altyazısı (makine transkripti) + hocanın <code>QLoRA.ipynb</code> notebook'u (hücreler ve kısaltılmış çıktıları). Kodlar notebook'tan alınmıştır, altyazıdan değil. Emin olunamayan ad/sayılar <strong>[belirsiz]</strong> ile işaretlidir. HuggingFace erişim token'ı ve benzeri anahtarlar bilerek yazılmamıştır; yalnızca adları geçer.</p>
+<p><strong>Altyazının olmadığı aralıklar:</strong> ≈01:10–01:53 (15 dakikalık mola, ardından müzik/boş ses; bu aralıkta tokenizer ve 4-bit model yüklenmiş görünüyor), ≈02:10–02:21 (<code>SFTTrainer</code> kurulumu ve eğitim; muhtemelen eğitimin bitmesi bekleniyor), ≈02:26–02:30 (adaptörün temel modelle birleştirilmesi ve ilk sorunun hazırlanması), ≈02:36–02:45 ve ≈02:46–02:51 (dersin sonu; altyazı 02:45'te bitiyor, kapanış konuşması kayıtta yok). Bu aralıklar yalnızca notebook'un açıkça gösterdiği kadarıyla, <strong>"Not:"</strong> ile işaretlenerek dolduruldu.</p>
+<p>Dersin ilk ≈42 dakikası bir öğrencinin proje sunumu, onun üzerine tartışma ve kitap sohbetiyle geçti; teknik/kariyer değeri olan kısımlar özetlendi, kitap paylaşımı ve dosya formatı sohbeti atıldı.</p>
+</blockquote>
+<hr>
+<h3>Açılış: bir öğrencinin bootcamp projesi sunumu — finansal raporlar için agentic RAG asistanı (≈00:00–00:09)</h3>
+<p>Ders, bir öğrencinin bu bootcamp için geliştirdiği projeyi sunmasıyla başladı. (Not: 16. derste hoca, bitirme projesini isteyenlerin son derste sunabileceğini söylemişti; bu sunum o kapsamda görünüyor, ancak altyazıda "bitirme projesi" ifadesi geçmiyor.)</p>
+<p><strong>Proje:</strong> "Mercek" [belirsiz: ad] adlı, Borsa İstanbul şirketlerinin finansal raporlarına Türkçe soru sorulabilen bir <strong>agentic RAG</strong> asistanı.
+- <strong>Kapsam bilerek dar tutuldu:</strong> Fikri kanıtlamak için 3 şirket (Tüpraş, Aselsan ve bir üçüncü şirket [belirsiz]) ve son 3 yılın yıllık finansal raporları. Raporlar KAP'tan elle indirildi.
+- <strong>Çözülen problem:</strong> Finansal raporlar yüzlerce sayfa olabiliyor; Aralık 2023'ten sonra <strong>enflasyon muhasebesi</strong> (TMS 29) uygulandığı için dönemleri karşılaştırmak zorlaşıyor [belirsiz: altyazıda yıl "2020" duyuluyor]; LLM'ler rakam uydurabiliyor. Hedef: Türkçe soruya <strong>kaynak gösteren</strong> cevap; <strong>hesabı LLM değil kod yapıyor</strong>; yatırım tavsiyesi verilmiyor.
+- <strong>Akış:</strong> Bir <strong>router</strong> kapsam dışı ve tavsiye sorularını doğrudan reddediyor; diğerlerini yanıtlıyor. Finansal tablolardan bir <code>financials.csv</code> [belirsiz] türetiliyor; dipnotlar parçalanıp (chunking) embedding'e çevriliyor ve Chroma'ya yazılıyor. Her cevap sayı, dönem, birim ve tavsiye dili açısından kontrol ediliyor; cevap dipnot parçalarına referans verilerek üretiliyor.
+- <strong>İki mimari:</strong> tek agent ve <strong>multi-agent</strong> (bir supervisor + uzman agent'lar: finansal veri, dipnot, sentez agent'ı). Dört araç (tool) var; fiyat verisi Yahoo Finance'ten alınıyor.
+- <strong>Teknolojiler:</strong> LangGraph, OpenAI (GPT-5.4 mini [belirsiz]), hibrit arama (vektör: <strong>Chroma</strong> + anahtar kelime: <strong>BM25</strong> [belirsiz]), arayüz <strong>Streamlit</strong>; uygulama ayrıca bir <strong>MCP sunucusu</strong> olarak herhangi bir MCP istemcisinden kullanılabiliyor.
+- <strong>Demo (önceden çekilmiş video):</strong> Kârlılık sorusu tek agent'la ≈6 sn; Tüpraş'ın 2026 ilk yarısıyla ilgili dipnot sorusu multi-agent modunda (supervisor görev dağıttı, sentez agent'ı birleştirdi) ≈11,6 sn; "Aselsan hissesi alınır mı?" sorusuna tavsiye vermeyip güncel fiyat ve oranları paylaştı (≈3,7 sn); kapsam dışı sorular reddedildi. Maliyeti sınırlamak için <strong>oturum başına 10 soru</strong> hakkı konmuş.
+- <strong>Kararlar ölçümle verildi (evaluation):</strong> Tek agent ≈%95 doğruluk ve soru başına ≈3,6 sn ile varsayılan mod seçildi; multi-agent ≈%92 doğrulukla hem daha pahalı hem daha yavaştı. Bir <strong>eleştirmen (critic) agent</strong> denendi; fikir iyi olsa da doğru cevapları bozduğu ölçülünce kapatıldı.
+- <strong>Sınırlar:</strong> 3 şirket / 3 rapor, statik veri (canlı KAP API'si için sözleşme gerekiyor ve bireylere açık görünmüyor), yatırım tavsiyesi SPK lisansı gerektirdiği için yok.
+- <strong>Geliştirme fikirleri:</strong> PDF yükleme, şirketler arası karşılaştırma, risk işaretleri paneli, haber/özel durum agent'ı (güvenilirlik ve <strong>prompt injection</strong> riski nedeniyle bu sürüme eklenmedi).</p>
+<h3>Sunum üzerine geri bildirimler: ölçüm, izleme, açık kaynak, yetkilendirme (≈00:10–00:23)</h3>
+<ul>
+<li><strong>Gecikmeyi (latency) ölçmek değerli:</strong> Bir öğrenci, sahada müşterilerin "yavaş" şikâyetine karşı yanıt sürelerini ölçüp gösteren bir örneği anlattı; saniye cinsinden süre ve doğruluk ölçümünün gerçek bir uygulamada çok kıymetli olduğunu vurguladı.</li>
+<li><strong>Veri kaynağı:</strong> Raporları elle indirmek yerine piyasadaki finans <strong>MCP sunucuları</strong> (bir kamu kurumunun yayımladığı MCP sunucusu dahil [belirsiz]) incelenebilir.</li>
+<li>Modelin "bilmiyorum" diyebilmesi ve kaynağı göstermesi beğenildi. Öneri: Kullanıcının <strong>kendi API anahtarını</strong> girebileceği bir alan (şu an geliştiricinin anahtarı kullanıldığı için soru sınırı konmuş).</li>
+<li>Çıktı doğrulaması için Pydantic tarzı bir yapı/kütüphane kullanılıp kullanılmadığı soruldu.</li>
+<li><strong>Açık kaynak:</strong> Proje GitHub'da paylaşılacak. Hoca: "Mükemmel olsun da öyle çıkarayım" diye beklemeyin; açık kaynak yapıp sosyal medyada paylaşırsanız geri bildirim ve katkı alırsınız; iterasyonla geliştirin.</li>
+<li><strong>Hocanın değerlendirmesi:</strong> Agentic RAG şu an çok popüler (daha az token harcıyor); projeyi incelenip test edilecek.</li>
+<li><strong>İzleme (observability):</strong> LangSmith gibi bir araçla token tüketimi, maliyet ve <strong>değerlendirme (evaluation)</strong> izlenebilir. Agent'ın <strong>hangi yoldan (trajectory)</strong> karar verdiğini izlemek de önemli: doğru cevap verse bile en kısa yolu mu seçiyor? Sunumu yapan öğrenci ölçümleri LangGraph üzerinden yerelde yaptığını söyledi; hoca LangSmith ile hem izleme hem token takibinin daha iyi olacağını belirtti.</li>
+<li><strong>Kurumsal bakış (bir öğrencinin SAP deneyimi):</strong> Yetkilendirme kritik (hangi agent'ın neye erişebileceği; ör. bordroyu görebilir mi), her şeyin <strong>loglanması</strong> ve iz bırakması gerekir; milyonlarca kayıtta sistemin kendi logundan çekmek yavaş olabildiği için ayrıca loglama yapılıyordu. Hata/itiraz durumunda "kim, ne zaman, ne yaptı" sorusuna cevap verilebilmeli. Framework'ler (LangGraph, LangSmith) bu işleri artık çok kolaylaştırıyor.</li>
+</ul>
+<h3>Kaynak önerileri (≈00:23–00:35)</h3>
+<p>Kitap paylaşımı ve dosya formatı sohbeti atıldı. Ders içeriği sayılabilecek öneriler:
+- <strong>Laurence Moroney:</strong> "AI and ML for Coders" (önce TensorFlow, sonra PyTorch sürümü) ve fine-tuning üzerine yeni kitabı [belirsiz: tam ad]; teoriye boğmadan uygulamalı anlatıyor. Andrew Ng ile DeepLearning.AI eğitimleri de var.
+- <strong>Manning</strong> yayınları genel olarak hem teorik hem uygulamalı ve iyi. Bir öğrencinin sorduğu yerel deployment kitabını hoca ≈%90 okuduğunu ve beğendiğini söyledi [belirsiz: kitap adı].
+- <strong>Sebastian Raschka:</strong> LLM'leri sıfırdan geliştirme kitabı ve yeni çıkan <strong>reasoning modelleri</strong> sıfırdan geliştirme kitabı.
+- <strong>Chip Huyen:</strong> ML sistemleri tasarımı kitabı; temelleri iyi anlatıyor ama alan çok hızlı ilerlediği için güncellenmesi gerekiyor.
+- Kanadalı bir yazarın ML kitabı [belirsiz: yazar/kitap]; temel ama güncellenmeli.
+- <strong>Agent tasarım kalıpları (agentic design patterns)</strong> kitabı ve <strong>değerlendirme (evaluation)</strong> üzerine çıkan yeni kitaplar: Hocaya göre değerlendirme önemli bir alan olacak; bu alanı bilmek işe girmeyi kolaylaştırır.</p>
+<h3>Agent tasarım kalıpları ve kurumsal yazılım disiplini (≈00:35–00:42)</h3>
+<ul>
+<li>Kitaptaki kalıplar: en basiti tek LLM çağrısı; sonra <strong>router</strong>, <strong>reflection</strong>, <strong>ReAct</strong>, <strong>planner</strong>, RAG (retrieval), <strong>guardrails</strong>. Bazılarını kursta gördük. "Hangi mimari en iyi?" sorusuna cevap: <strong>projeye göre değişir</strong>.</li>
+<li>Klasik yazılım tasarım kalıpları 90'lardan beri var ve hâlâ geçerli; ML, yapay zekâ ve yazılımın her alanı için ayrı kalıplar var. Agent kalıpları ise yeni; eskiden 2–3 mimari anlatılırken şimdi 15–20 mimari var ve güncelleniyor.</li>
+<li><strong>Hocanın vurgusu:</strong> Framework'ler değişir ama <strong>tasarım kalıpları kalıcıdır</strong>; onları öğrenirseniz temeli öğrenmiş olursunuz.</li>
+<li>Bir öğrencinin kurumsal deneyimi: Test olmazsa olmaz; "enterprise" kalıplarına uymak, projeyi yapmaktan çok <strong>sürdürülebilir</strong> kılmak; <strong>SLA</strong> (service level agreement) gibi süre taahhütleri; modüler/nesne yönelimli yazım. Hoca: Python'da çoğu kişi fonksiyonlarla yazıyor; nesne tabanlı programlama ML/derin öğrenme mimarilerinde ve Pydantic'le veri tipleri tanımlarken kullanılıyor. <strong>MCP</strong> de geliştiriciyi disiplinli yazmaya zorluyor.</li>
+</ul>
+<h3>LLM'lerin iki sorunu ve özel veriye erişim: RAG mı, fine-tuning mi? (≈00:42–00:51)</h3>
+<p>Hoca, kurs boyunca tekrarladığı iki sorunu hatırlattı:
+1. <strong>Güncel bilgiye erişememe:</strong> Modeller belirli bir tarihe kadarki verilerle eğitiliyor (güncel modeller bile birkaç ay öncesine kadar [belirsiz: model adı/ay]).
+2. <strong>Halüsinasyon:</strong> Son zamanlarda büyük ölçüde azaldı; modeller artık "bilmiyorum" diyebiliyor ve halüsinasyon oranını ölçen benchmark'lar var.</p>
+<p>Güncel bilgi için <strong>tool'lar ve MCP</strong> ile model dış dünyaya bağlanıyor. <strong>Özel verilere</strong> (kişisel ya da şirket verisi) erişim için iki teknik öne çıkıyor:
+- <strong>RAG — parametrik olmayan (non-parametric):</strong> Modelin parametreleri değişmez; bilgi dışarıdan bağlam olarak verilir.
+- <strong>Fine-tuning — parametrik:</strong> Modelin parametreleri güncellenir.</p>
+<p>İkisinin de avantaj/dezavantajı var; biri diğerinden üstün değil, <strong>hangi durumda hangisini kullanacağını bilmek</strong> gerekir.</p>
+<blockquote>
+<p><strong>Soru (hocadan sınıfa):</strong> Az/sınırlı sayıda veriniz var ve sürekli güncelleniyor. RAG mı, fine-tuning mi?
+<strong>Cevap:</strong> <strong>RAG.</strong> Doküman sayısı az ve sık değişiyorsa RAG esnektir; embedding'e çevirip vektör veritabanına yazarak veriyi hızla güncelleyebilirsiniz.</p>
+</blockquote>
+<ul>
+<li><strong>Kural:</strong> Model güncel bilgiye erişmeliyse, veri sık güncelleniyorsa ve sınırlı sayıda kaliteli veri varsa → <strong>RAG</strong>. Elinizde <strong>çok fazla veri</strong> varsa ve "bir kez eğiteyim, sonra kullanayım" diyorsanız → <strong>fine-tuning</strong>.</li>
+<li>Fine-tuning parametreleri yeniden eğittiği için <strong>daha pahalı ve uzun</strong>. Ama RAG de çok veride pahalı olabilir: çok token gider; ayrıca modele çok fazla bağlam verilince "kafası karışabiliyor", istenen şekilde cevap veremeyebiliyor.</li>
+</ul>
+<blockquote>
+<p><strong>Soru:</strong> Bir e-ticaret şirketinin modelini haftada bir otomatik çalıştırdığını duydum; bu bugün anlatılacak QLoRA'ya benzer bir şey mi?
+<strong>Cevap:</strong> Olabilir; belki haftalık olarak cevapları kontrol ediyorlardır (cevapların denetlenmesi gerekir). İkisi birlikte de kullanılabilir: <strong>hibrit yaklaşım</strong> — bir temel (foundation) modeli kendi alanınıza göre fine-tune edip özel/değişken veriler için üstüne RAG eklemek. Bu tamamen tasarımınıza ve mimarinize bağlı.</p>
+</blockquote>
+<h3>LoRA: ağırlıkları dondur, adaptör eğit (≈00:51–00:55)</h3>
+<ul>
+<li>Eskiden fine-tuning'de modelin <strong>bütün parametreleri</strong> eğitiliyordu (<strong>full fine-tuning</strong>): girdiler verilir, tüm katmanlar güncellenir. Bu hem zaman alan hem pahalı bir yöntem ve uzman insan gücü gerektiriyor.</li>
+<li><strong>LoRA</strong> ile: Modelin tüm ağırlıkları <strong>sabitlenir (dondurulur)</strong>. Yanına <strong>eğitilebilir küçük matrisler</strong> eklenir; bunlara <strong>adaptör</strong> denir. Yalnızca bu matrisler eğitilir; ardından eğitilmiş matrisler orijinal ağırlıklarla işleme sokulup (birleştirilip) fine-tune edilmiş model elde edilir.</li>
+<li><strong>Avantajları:</strong> Çok fazla GPU harcamaz; çok yer tutmaz. Model onlarca GB yer kaplasa da biz yalnızca adaptörleri saklarız (hocanın tahmini 30–40 MB; uygulamada 43,7 MB çıktı).</li>
+<li><strong>Bugünkü plan:</strong> Bir model + bir veri seti alınacak; adaptörler bu veri setine göre eğitilecek; sonra model ve adaptörler birleştirilip kullanılacak.</li>
+</ul>
+<h3>Soru: Mixture-of-Experts (MoE) modellere de LoRA uygulanır mı? (≈00:55–00:57)</h3>
+<blockquote>
+<p><strong>Cevap:</strong> Evet. MoE bir büyük dil modeli mimarisidir: Cevap verirken bir <strong>router</strong> tüm uzmanları/katmanları değil yalnızca soruyla ilgili olanları çalıştırır. LoRA mimariden bağımsızdır: Parametreler sabit bırakılır, adaptörler eklenip belirli parametrelerle matris işlemine girer. MoE ya da başka bir mimari fark etmez; LoRA uygulanabilir.</p>
+</blockquote>
+<h3>QLoRA: quantization + LoRA (≈00:57–00:58)</h3>
+<ul>
+<li>Modelin parametreleri normalde float32, float16 gibi tiplerde tutulur. <strong>Quantization</strong> ile bu parametrelerin bit sayısı (boyutu) düşürülür (quantization'a daha önce bakmıştık).</li>
+<li><strong>QLoRA = LoRA + quantization:</strong> Temel modelin parametreleri <strong>4 bit'e</strong> indirilir, üstüne eğitilebilir adaptör matrisleri eklenir, adaptörler eğitilir ve ikisi birleştirilerek fine-tune edilmiş model elde edilir.</li>
+</ul>
+<h3>Uygulamanın planı: ön eğitim, son eğitim ve mimari (≈00:58–01:02)</h3>
+<p><strong>Adımlar:</strong>
+1. Temel modeli <strong>transformers</strong> ile, normal değil <strong>4-bit</strong> olarak (quantization ile) yükle.
+2. Veri setini <strong>datasets</strong> kütüphanesiyle al: <strong>databricks-dolly-15k</strong> (talimat/girdi ve cevaplardan oluşan veri seti). Tüm işlemler HuggingFace ekosisteminde yapılacak.
+3. <strong>PEFT</strong> kütüphanesiyle LoRA uygula; eğitilmiş <strong>LoRA adaptörlerini</strong> elde et.
+4. Adaptörleri kendi <strong>HuggingFace Hub</strong> hesabına yükle (≈30–40 MB, kolayca indirilebilir).
+5. İstediğin zaman adaptörü çağır, temel modelle birleştir, fine-tune edilmiş modeli kullan.</p>
+<p><strong>Neden bu eğitim gerekiyor? (pre-training vs post-training)</strong>
+- LLM'ler önce <strong>bir sonraki token'ı tahmin etmek</strong> üzere eğitilir (<strong>ön eğitim / pre-training</strong>): İnternetteki metinler verilir, model parametrelerini buna göre öğrenir. Bu haliyle model <strong>cevap vermeyi bilmez</strong>; bir soru sorduğunuzda sorunun devamını üretir.
+- Sonra bir <strong>son eğitim (post-training)</strong> yapılır: "Böyle bir soru/talimat gelirse şöyle cevap ver" örnekleriyle model eğitilir. Bu uygulamada da soru–cevap örnekleriyle modele soruya cevap vermeyi öğreteceğiz.</p>
+<h3>Sorular: neden QLoRA, adaptör nedir, nasıl eğitilir? (≈01:02–01:06)</h3>
+<blockquote>
+<p><strong>Soru:</strong> Neden düz LoRA değil de QLoRA kullanıyoruz?
+<strong>Cevap:</strong> GPU'muz yetmez. Normal LoRA ile bu model için ≈50–60 GB bellek gerekir; bu da çoğu kişide yok.</p>
+<p><strong>Soru:</strong> Adaptör aslında bir ağırlık mı?
+<strong>Cevap:</strong> Evet, eğitilebilir <strong>matrisler</strong>; ağırlık ya da parametre diyoruz. Sinir ağındaki nöronlar arasındaki <strong>katsayılar</strong> gibi düşünün. Orijinal ağırlıklar (öğrenilmiş katsayılar) sabit; adaptör de katsayılardan oluşuyor; ikisi matris işlemleriyle (çarpılarak) birleştiriliyor ve modelin alana özgü cevap vermesini sağlayan güncel ağırlıklar elde ediliyor.</p>
+<p><strong>Soru:</strong> Bu matrisleri nasıl üretiyoruz, hazır mı geliyor?
+<strong>Cevap:</strong> Elle yapmaya gerek yok; kütüphaneler hallediyor. Adaptörler başlangıçta <strong>rastgele</strong> başlatılır. Veri modelden geçirilir, tahmin üretilir, gerçek cevapla karşılaştırılır; aradaki fark <strong>kayıp (loss)</strong> değeridir. Bu hata geriye doğru dağıtılır (<strong>backpropagation</strong>) ve katsayılar güncellenir; işlem tekrarlanır. Ağırlıklar sabit kalır, sadece adaptör katsayıları Dolly veri setine göre eğitilir. Finans gibi bir alana özel model istiyorsanız finans verisiyle adaptör oluşturursunuz.</p>
+<p>Not: LoRA'da genellikle <code>lora_A</code> matrisi rastgele, <code>lora_B</code> matrisi sıfırla başlatılır; böylece eğitimin başında adaptörün katkısı sıfırdır ve model orijinal davranışıyla başlar.</p>
+</blockquote>
+<h3>Veri seti: databricks-dolly-15k ve verinin önemi (≈01:06–01:10)</h3>
+<ul>
+<li>Dolly veri seti HuggingFace'te: <strong>instruction</strong> (talimat), <strong>context</strong> (bağlam; hepsinde yok), <strong>response</strong> (cevap) ve <strong>category</strong> (sınıf: açık uçlu soru, sınıflandırma, beyin fırtınası vb.) sütunları var. Talimat + bağlam verilip cevap gösteriliyor; model bu örneklerden cevap vermeyi öğreniyor.</li>
+<li><strong>Hocanın vurgusu: veri seti çok önemli.</strong> Kaliteli veri → kaliteli model. Bugünün açık modelleri (Qwen vb.) zaten çok kaliteli; iyi verilerle onları alanınıza özgü fine-tune edebilirsiniz.</li>
+<li>Örnek: Stanford'dan <strong>Fei-Fei Li</strong> (Andrej Karpathy'nin hocası), 2009 civarında çok sayıda görüntüyü etiketleyerek bir veri seti oluşturdu (ImageNet); o dönem bu uğraşı anlamsız bulanlar oldu ama yapay zekâdaki büyük sıçrama bu veri setiyle yapılan yarışmalar ve eğitilen modellerle geldi. Hoca onu takip etmeyi önerdi.</li>
+<li>Ardından 15 dakikalık mola verildi.</li>
+</ul>
+<h3>[Altyazısız aralık] Mola ve modelin yüklenmesi (≈01:10–01:53)</h3>
+<p>Mola ≈01:10–01:26; sonrasında ≈01:53'e kadar altyazı yok. Moladan dönüşte hoca öğrencilere modeli indirip indiremediklerini sordu; yani bu aralıkta kurulum, tokenizer ve 4-bit modelin yüklenmesi yapılmış görünüyor. Moladan sonra kısa bir sohbette GPU/bulut fiyatları konuşuldu [belirsiz: hangi hizmet ve fiyatlar; 40 GB'lık bir GPU'dan söz ediliyor].</p>
+<blockquote>
+<p><strong>Not (notebook'tan):</strong> Kurulum ve sürümler:</p>
+</blockquote>
+<pre><code class="language-python">!pip install -q -U transformers datasets peft trl bitsandbytes accelerate
+</code></pre>
+<blockquote>
+<p>Kurulumda pip'in bağımlılık çözücüsü bir uyarı verdi (Colab'daki başka bir paketin <code>pyarrow</code> sürümüyle uyumsuzluk); eğitim akışını etkilemedi. <code>transformers.__version__</code> → <code>'5.22.1'</code>, <code>pandas.__version__</code> → <code>'2.2.3'</code>.</p>
+<p><strong>Not (notebook'tan):</strong> Tokenizer, 4-bit quantization ayarı ve modelin yüklenmesi:</p>
+</blockquote>
+<pre><code class="language-python">from transformers import AutoTokenizer
+base_model = &quot;Qwen/Qwen3-8B&quot;
+
+tokenizer = AutoTokenizer.from_pretrained(
+    base_model,
+    padding_side = &quot;right&quot;,
+)
+</code></pre>
+<pre><code class="language-python">from transformers import BitsAndBytesConfig
+import torch
+
+bnb_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_quant_type=&quot;nf4&quot;,
+    bnb_4bit_use_double_quant=True,
+    bnb_4bit_compute_dtype=torch.bfloat16
+    )
+</code></pre>
+<pre><code class="language-python">from transformers import AutoModelForCausalLM
+
+model = AutoModelForCausalLM.from_pretrained(
+    base_model,
+    quantization_config=bnb_config,
+    device_map=&quot;auto&quot;,
+)
+</code></pre>
+<blockquote>
+<p>Model: <strong>Qwen3-8B</strong> (≈8 milyar parametre). Ağırlıklar <strong>NF4</strong> tipinde 4 bit'e indiriliyor, quantization sabitleri de ayrıca quantize ediliyor (double quant), hesaplamalar <strong>bfloat16</strong> ile yapılıyor; <code>device_map="auto"</code> modeli GPU'ya yerleştiriyor. Bu ayarların derste nasıl anlatıldığı kayıtta yok.</p>
+</blockquote>
+<h3>Veri setini indirme ve inceleme (≈01:53–01:57)</h3>
+<ul>
+<li><code>load_dataset</code> ile veri seti indirildi (≈13 MB). Yalnızca HuggingFace ekosistemi kullanılıyor.</li>
+<li>Bir <strong>eğitim</strong> ve ayrı bir <strong>değerlendirme (validation)</strong> kümesi alındı: ilk 800 örnek eğitim, 800–1000 arası değerlendirme. Eğitim kümesiyle model eğitilecek, değerlendirme kümesiyle ölçülecek.</li>
+</ul>
+<pre><code class="language-python">from datasets import load_dataset
+
+dataset_name = &quot;databricks/databricks-dolly-15k&quot;
+
+train_dataset = load_dataset(dataset_name, split=&quot;train[0:800]&quot;)
+eval_dataset = load_dataset(dataset_name, split=&quot;train[800:1000]&quot;)
+</code></pre>
+<ul>
+<li>Veri seti pandas'a çevrilip incelenebiliyor: <code>to_pandas().dtypes</code> ile dört sütunun (instruction, context, response, category) hepsinin <code>object</code> tipinde olduğu görüldü; <code>value_counts("category")</code> ile kategori sayıları: open_qa 202, general_qa 132, classification 111, brainstorming 95, closed_qa 90, information_extraction 68, summarization 63, creative_writing 39. (Toplam veri seti 15.011 örnek.)</li>
+</ul>
+<pre><code class="language-python">train_dataset.to_pandas().dtypes
+train_dataset.to_pandas().value_counts(&quot;category&quot;)
+</code></pre>
+<h3>Sohbet formatına çevirme: <code>generate_prompt</code> ve <code>map</code> (≈01:57–02:00)</h3>
+<ul>
+<li><strong>Her modelin kendi girdi formatı (template'i) vardır.</strong> Verileri modelin anlayacağı biçime çevirmek gerekir. Bunun için bir fonksiyon yazıldı: Talimat kullanıcı içeriği olur; bağlam varsa altına "Context:" başlığıyla eklenir; sonuç <code>role</code>/<code>content</code> anahtarlı bir <strong>messages</strong> listesi olur: kullanıcı sorusu (<code>user</code>) ve yapay zekânın cevabı (<code>assistant</code>).</li>
+</ul>
+<pre><code class="language-python">def generate_prompt(sample):
+    user_content = sample[&quot;instruction&quot;]
+
+    if sample[&quot;context&quot;]:
+        user_content += f&quot;\n\nContext:\n{sample['context']}&quot;
+
+    return {
+        &quot;messages&quot;: [
+            {
+                &quot;role&quot;: &quot;user&quot;,
+                &quot;content&quot;: user_content
+            },
+            {
+                &quot;role&quot;: &quot;assistant&quot;,
+                &quot;content&quot;: sample[&quot;response&quot;]
+            }
+        ]
+    }
+</code></pre>
+<ul>
+<li>İlk örnek (Virgin Australia'nın ne zaman faaliyete başladığı sorusu, bağlamı ve cevabı) fonksiyondan geçirilince <code>messages</code> anahtarı altında <code>user</code> ve <code>assistant</code> rolleri oluştu.</li>
+<li>Tüm veriye uygulamak için HuggingFace <code>datasets</code>'in <strong><code>map</code></strong> metodu kullanıldı: Her örneği fonksiyondan geçirir; sonuçta veri setine yeni bir <code>messages</code> sütunu eklenir (diğer sütunlar durur). 5. örnekte (satrançta pat/stalemate sorusu) bu görüldü.</li>
+</ul>
+<pre><code class="language-python">print(generate_prompt(train_dataset[0]))
+generated_train_dataset = train_dataset.map(generate_prompt)
+generated_val_dataset = eval_dataset.map(generate_prompt)
+generated_train_dataset[5]
+</code></pre>
+<h3>Modeli k-bit eğitime hazırlama ve <code>LoraConfig</code> (≈02:00–02:03)</h3>
+<ul>
+<li>LoRA'yı uygulamak için <strong>PEFT</strong> kütüphanesi kullanılıyor. Önce model hazırlanıyor (ağırlıklar sabitleniyor, model LoRA eğitimine hazır hale geliyor).</li>
+</ul>
+<pre><code class="language-python">from peft import prepare_model_for_kbit_training
+
+model = prepare_model_for_kbit_training(model)
+</code></pre>
+<pre><code class="language-python">from peft import LoraConfig
+
+lora_config = LoraConfig(
+      r=8,
+    lora_alpha=16,
+    target_modules=&quot;all-linear&quot;,
+    bias=&quot;none&quot;,
+    lora_dropout=0.05,
+    task_type=&quot;CAUSAL_LM&quot;,
+)
+</code></pre>
+<p>Hocanın parametre açıklamaları:
+- <strong><code>r</code> (rank):</strong> Ne kadar büyük olursa eğitilecek parametre sayısı o kadar artar. Projenize ve verinize göre siz belirlersiniz.
+- <strong><code>lora_alpha</code>:</strong> Adaptörün katkısını (etkisini) ölçekler.
+- <strong><code>target_modules="all-linear"</code>:</strong> Adaptörler hangi katmanlara eklenecek; burada tüm doğrusal (linear) katmanlara.
+- <strong><code>bias="none"</code>:</strong> Her katmandaki sabit terim (bias) eğitilmiyor.
+- <strong><code>lora_dropout=0.05</code>:</strong> %5 dropout; modelin <strong>ezberlemesini (overfitting)</strong> önlemek için.
+- <strong><code>task_type="CAUSAL_LM"</code>:</strong> Token üreten (üretken) modeller "causal" olarak geçer.</p>
+<h3>HuggingFace Hub'a giriş (≈02:03–02:06)</h3>
+<ul>
+<li>Eğitilen adaptörü Hub'a yüklemek için giriş yapılıyor. Hocanın Colab'ında token daha önce tanımlı olduğu için giriş otomatik oldu ve token kutusu çıkmadı. Colab artık HuggingFace ile entegre çalışıyor.</li>
+<li>Öğrencilerde farklı bir ekran çıktı: kısa (8 karakterlik) bir kod verip HuggingFace'te cihazı onaylamayı isteyen bir akış; onaylayınca "cihaz bağlandı" mesajı geldi ve hücre yeşil tik aldı. Bağlantı bir kez kuruluyor.</li>
+</ul>
+<pre><code class="language-python">from huggingface_hub import notebook_login
+
+notebook_login()
+</code></pre>
+<blockquote>
+<p>Not: Giriş için kullanılan HuggingFace erişim token'ı (<code>HF_TOKEN</code>) gizlidir; yazma yetkili bir token gerekir ve not defterine/paylaşılan dosyalara açık olarak yazılmamalıdır.</p>
+</blockquote>
+<h3><code>SFTConfig</code>: eğitim ayarları (≈02:06–02:10)</h3>
+<ul>
+<li>Model önceden eğitilmiş (pre-trained); şimdi kendi verimizle <strong>post-training</strong> yapacağız. Bunun için HuggingFace'in <strong>TRL</strong> kütüphanesi ve içindeki <strong>SFT (supervised fine-tuning)</strong> sınıfları kullanılıyor.</li>
+</ul>
+<pre><code class="language-python">from trl import SFTConfig
+
+training_arguments = SFTConfig(
+    output_dir=&quot;./results&quot;,
+    per_device_train_batch_size=1,
+    gradient_accumulation_steps=4,
+    gradient_checkpointing=True,
+    learning_rate=2e-4,
+    weight_decay=0.001,
+    max_steps=20,
+    logging_steps=5,
+    save_strategy=&quot;steps&quot;,
+    save_steps=10,
+    eval_strategy=&quot;steps&quot;,
+    eval_steps=10,
+    bf16=True,
+    report_to=&quot;none&quot;,
+)
+</code></pre>
+<p>Hocanın açıklamaları:
+- <code>output_dir</code>: Çıktılar bulunduğumuz dizindeki <code>results</code> klasörüne yazılır.
+- <code>per_device_train_batch_size=1</code>: Cihaz (GPU) başına batch boyutu. (Not: Altyazıda "bir GPU seçelim" gibi duyuluyor; parametre aslında her adımda GPU başına 1 örnek işlendiğini söyler.)
+- <code>gradient_accumulation_steps=4</code>: Gradyanların kaç adımda bir biriktirileceği. Hoca gradyanı hatırlattı: Tahmin gerçekle karşılaştırılır, kayıp (loss) bulunur, geriye dağıtılırken gradyanlar hesaplanır. "Biraz teknik; projenize göre belirlemeniz gerekir."
+- <code>gradient_checkpointing=True</code>: Hoca "kontrol noktaları saklansın, sonradan hata alırsak kullanırız" diye açıkladı. (Not: Gradient checkpointing aslında <strong>bellek tasarrufu</strong> tekniğidir: ara aktivasyonların bir kısmı saklanmaz, geri yayılımda yeniden hesaplanır; daha az VRAM karşılığında biraz daha yavaş eğitim. Ara kayıt alma işini <code>save_strategy</code>/<code>save_steps</code> yapar.)
+- <code>learning_rate=2e-4</code>: Öğrenme oranı. <code>weight_decay=0.001</code>: yine ezberlemeyi önlemeye yönelik.
+- <code>max_steps=20</code>: Eğitimin kaç adım süreceği; ders kısa sürsün diye 20. Daha iyi model için uzatılabilir.
+- <code>logging_steps=5</code>, <code>save_strategy="steps"</code> + <code>save_steps=10</code> (10 adımda bir ağırlıkları kaydet), <code>eval_strategy="steps"</code> + <code>eval_steps=10</code>.
+- <code>report_to="none"</code>: Eğitimi üçüncü parti bir araçla izlemiyoruz. Normalde <strong>Weights &amp; Biases</strong> gibi bir araçla her adımda loss ve doğruluk izlenebilir; burada sonuçları doğrudan notebook'ta göreceğiz.</p>
+<pre><code class="language-python">model.config.use_cache = False
+</code></pre>
+<ul>
+<li>Hoca: Cache, yapılan işlemleri saklayıp tekrar hesaplamadan hızlı çalışmayı sağlar ama daha fazla GPU belleği ister; veri seti ve eğitim küçük olduğu için kapatıyoruz.<blockquote>
+<p><strong>Soru:</strong> Bu, eğitimde checkpoint oluşturmak gibi bir şey mi?
+<strong>Cevap:</strong> Hayır, bu cache mekanizması; katmanlarda yapılan işlemler saklanır, hesaplamalar tekrar tekrar yapılmaz.</p>
+<p>Not: Buradaki cache, üretim sırasında önceki token'ların key/value hesaplarını saklayan <strong>KV cache</strong>'tir. Eğitimde gereksizdir ve gradient checkpointing ile birlikte uyarı/çakışma yaratır; bu yüzden eğitimde <code>False</code>, çıkarımda (inference) yeniden <code>True</code> yapılır (notebook'ta da öyle).</p>
+</blockquote>
+</li>
+</ul>
+<h3>[Altyazısız aralık] <code>SFTTrainer</code> ve eğitim (≈02:10–02:21)</h3>
+<blockquote>
+<p><strong>Not (notebook'tan):</strong> Trainer kuruldu, eğitilebilir parametre sayısı yazdırıldı ve eğitim çalıştırıldı:</p>
+</blockquote>
+<pre><code class="language-python">from trl import SFTTrainer
+
+trainer = SFTTrainer(
+    model=model,
+    args=training_arguments,
+    processing_class=tokenizer,
+    train_dataset=generated_train_dataset,
+    eval_dataset=generated_val_dataset,
+    peft_config=lora_config,
+)
+</code></pre>
+<blockquote>
+<p>Kurulumda TRL veri setlerini kendisi işledi: tokenize etme, etiketleri oluşturma (labels), uzun örnekleri kırpma (truncation) ve tamamen maskelenmiş örnekleri atma (eğitim 800, doğrulama 200 örnek).</p>
+</blockquote>
+<pre><code class="language-python">trainer.model.print_trainable_parameters()
+# trainable params: 21,823,488 || all params: 8,212,558,848 || trainable%: 0.2657
+</code></pre>
+<blockquote>
+<p>Yani ≈8,2 milyar parametrenin yalnızca ≈21,8 milyonu (<strong>%0,27</strong>) eğitiliyor; LoRA'nın "ağırlıkları dondur, küçük adaptör eğit" fikri sayısal olarak burada görülüyor.</p>
+</blockquote>
+<pre><code class="language-python">trainer.train()
+# TrainOutput(global_step=20, training_loss=2.0998, ... train_runtime≈100.9 s, epoch=0.1)
+</code></pre>
+<blockquote>
+<p>20 adım ≈101 saniye sürdü; epoch 0,1 (20 adım × batch 1 × gradyan biriktirme 4 = ≈80 örnek; 800 örneğin onda biri).</p>
+</blockquote>
+<h3>Eğitim sonucu ve öğrencilerin hataları (≈02:21–02:22)</h3>
+<ul>
+<li>Hoca bazı öğrencilerin aldığı hataların <strong>GPU tipinden</strong> kaynaklandığını söyledi; mantığı anlatıp hataları kendilerinin çözmesini önerdi. (Not: Hocanın kullandığı GPU A100'dü; bir öğrenci "siz A100'de olduğunuz için takılmadan gittiniz" dedi. Colab'ın ücretsiz <strong>T4</strong> GPU'su <strong>bfloat16 desteklemez</strong>; notebook'taki <code>bf16=True</code> ve <code>bnb_4bit_compute_dtype=torch.bfloat16</code> T4'te hata verir. T4'te <code>bf16=False</code>, <code>fp16=True</code> ve <code>bnb_4bit_compute_dtype=torch.float16</code> kullanılmalı. Bu benim çıkarımım; hatanın metni altyazıda yok.)</li>
+<li>Eğitim tamamlandı; eğitim ve doğrulama kayıpları ile doğruluk oranları ekrana yazıldı. Altyazıdaki sayılar net değil [belirsiz: ≈0,60 civarı bir doğruluk ve bir değerin "8'e çıkarıldığı" duyuluyor]. Hoca: Daha uzun eğitim ve diğer parametreleri ayarlayarak bu oran yükseltilebilir, %100'e yaklaşılabilir. (Not: TRL bu tür eğitimde "token doğruluğu" metriğini de raporlar; notebook çıktısında yalnızca <code>training_loss≈2,10</code> görünüyor.)</li>
+</ul>
+<h3>Adaptörü Hub'a yükleme (≈02:22–02:24)</h3>
+<ul>
+<li>Önce bir model adı belirlendi, sonra <code>push_to_hub</code> ile <strong>eğitilmiş adaptör</strong> kendi Hub hesabımıza yüklendi.</li>
+</ul>
+<pre><code class="language-python">my_finetuned_model = &quot;qwen3-8b-dolly-qlora&quot;
+trainer.model.push_to_hub(my_finetuned_model)
+</code></pre>
+<ul>
+<li>Çıkan linke tıklayınca kendi HuggingFace sayfanızda model kartı, dosyalar ve adaptör ayarları (<code>adapter_config.json</code>) görülüyor. Adaptör dosyası (<code>adapter_model.safetensors</code>) <strong>43,7 MB</strong>: "Bütün modeli eğitmek yerine sadece 43,7 MB'lık ağırlıklar eğitmiş olduk."</li>
+</ul>
+<h3>Adaptörü geri yükleyip temel modelle birleştirme (≈02:24–02:30)</h3>
+<ul>
+<li>Şimdi adaptörü indirip temel modelle birleştirerek fine-tune edilmiş modeli kullanacağız. Bunu ayrı bir notebook'ta, Colab'da ya da başka bir makinede yapabilirsiniz; hoca vakit kaybetmemek için aynı notebook'ta devam etti.</li>
+<li>Önce Hub'daki adaptörün yolu bir değişkene atandı, <code>PeftConfig</code> ile adaptör ayarları okundu; ayarların içinde adaptörün hangi temel modelle eğitildiği yazıyor:</li>
+</ul>
+<pre><code class="language-python">from peft import PeftConfig
+
+peft_model_id = &quot;Tirendaz/qwen3-8b-dolly-qlora&quot;
+config = PeftConfig.from_pretrained(peft_model_id)
+print(config.base_model_name_or_path)
+# Qwen/Qwen3-8B
+</code></pre>
+<blockquote>
+<p><strong>Not (notebook'tan; ≈02:26–02:30 altyazısız):</strong> Temel model yine 4-bit yüklendi, tokenizer alındı, adaptör üstüne takıldı ve model değerlendirme moduna alındı:</p>
+</blockquote>
+<pre><code class="language-python">import torch
+from transformers import BitsAndBytesConfig
+
+bnb_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_quant_type=&quot;nf4&quot;,
+    bnb_4bit_compute_dtype=torch.bfloat16,
+    bnb_4bit_use_double_quant=True,
+)
+
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+)
+
+base_model = AutoModelForCausalLM.from_pretrained(
+    config.base_model_name_or_path,
+    quantization_config=bnb_config,
+    device_map=&quot;auto&quot;,
+)
+
+tokenizer = AutoTokenizer.from_pretrained(
+    config.base_model_name_or_path,
+)
+
+from peft import PeftModel
+
+fine_tuned_model = PeftModel.from_pretrained(
+    base_model,
+    peft_model_id,
+)
+
+fine_tuned_model.eval()
+fine_tuned_model.config.use_cache = True
+</code></pre>
+<blockquote>
+<p><code>eval()</code> çıktısındaki model yapısı LoRA'nın nereye takıldığını gösteriyor: 36 adet <code>Qwen3DecoderLayer</code>; örneğin <code>q_proj</code> katmanı artık <code>lora.Linear4bit</code>: 4-bit temel katman (4096→4096) + <code>lora_dropout</code> (p=0,05) + <code>lora_A</code> (4096→<strong>8</strong>, yani rank r=8) + <code>lora_B</code>. <code>PeftModel.from_pretrained</code> adaptörü temel modelin üstüne takar; ağırlıklar kalıcı olarak birleştirilmez (kalıcı birleştirme için PEFT'te ayrıca bir "merge" adımı vardır; derste kullanılmadı).</p>
+</blockquote>
+<h3>Çıkarım (inference): fine-tune edilmiş modele soru sormak (≈02:30–02:36)</h3>
+<blockquote>
+<p><strong>Not (notebook'tan):</strong> Soru, modelin sohbet şablonuna (chat template) çevrilip GPU'ya taşındı; cevap gradyan hesaplanmadan, deterministik olarak üretildi; yalnızca yeni üretilen token'lar metne çevrildi:</p>
+</blockquote>
+<pre><code class="language-python">messages = [
+    {
+        &quot;role&quot;: &quot;user&quot;,
+        &quot;content&quot;: &quot;Explain Python programming language in one sentence.&quot;
+    }
+]
+
+inputs = tokenizer.apply_chat_template(
+    messages,
+    add_generation_prompt=True,
+    tokenize=True,
+    return_dict=True,
+    return_tensors=&quot;pt&quot;,
+    enable_thinking=False,
+)
+
+inputs = inputs.to(fine_tuned_model.device)
+
+with torch.no_grad():
+    outputs = fine_tuned_model.generate(
+        **inputs,
+        # Üretilecek token sayısı
+        max_new_tokens=100,
+        # Deterministik çıktı için
+        do_sample=False,
+    )
+
+response = tokenizer.decode(
+    # Sadece üretilen tokenı alalım
+    outputs[0, inputs[&quot;input_ids&quot;].shape[1]:],
+    skip_special_tokens=True,
+)
+
+print(response)
+</code></pre>
+<ul>
+<li>Hoca: Model token ID'leri üretiyor; <code>decode</code> ile normal metne çeviriyoruz. Python'u tek cümlede açıklamasını istedik; tek cümlede açıkladı ("Python is a high-level, interpreted programming language known for its readability and simplicity…").</li>
+</ul>
+<blockquote>
+<p><strong>Soru:</strong> Modelin eğitildiğini nereden anlıyoruz?
+<strong>Cevap:</strong> Normalde ön eğitimli (pre-trained) model, sorduğunuz metnin devamına gelecek token'ları tahmin eder; soruya cevap üretmez. Biz veri setiyle "böyle bir soru gelirse böyle cevap ver" diyerek modelin nasıl davranması gerektiğini öğrettik; artık soruya cevap verecek şekilde eğitildi. Bunu anlamanın en iyi yolu: <strong>ham (pre-trained) modele</strong> aynı soruyu sorup karşılaştırmak; muhtemelen cevap vermeyip metni sürdürecektir.</p>
+<p>Not: Kullanılan <code>Qwen/Qwen3-8B</code> HuggingFace'te zaten son eğitimden (post-training) geçmiş, sohbet edebilen bir modeldir (<code>enable_thinking</code> parametresi de bunu gösterir); ham ön eğitimli sürümü ayrıca <code>Qwen3-8B-Base</code> adıyla yayımlanır. Dolayısıyla Python sorusuna düzgün cevap gelmesi tek başına fine-tuning'in etkisini kanıtlamaz. Anlamlı karşılaştırma: aynı soruları <strong>adaptörsüz Qwen3-8B</strong> ile ve adaptörlü modelle sorup cevapları (ve doğrulama kaybını) kıyaslamak.</p>
+<p><strong>Soru:</strong> Veri setindeki hazır bir soruyu sorabilir miyiz? (Öğrenci "When was Tomoaki Komorida born?" örneğini önerdi.)
+<strong>Cevap:</strong> Hoca soruyu sordu; model "Tomoaki Komorida was born on April 17, 1987." cevabını verdi. Altyazıdan anlaşıldığı kadarıyla hoca bu tarihi veri setindekiyle karşılaştırdı ve uyuşmadığını gördü [belirsiz: veri setindeki tarih]. Açıklaması: Modelimiz küçük ve biz ona <strong>bu bilgiyi öğretmedik; soruya cevap verme biçimini öğrettik</strong>. Bir öğrenci RAG ile farkı sordu: RAG'de dokümanlar verilir ve model onlara bakarak cevap verir; fine-tuning'de ise aynı cevabı vermeyebilir.</p>
+<p>Not: Bu, dersin ana mesajlarından biri: Fine-tuning <strong>davranış ve formatı</strong> öğretmekte iyidir; tek tek <strong>olguları (fact)</strong> güvenilir biçimde ezberletmek için uygun bir yol değildir; olgu için RAG gerekir. Ayrıca bu eğitimde yalnızca 20 adım (≈80 örnek) yapıldığı için model bu kaydı hiç görmemiş de olabilir.</p>
+</blockquote>
+<h3>[Altyazısız aralık] Dersin sonu (≈02:36–02:51)</h3>
+<p>Altyazı ≈02:36'da kesiliyor; ≈02:45'te yalnızca "prompt veriliyor… soruya cevap verdi" gibi kısa bir parça var ve kayıt 02:51'e kadar sürmesine rağmen sonrasında altyazı yok. Bu yüzden <strong>kapanış konuşması, bitirme projesinin teslim tarihi/sunumu, sertifikalar ve "bundan sonra ne yapmalı" tavsiyeleri bu kayıtta yer almıyor.</strong> Bu dersteki tek proje içeriği açılıştaki öğrenci sunumu ve ona verilen geri bildirimlerdir.</p>
+<blockquote>
+<p>Not: 16. derste söylenenler (bitirme projesi için ≈bir haftalık süre — "31'i Cumartesi" [belirsiz]; isteyen son derste sunar, isteyen dosyaları doğrudan hocaya gönderir; proje yapana başarı, yapmayana katılım sertifikası) bu derste altyazıda yeniden geçmedi ve güncellenmedi. 16. derste "sonraki derste bakılacak" denen Streamlit JSON hatasına da bu derste dönüldüğü altyazıda görülmüyor.</p>
+</blockquote>

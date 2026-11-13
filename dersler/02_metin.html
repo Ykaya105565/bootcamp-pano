@@ -1,0 +1,1058 @@
+<h2>02 · Yapay Zeka için Temeller — Ders Metni (ayıklanmış)</h2>
+<blockquote>
+<p><strong>Kaynak:</strong> Hocanın YouTube'daki "Komple Python Eğitimi" videosu (≈2 sa 40 dk, kayıtlı anlatım). Transkript, YouTube'un otomatik altyazısından alındı.
+<strong>Bu dersin kod dosyası yok.</strong> Aşağıdaki kod blokları, <strong>derste anlatılan örneklerin</strong> transkriptteki anlatıma göre Python sözdizimine uygun biçimde yeniden kurulmuş halidir. Değişken adları ve değerler anlatımdakiyle aynı tutuldu; transkriptten tam çıkarılamayan yerler <code>[belirsiz]</code> diye işaretlendi.
+Kanal tanıtımı, abone olma çağrıları ve kapanış konuşması çıkarıldı. "Not:" ile başlayan satırlar hocanın değil, notu hazırlayanın açıklamasıdır.
+<strong>Not:</strong> Video birkaç yıl önce çekilmiş (Python 3.7, Anaconda Navigator, Spyder). Dil temelleri değişmedi; yalnızca kurulum ekranları ve sürüm numaraları güncel değildir.</p>
+</blockquote>
+<hr>
+<h3>Python neden bu kadar popüler? (≈00:00–00:05)</h3>
+<p>Son yıllarda sürücüsüz arabalar, insan gibi çalışan robotlar, film/müzik öneren uygulamalar gerçek oldu; bu gelişmeler yapay zekâ alanının ilerlemesiyle geldi ve yapay zekâ için en çok kullanılan dil Python'dur. Hoca Google Trends grafiğini gösteriyor: Türkiye'de Python son 5 yılda giderek yükselmiş, C#'ı geçip Java ile yarışır hâle gelmiş; dünya genelinde ise hem C#'ı hem Java'yı geçmiş.</p>
+<p>Hocanın vurgusu: Teknoloji hemen her mesleğin içine girdi; hangi işi yaparsanız yapın programlama bilgisi sizi bir adım öne taşır ve işinizi kolaylaştırır. Bilgi ve geliştirme araçları artık açık kaynak; kendi kendinize çalışarak uygulama geliştirebilirsiniz. Başlangıç için en uygun dil, öğrenmesi kolay olan Python'dur; bugün birçok üniversitede ilk dil olarak okutuluyor.</p>
+<p><strong>Python'un özellikleri:</strong>
+- Nesne yönelimli, yorumlamalı (interpreted), modüler, etkileşimli ve yüksek seviyeli bir dildir.
+- Açık kaynak ve ücretsizdir; güçlü, esnek ve sözdizimi (syntax) sade olduğu için hızlı öğrenilir.
+- İlk kez 1990 yılında Guido van Rossum tarafından Amsterdam'da geliştirilmeye başlandı. Adı yılandan değil, Guido'nun çok sevdiği altı kişilik İngiliz komedi grubu <strong>Monty Python</strong>'dan gelir.
+  - Not: Resmî kaynaklarda geliştirmenin 1989 sonunda başladığı, ilk sürümün 1991'de yayımlandığı yazar; hoca "1990" dedi.
+- <strong>Yorumlamalı:</strong> C'den farklı olarak kod derlenmeden çalıştırılır.
+- <strong>Nesne tabanlı:</strong> Sınıflar tanımlayıp bu sınıflardan nesneler üretebilirsiniz; bu, işleri çok kolaylaştırır.
+- <strong>Etkileşimli:</strong> Bir komutu yazıp çalıştırdığınızda cevabını hemen alırsınız.
+- <strong>Birleştirilebilir (glue language):</strong> Başka dillerle birlikte kullanılabilir; ör. C/C++ için CPython, Java için Jython, .NET için IronPython [belirsiz: transkriptte "Saydın / Cahit" diye bozuk geçiyor].
+- <strong>Taşınabilir:</strong> Linux, Windows ve macOS'ta çalışır.</p>
+<p><strong>Python ile neler yapılır?</strong>
+- "Veri günümüzün petrolüdür." Veriyi değerlendiren Google, Facebook gibi şirketler kısa sürede dev boyutlara ulaştı; <strong>veri bilimi</strong> diye yeni bir alan doğdu ve geleceğe damgasını vuracağını söylemek kehanet sayılmaz. Veri bilimi için en çok kullanılan dil Python'dur: Keras, TensorFlow, PyTorch gibi kütüphanelerle verilerle "top gibi oynayabilir", analizleri kolayca yapabilirsiniz.
+- Büyük veri için de tercih edilir; yaygın kullanılan Spark, Python ile çalışabilir.
+- Web geliştirme, masaüstü ve Android uygulamaları, oyunlar, blockchain, uzaktan kontrol ve görüntü işleme yapılabilir. Google, NASA gibi büyük kurumlar Python kullanır.</p>
+<p><strong>Hocanın tavsiyesi:</strong> Python'u bu dersle hızlıca öğrenin, ardından Python kütüphaneleriyle bol bol pratik yapın; pratik yaptıkça Python'u daha çok seversiniz.</p>
+<hr>
+<h3>Python'u indirip kurmak, python.org ve PyPI (≈00:05–00:08)</h3>
+<ul>
+<li><strong>python.org</strong> resmî sitedir. Haberleri takip edebilir, <strong>Documentation</strong> bölümünden dili öğrenebilirsiniz.</li>
+<li><strong>Dokümantasyon okumak önemlidir:</strong> Teknoloji çok hızlı ilerliyor, Python sürekli güncelleniyor, yeni metotlar ekleniyor ya da kaldırılıyor. Dokümantasyonu takip ederek güncel kalırsınız.</li>
+<li>Python'un popüler olmasının bir sebebi de kaynağın bol olmasıdır; son zamanlarda çıkan veri bilimi kaynaklarının çoğu Python kullanır. Topluluğu geniştir: Bir sorunla karşılaştığınızda Google ve Stack Overflow'da cevabını kolayca bulursunuz.</li>
+<li><strong>PyPI</strong> (Python Package Index) sayfasından kütüphaneler ve paketler hakkında bilgi alınır. Ör. web geliştirmede kullanılan <strong>Django</strong> aratıldığında kurulum komutu görülür: <code>pip install Django</code>. Kütüphane dosyalarını indirmek için "Download files" bölümü kullanılır. Python'da ilerledikçe PyPI'ı çok sık kullanacaksınız.</li>
+<li>Kurulum için python.org → <strong>Downloads</strong> → son sürüm indirilir. Pek çok Linux dağıtımında ve macOS'ta Python önceden yüklü gelir. İndirilen dosya çift tıklanıp kurulum adımlarıyla kurulur.</li>
+</ul>
+<p>Hoca dersi sıfırdan anlattığını, yazdığı kodları <strong>kendinizin de yazıp çalıştırmanızı</strong> istiyor; hızlı bulduğunuz yerlerde videoyu yavaşlatıp durdurarak not almanızı öneriyor.</p>
+<p><strong>Kurulumu kontrol etmek:</strong> Windows aramasına <code>cmd</code> yazıp komut istemi açılır, <code>python</code> yazılıp Enter'a basılır. Yüklü sürüm görünür ve Python etkileşimli modda açılır. Geleneğe uyarak ilk program "Merhaba dünya" olur:</p>
+<pre><code class="language-python">print(&quot;Merhaba dünya&quot;)
+</code></pre>
+<p>Ekrana yazı yazdırmak için <code>print</code> kullanılır; "Merhaba dünya" bir metin (string) olduğu için tırnak içinde yazılır. Etkileşimli moddan çıkmak için <code>exit()</code> kullanılır.</p>
+<hr>
+<h3>Kütüphanelerin önemi, pip ve Anaconda (≈00:08–00:11)</h3>
+<ul>
+<li><strong>Sadece Python'u bilmek proje yapmaya yetmez.</strong> Web için kullanılan Django ayrı bir kütüphanedir ve ayrıca öğrenilmesi gerekir. Veriyi işleyip temizlemek için kullanılan <strong>pandas</strong> başlı başına önemli bir kütüphanedir: Veriyi pandas ile analize uygun hâle getiremezseniz istatistiği ne kadar iyi bilirseniz bilin analiz yapamazsınız. Hoca, Python'u yaklaşık 30 derste, pandas'ı ise 30'dan fazla derste anlattığını, pandas'ın da koca ekosistemde yalnızca bir kütüphane olduğunu hatırlatıyor.</li>
+<li>Sıfırdan program yazmak yerine kütüphaneleri kullanarak projelerinize ve problemlerinize odaklanırsınız. <strong>Python'u bilmek kadar kütüphaneleri bilmek de önemlidir.</strong></li>
+<li>Kütüphane/paket yüklemek için <strong>pip</strong> (Python'un paket yöneticisi) kullanılır:</li>
+</ul>
+<pre><code class="language-bash">pip install pandas
+</code></pre>
+<ul>
+<li>Komutları terminalden çalıştırabilirsiniz, ama bir IDE ya da editör kullanırsanız kodu daha hızlı ve kolay yazarsınız.</li>
+</ul>
+<p><strong>Anaconda:</strong> Python'u dağıtımlarla da kurabilirsiniz; en çok kullanılanı Anaconda'dır ve hoca Python çalışmalarında Anaconda kullanmayı "şiddetle" tavsiye ediyor. Ücretsiz, açık kaynak, paket yönetimini kolaylaştırmayı amaçlayan bir dağıtımdır ve özellikle veri bilimi için 1500'den fazla paketle gelir. anaconda.com'dan indirilir.</p>
+<ul>
+<li>Sitede Python 2 ve 3 için ayrı Anaconda sürümleri vardı. Python 2 ilk kez [belirsiz: transkriptte yıl bozuk] yılında, Python 3 ise 2008'de yayımlandı. <strong>Python 2'nin geliştirilmesi 1 Ocak 2020 itibarıyla resmen sona erdi</strong>, bu yüzden Python 3 öğrenilmesi önerilir. Hoca o tarihte Python 3.7 sürümünü indirdi.</li>
+<li>Not: Python 2.0, 2000 yılında çıktı. Bugün güncel sürüm 3.12/3.13'tür.</li>
+<li>Anaconda Windows, Linux ve macOS'ta çalışır. Grafik arayüzü <strong>Anaconda Navigator</strong> ile gelir; Navigator'dan IDE ve editörler kurulup açılabilir.</li>
+</ul>
+<hr>
+<h3>IDE/editörler ve Spyder'ı tanımak (≈00:10–00:14)</h3>
+<ul>
+<li><strong>Editörler</strong> kod yazmak, saklamak, düzenlemek ve geliştirmek için kullanılan programlardır. <strong>IDE</strong> (Integrated Development Environment, tümleşik geliştirme ortamı), yazılımcıların daha kolay geliştirme yapması için tasarlanmış yazılımlardır.</li>
+<li>Navigator'daki editörlerin altındaki <strong>Install</strong> ile kurulum, <strong>Launch</strong> ile açma yapılır.</li>
+<li>Python için PyCharm, Sublime Text gibi editörler kullanılabilir. Veri biliminde, iyi görselleştirme sunduğu için <strong>Jupyter Notebook</strong> yaygındır; hoca kanalındaki veri bilimi derslerinde Jupyter kullanıyor. Bu derste ise pratik olduğu için <strong>Spyder</strong> kullanılıyor.</li>
+</ul>
+<p><strong>Spyder'ın arayüzü:</strong>
+- Görünüm: <em>Tools → Preferences → Appearance</em> bölümünden tema seçilir (Spyder, Spyder Dark vb.). Hoca açık temayı seçti.
+- <strong>Sol taraf:</strong> Kodların yazıldığı ve düzenlendiği çalışma alanı (editör).
+- <strong>Sağ taraf:</strong> IPython konsolu; kodların çıktısı burada görülür. Hoca, kodlar daha iyi görünsün diye konsolun üstündeki diğer pencereleri kapattı.
+- <strong>Sağ üst köşe:</strong> Çalışma dizini (working directory); dosya kaydedildiğinde buraya kaydedilir.
+- Yazıyı büyütmek için <code>Ctrl</code> + <code>+</code> kullanılır.
+- Yeşil <strong>Run</strong> butonu çalışma alanındaki bütün kodları çalıştırır; <strong>Run selection</strong> (seçimi çalıştır) ile kod satır satır çalıştırılabilir.
+  - Not: Spyder'da kısayollar genellikle F5 (dosyayı çalıştır) ve F9 (seçimi/satırı çalıştır) şeklindedir.</p>
+<hr>
+<h3>Değişkenler, isimlendirme kuralları ve yorumlar (≈00:14–00:17)</h3>
+<p>Python'da değişken oluşturmak çok kolaydır. <code>=</code> <strong>atama operatörüdür</strong>: Sağdaki değeri soldaki isme atar.</p>
+<pre><code class="language-python">x = 5
+x            # 5
+
+y = &quot;Eğitim şart&quot;
+print(y)     # Eğitim şart
+</code></pre>
+<p>"String" kelimesi kafanızı karıştırmasın: <strong>String karakter dizisidir</strong>, metin de denebilir ve tırnak içinde gösterilir.</p>
+<p><strong>Büyük/küçük harf duyarlılığı:</strong> Python büyük ve küçük harfi ayırt eder. <code>x</code>'e 5 atadıktan sonra <code>X</code> yazılırsa "X tanımlı değil" hatası (<code>NameError</code>) alınır. Kod yazarken buna çok dikkat etmek gerekir.</p>
+<p><strong>İsimlendirme kuralları:</strong>
+- Değişken adları harf ve rakamdan oluşabilir ama <strong>rakamla başlayamaz</strong>.
+- İsimde <strong>boşluk bırakılmaz</strong>; alt çizgi kullanılır:</p>
+<pre><code class="language-python">benim_adim = &quot;Ali&quot;
+</code></pre>
+<ul>
+<li>Her dilin kendine özgü sözdizimi vardır ve bu sözdizimi <strong>anahtar kelimeler</strong> (keywords) içerir. Anahtar kelimeler değişken adı olarak kullanılamaz. Ör. <code>class</code> bir anahtar kelimedir; editörde rengi farklı görünür ve değişken adı olarak kullanılırsa hata verir.</li>
+</ul>
+<p><strong>String'lerde operatörler:</strong> Genel olarak aritmetik operatörler string'lere uygulanamaz; istisnalar <code>+</code> ve <code>*</code>'dır.</p>
+<pre><code class="language-python">&quot;Ali&quot; + &quot;Veli&quot;   # 'AliVeli'  -&gt; + iki string'i uç uca birleştirir
+&quot;Ali&quot; * 3        # 'AliAliAli' -&gt; * string'i tekrar ettirir
+</code></pre>
+<p><strong>Yorum (açıklama) satırları:</strong> <code>#</code> sembolü kullanılır. Editör <code>#</code>'den sonrasını açıklama olarak algılar, rengini değiştirir ve çalıştırmaz.</p>
+<pre><code class="language-python">r = 35  # Ali'nin yaşı
+</code></pre>
+<hr>
+<h3>Veri tiplerine genel bakış (≈00:17–00:24)</h3>
+<p>Bellekte veri pek çok biçimde saklanabilir: Bir kişinin yaşı sayı olarak, adresi metin olarak tutulur. Python'da 5 standart veri tipi anlatılıyor: <strong>sayısal, string, liste, demet (tuple) ve sözlük (dictionary)</strong>.</p>
+<h4>Sayısal tipler</h4>
+<pre><code class="language-python">s = 1
+print(s)      # 1
+del s         # değişkeni siler
+s             # NameError: name 's' is not defined
+</code></pre>
+<p>Python'da üç sayısal tip vardır: <strong>int</strong> (tam sayı), <strong>float</strong> (ondalıklı sayı), <strong>complex</strong> (karmaşık sayı). Bir değişkenin tipini öğrenmek için <code>type()</code> kullanılır.</p>
+<pre><code class="language-python">x = 5
+type(x)       # int
+
+y = 5.0
+type(y)       # float
+
+z = 5 + 3j
+type(z)       # complex
+</code></pre>
+<p>Not: Transkriptte karmaşık sayı örneği "beş artı 300i" diye bozuk geçiyor; Python'da sanal kısım <code>j</code> ile yazılır (ör. <code>5 + 3j</code>).</p>
+<h4>String (giriş)</h4>
+<p>Karakterlerin bir araya gelmesidir, tırnak içinde yazılır. Çift ya da tek tırnak kullanılabilir.</p>
+<pre><code class="language-python">s = &quot;Eğitim şart&quot;
+s = 'Eğitim şart'   # aynı sonuç
+print(s[0])         # 'E'  -&gt; indeks 0'dan başlar
+print(s[0:5])       # 'Eğiti' -&gt; 0'dan 5'e kadar (5 dahil değil)
+print(s[-1])        # 't'  -&gt; son eleman için -1
+</code></pre>
+<h4>Liste (giriş)</h4>
+<p>Farklı veri tiplerini bir araya getirir; elemanlar virgülle ayrılır ve köşeli parantez içinde yazılır.</p>
+<pre><code class="language-python">liste = [&quot;ABC&quot;, 123, 12.6]
+print(liste)
+type(liste)       # list
+print(liste[0])   # 'ABC'
+print(liste[-1])  # 12.6
+print(liste[0:2]) # ['ABC', 123] -&gt; 0 ve 1 alınır, 2. indeks alınmaz
+</code></pre>
+<h4>Demet / tuple (giriş)</h4>
+<p>Listelere benzer, ama <strong>elemanları değiştirilemez</strong>: Bir kez tanımlandıktan sonra üzerinde değişiklik yapılamaz. Listeler köşeli parantezle, demetler normal parantezle yazılır.</p>
+<pre><code class="language-python">demet = (123, &quot;ABC&quot;, 4.56)
+type(demet)      # tuple
+print(demet[0])  # 123
+print(demet[-1]) # 4.56
+print(demet[1:2])# ('ABC',) -&gt; yalnızca ABC
+</code></pre>
+<h4>Sözlük / dictionary (giriş)</h4>
+<p>Süslü parantez içine konan <strong>anahtar–değer</strong> (key–value) çiftlerinden oluşan yapısal bir tiptir. Adından da anlaşılacağı gibi sözlüğe benzer: Terimleri anahtar, açıklamaları değer gibi düşünebilirsiniz.</p>
+<pre><code class="language-python">yas = {&quot;Ahmet&quot;: 18, &quot;Selim&quot;: 20}
+type(yas)            # dict
+print(yas[&quot;Ahmet&quot;])  # 18
+print(yas.keys())    # yalnızca anahtarlar
+print(yas.values())  # yalnızca değerler
+</code></pre>
+<p>Anahtarlar genelde sayı ya da string olur; değerler her tipten olabilir.</p>
+<hr>
+<h3>Tip dönüşümleri (≈00:24–00:26)</h3>
+<p>Bazen veri tiplerini birbirine dönüştürmek gerekir:</p>
+<pre><code class="language-python">int(&quot;34&quot;)    # 34   -&gt; string'i tam sayıya çevirir
+int(3.12)    # 3    -&gt; ondalıklı sayının yalnızca tam kısmını alır
+float(5)     # 5.0  -&gt; tam sayıyı ondalıklıya çevirir
+str(15)      # '15' -&gt; sayıyı string'e çevirir
+</code></pre>
+<hr>
+<h3>String'ler ayrıntılı (≈00:26–00:38)</h3>
+<p>Uzunluğu bir olan string karakterdir; ama Python'da "karakter" ayrı bir veri tipi değildir. Karakterler bir araya gelerek string'i oluşturur. String'ler tek, çift veya üç tırnakla yazılabilir.</p>
+<pre><code class="language-python">&quot;Tirendaz Akademi&quot;
+'Tirendaz Akademi'
+'Tirendaz Akademi&quot;   # SyntaxError: hangi tırnakla başladıysanız onunla bitirmelisiniz
+</code></pre>
+<h4>Kesme işareti (apostrof) sorunu</h4>
+<pre><code class="language-python">'Ali'nin kitabı'      # Hata: Python ikinci tek tırnağı string'in bitişi sanar
+</code></pre>
+<p>İki çözüm vardır:</p>
+<pre><code class="language-python">&quot;Ali'nin kitabı&quot;      # 1) Dışta çift tırnak, içte tek tırnak
+'Ali\'nin kitabı'     # 2) Kaçış işareti (ters eğik çizgi, backslash)
+</code></pre>
+<p>Tek ve çift tırnağın birlikte kullanılabilmesi metin yazmayı kolaylaştırır.</p>
+<h4><code>print</code> ile doğrudan yazmanın farkı</h4>
+<pre><code class="language-python">x = &quot;Tirendaz Akademi&quot;
+x             # 'Tirendaz Akademi'  -&gt; konsol tırnaklı gösterir
+print(x)      # Tirendaz Akademi    -&gt; print tırnaksız yazar
+
+print(&quot;Tirendaz\nAkademi&quot;)   # \n okunur, Akademi alt satıra geçer
+&quot;Tirendaz\nAkademi&quot;          # konsolda \n olduğu gibi görünür
+</code></pre>
+<p><code>print</code> string'in içini okur ve <code>\n</code> (yeni satır) gibi kaçış dizilerini uygular; konsolda değeri doğrudan yazdığınızda ise ifade olduğu gibi gösterilir.</p>
+<h4>Operatörler</h4>
+<pre><code class="language-python">x = &quot;Ali&quot;
+y = &quot;Veli&quot;
+x + y           # 'AliVeli'
+x + &quot; &quot; + y     # 'Ali Veli' -&gt; araya boşluk
+print(x, y)     # Ali Veli   -&gt; print virgülle verilen değerleri boşlukla yazar
+3 * x           # 'AliAliAli'
+</code></pre>
+<h4>Kullanıcıdan string almak, uzunluk ve indeksleme</h4>
+<pre><code class="language-python">x = input(&quot;İsim giriniz: &quot;)   # kullanıcı &quot;tirendaz&quot; yazdı
+print(x)
+type(x)       # str
+len(x)        # 8
+
+x[0]          # 't'
+x[3]          # 'e'   -&gt; t:0, i:1, r:2, e:3
+x[-1]         # 'z'
+x[1:5]        # 'iren' -&gt; 1'den 5'e kadar, 5 dahil değil
+x[2:]         # 'rendaz' -&gt; 2. indeksten sonrası
+x[:6]         # 'tirend' -&gt; 6. indekse kadar
+</code></pre>
+<h4><code>in</code> ve <code>not in</code></h4>
+<pre><code class="language-python">&quot;e&quot; in x        # True
+&quot;ç&quot; in x        # False
+&quot;g&quot; not in x    # True
+&quot;i&quot; not in x    # False
+</code></pre>
+<h4>String metotları</h4>
+<p>Metotlarla string'lerle "top gibi oynanabilir". Tüm metotları görmek için:</p>
+<pre><code class="language-python">dir(str)
+</code></pre>
+<pre><code class="language-python">x.upper()                 # 'TIRENDAZ'  -&gt; bütün harfleri büyütür
+x.capitalize()            # 'Tirendaz'  -&gt; yalnızca ilk harfi büyütür
+x.replace(&quot;daz&quot;, &quot;kaç&quot;)   # 'tirenkaç'  -&gt; bir ifadeyi başkasıyla değiştirir
+x.index(&quot;e&quot;)              # 3           -&gt; karakterin indeksini bulur
+</code></pre>
+<p><code>str</code> sınıfının 40'tan fazla metodu vardır. Bilgi almak için internete bakılabilir ya da <code>help</code> kullanılabilir:</p>
+<pre><code class="language-python">help()        # etkileşimli yardım; &quot;str&quot; yazıp Enter -&gt; str metotlarının özeti
+help(len)     # len hakkında yardım
+</code></pre>
+<h4>Sayı ↔ string dönüşümleri</h4>
+<pre><code class="language-python">str(123)        # '123'
+str(1.23)       # '1.23'
+float(&quot;1.23&quot;)   # 1.23
+</code></pre>
+<hr>
+<h3>Listeler ayrıntılı (≈00:37–00:47)</h3>
+<p>Liste yapısal bir veri tipidir; klasik dillerdeki dizi (array) yapısının genişletilmiş hâlidir. İçinde aynı anda sayısal, string ve mantıksal (boolean) değerler bulunabilir; hatta listenin içinde liste bulunabilir.</p>
+<pre><code class="language-python">liste = [&quot;gül&quot;, 10, True]
+print(liste)
+type(liste)      # list
+liste[0]         # 'gül'
+liste[-1]        # True
+liste[0:2]       # ['gül', 10]
+liste[1:]        # [10, True]   -&gt; 1. indeksten itibaren
+liste[:2]        # ['gül', 10]  -&gt; 2. indekse kadar
+len(liste)       # 3
+</code></pre>
+<h4>İç içe liste</h4>
+<pre><code class="language-python">liste.append([1, 2, 3])   # [belirsiz: transkriptte ekleme yöntemi net değil]
+len(liste)                # 4 -&gt; [1, 2, 3] tek bir eleman sayılır
+liste[3][0]               # 1 -&gt; önce dıştaki indeks, sonra içteki indeks
+</code></pre>
+<h4>Operatörler ve değiştirme</h4>
+<pre><code class="language-python">x = [1, 2, 3]
+liste + x            # iki liste birleşir
+
+10 in liste          # True
+11 in liste          # False
+
+liste[0] = &quot;papatya&quot; # listeler değiştirilebilir (mutable)
+</code></pre>
+<h4>Liste metotları</h4>
+<pre><code class="language-python">dir(list)   # tüm liste metotları
+
+isimler = [&quot;Ali&quot;, &quot;Veli&quot;, &quot;Ayşe&quot;]
+maaslar = [2000, 3000, 4000]
+
+isimler.append(&quot;Mert&quot;)      # sona tek eleman ekler
+isimler.extend(maaslar)     # listeye başka bir listenin elemanlarını ekler
+isimler.insert(0, &quot;Bahar&quot;)  # istenen indekse eleman yerleştirir
+isimler.index(&quot;Ali&quot;)        # elemanın indeksini verir
+
+isimler.sort()              # alfabetik sıralar
+maaslar.sort()              # küçükten büyüğe sıralar
+isimler.reverse()           # sondan başa çevirir: ['Ayşe', 'Veli', 'Ali']
+
+isimler.remove(&quot;Ali&quot;)       # elemanı siler; silinene artık ulaşılamaz
+print(isimler.pop(1))       # indeksi verilen elemanı çıkarır AMA döndürür;
+                            # çıkan eleman programda başka yerde kullanılabilir
+del isimler[2]              # indeksi verilen elemanı siler
+del isimler                 # listenin tamamını siler -&gt; sonra NameError
+</code></pre>
+<p>Not: Hoca her metot öncesinde <code>isimler</code> listesini yeniden oluşturarak örnekleri bağımsız çalıştırıyor.</p>
+<hr>
+<h3>Aritmetik işlemler, gömülü fonksiyonlar ve <code>math</code> modülü (≈00:47–00:53)</h3>
+<p>Python bilimsel hesaplamalarda çok güçlüdür; sık kullanılan matematiksel operatörler gömülü (built-in) gelir.</p>
+<pre><code class="language-python">7 + 2     # 9
+7 - 2     # 5
+7 * 2     # 14
+7 / 2     # 3.5
+7 // 2    # 3   -&gt; tam sayı bölme, ondalık kısım atılır
+7 % 2     # 1   -&gt; bölümden kalan (mod)
+
+3 + 4 * 5     # 23 -&gt; işlem önceliği: önce çarpma
+(3 + 4) * 5   # 35 -&gt; önce parantez
+</code></pre>
+<p>Değişkenlerle işlem:</p>
+<pre><code class="language-python">x = 5
+x + 6    # 11
+x * 3    # 15
+x / 2    # 2.5
+</code></pre>
+<p>Sayı ile string doğrudan birleştirilemez:</p>
+<pre><code class="language-python">print(x + &quot; güzel sayı&quot;)        # TypeError
+print(str(x) + &quot; güzel sayı&quot;)   # 5 güzel sayı
+</code></pre>
+<p>Not: Hoca sayıyı tırnak içine alarak (<code>"5" + " güzel sayı"</code>) gösterdi; <code>str(x)</code> aynı işi değişkenle yapar.</p>
+<h4>Gömülü fonksiyonlar</h4>
+<pre><code class="language-python">abs(-3)      # 3   -&gt; mutlak değer
+pow(2, 3)    # 8   -&gt; üs alma (2'nin küpü)
+max(2, 3)    # 3
+min(2, 3)    # 2
+round(2.3)   # 2   -&gt; ondalık kısım 5'ten küçükse aşağı
+round(2.8)   # 3   -&gt; 5'ten büyükse yukarı yuvarlar
+sqrt(9)      # NameError -&gt; sqrt gömülü değil, math modülündedir
+</code></pre>
+<p>Not: Python 3'te <code>round</code> tam .5 değerlerinde "en yakın çift sayıya" yuvarlar (<code>round(2.5) == 2</code>).</p>
+<h4><code>math</code> modülü</h4>
+<p><code>math</code>, Python'un standart kütüphanesinde gelen gömülü bir modüldür. Kullanmak için önce <strong>import</strong> (içe aktarma) gerekir ve fonksiyon başına <code>math.</code> yazılır.</p>
+<pre><code class="language-python">import math
+math.sqrt(9)       # 3.0
+help(&quot;math&quot;)       # modüldeki tüm fonksiyonlar [belirsiz: dir(math) da olabilir]
+
+import math as m   # modül adını kısaltmak
+m.sqrt(16)         # 4.0
+
+from math import sqrt, floor, ceil   # yalnızca istenen fonksiyonları al
+sqrt(25)           # 5.0  -&gt; başına önek gerekmez
+floor(3.8)         # 3    -&gt; kendinden küçük en büyük tam sayı
+floor(3.4)         # 3
+ceil(3.8)          # 4    -&gt; kendinden büyük en küçük tam sayı
+ceil(3.2)          # 4
+</code></pre>
+<hr>
+<h3>Tuple (demet) ayrıntılı (≈00:53–00:57)</h3>
+<p>Tuple yapısal bir veri tipidir, farklı tipleri barındırır ve listelere çok benzer. İki önemli farkı vardır:
+1. Listeler köşeli, tuple'lar normal parantezle yazılır.
+2. Listenin elemanları değiştirilebilir, <strong>tuple'ın elemanları değiştirilemez</strong>.</p>
+<pre><code class="language-python">L = [1, 2, 3]
+T = (1, 2, 3)
+
+L[1] = 55   # çalışır -&gt; [1, 55, 3]
+T[1] = 44   # TypeError: 'tuple' object does not support item assignment
+</code></pre>
+<p>Tuple parantezsiz de yazılabilir ve elemanları ayrı değişkenlere açılabilir (unpacking):</p>
+<pre><code class="language-python">koordinatlar = 2, 3, 4
+x, y, z = koordinatlar
+print(x, y, z)   # 2 3 4
+</code></pre>
+<p>Tuple içine liste de yazılabilir; <strong>tuple'ın içindeki liste değiştirilebilir</strong>:</p>
+<pre><code class="language-python">x = ([1, 2, 3], [22, 33, 44])   # [belirsiz: ikinci listenin ilk elemanları transkriptte net değil]
+type(x)        # tuple
+len(x)         # 2
+x[1][2] = 99   # hata yok
+print(x)       # ([1, 2, 3], [22, 33, 99])
+</code></pre>
+<p>Hocanın benzetmesi: Tuple, içindeki listenin "dünyasına karışmaz"; listenin dünyasına girdikten sonra elemanlarla istediğiniz gibi oynayabilirsiniz.</p>
+<hr>
+<h3>Kullanıcıdan girdi almak: <code>input</code> (≈00:57–01:00)</h3>
+<p><code>input</code> fonksiyonu, kullanıcıdan bilgi alıp saklar; programı dinamik ve etkileşimli hâle getirir.</p>
+<pre><code class="language-python">isim = input(&quot;Lütfen bir isim giriniz: &quot;)
+yas = input(&quot;Lütfen yaşınızı giriniz: &quot;)
+print(&quot;Merhaba &quot; + isim + &quot; yaşınız: &quot; + yas)
+# Ali, 30 -&gt; Merhaba Ali yaşınız: 30
+</code></pre>
+<p><strong>Sık yapılan hata — <code>input</code> her zaman string döndürür:</strong></p>
+<pre><code class="language-python">sayi1 = input(&quot;Lütfen bir sayı giriniz: &quot;)
+sayi2 = input(&quot;Lütfen diğer sayıyı giriniz: &quot;)
+sonuc = sayi1 + sayi2
+print(sonuc)   # 5 ve 3.4 -&gt; '53.4'  (toplanmadı, yan yana yazıldı!)
+</code></pre>
+<p>Python girilen değerleri string olarak gördüğü için birleştirdi. Çözüm, sayısal tipe çevirmektir:</p>
+<pre><code class="language-python">sayi1 = int(input(&quot;Lütfen bir sayı giriniz: &quot;))
+sayi2 = int(input(&quot;Lütfen diğer sayıyı giriniz: &quot;))
+print(sayi1 + sayi2)   # 5 ve 6 -&gt; 11
+# 5.3 girilirse ValueError: tam sayı beklendi
+</code></pre>
+<p>Ondalıklı sayılar için <code>float</code> kullanılır:</p>
+<pre><code class="language-python">sayi1 = float(input(&quot;Lütfen bir sayı giriniz: &quot;))
+sayi2 = float(input(&quot;Lütfen diğer sayıyı giriniz: &quot;))
+print(sayi1 + sayi2)   # 5.3 ve 6 -&gt; 11.3
+</code></pre>
+<hr>
+<h3>Fonksiyonlar (≈01:00–01:05)</h3>
+<p>Fonksiyon, basitçe kodların bir araya getirilmesidir. Görevi <strong>girdi almak, işlemek ve çıktı vermektir</strong>. <code>print</code> de bir fonksiyondur: Parantez içindekini ekrana yazmak gibi özel bir görevi vardır. Gömülü fonksiyonların yanında kendi fonksiyonlarımızı da yazabiliriz; bunun için anahtar kelime <strong><code>def</code></strong>'tir.</p>
+<pre><code class="language-python">def slm():
+    print(&quot;Selam&quot;)
+    print(&quot;herkese&quot;)
+
+slm()   # fonksiyonu çağırmak
+</code></pre>
+<p>Kurallar:
+- <code>def</code>, ardından boşluk içermeyen fonksiyon adı, parantez ve <strong>iki nokta üst üste</strong> gelir.
+- Enter'a basınca girintili satıra geçilir; burası <strong>fonksiyonun gövdesidir</strong>. Girinti devam ettikçe Python fonksiyonun sürdüğünü anlar; girintiden çıkıldığında fonksiyon biter.
+- Fonksiyonu tanımlamak onu çalıştırmaz; önce tanımlanır, kullanılacağı zaman <strong>çağrılır</strong>.</p>
+<h4>Parametreler (argümanlar)</h4>
+<pre><code class="language-python">def slm(isim, yas):
+    print(&quot;Selam &quot; + isim + &quot; yaşınız: &quot; + yas)
+
+slm(&quot;Ali&quot;, &quot;35&quot;)   # Selam Ali yaşınız: 35
+</code></pre>
+<p>Yaş burada <code>+</code> ile birleştirildiği için string olarak (tırnak içinde) verildi.</p>
+<h4><code>return</code> ile değer döndürmek</h4>
+<pre><code class="language-python">def kare_al(say):
+    say * say
+
+kare_al(2)          # ekrana bir şey yazılmaz
+print(kare_al(2))   # None -&gt; fonksiyon bir değer döndürmüyor
+
+def kare_al(say):
+    return say * say
+
+print(kare_al(2))   # 4
+print(kare_al(5))   # 25
+</code></pre>
+<p>Fonksiyondan geri bilgi almak için <code>return</code> deyimi kullanılır.</p>
+<hr>
+<h3>Koşul durumları: <code>if</code>, <code>elif</code>, <code>else</code> (≈01:05–01:11)</h3>
+<p>Birden fazla alternatif olduğunda koşul kontrol edilerek programın karar vermesi sağlanır.</p>
+<pre><code class="language-python">puan = int(input(&quot;Puan giriniz: &quot;))   # input string döndürür -&gt; int'e çevir
+
+if puan &gt;= 50:
+    print(&quot;Tebrikler geçtiniz&quot;)
+else:
+    print(&quot;Maalesef kaldınız&quot;)
+</code></pre>
+<ul>
+<li>Koşuldan sonra <strong>iki nokta üst üste</strong> zorunludur; yoksa hata alınır.</li>
+<li><strong>Python'da girintiler çok önemlidir.</strong> Elle girinti verilecekse 4 boşluk ya da Tab kullanılır; editör Enter'dan sonra otomatik girinti verir.</li>
+<li><code>else</code>'in koşulu yoktur: <code>if</code> koşulu sağlanmazsa doğrudan <code>else</code> bloğu çalışır. <code>else</code> olmadan 40 girildiğinde ekrana hiçbir şey yazılmaz, çünkü programa ne yapacağı söylenmemiştir.</li>
+</ul>
+<h4><code>elif</code> ile birden çok koşul</h4>
+<pre><code class="language-python">sayi = int(input(&quot;Bir sayı giriniz: &quot;))
+
+if sayi &lt; 100:
+    print(&quot;Girdiğiniz sayı 100'den küçüktür&quot;)
+elif sayi &gt; 500:
+    print(&quot;Girdiğiniz sayı 500'den büyüktür&quot;)
+else:
+    print(&quot;Girdiğiniz sayı 100 ile 500 arasındadır&quot;)
+</code></pre>
+<p><strong>Çalışma mantığı:</strong> Önce <code>if</code> koşuluna bakılır; sağlanırsa o blok çalışır. Sağlanmazsa <code>elif</code>'e geçilir; o da sağlanmazsa <code>else</code> çalışır. 85 → ilk blok; 600 → <code>elif</code> bloğu; 300 → <code>else</code> bloğu.</p>
+<hr>
+<h3>Mantıksal değerler ve mantıksal operatörler (≈01:11–01:15)</h3>
+<p>Bilgisayar bilimi 1 ve 0 üzerine kuruludur: 1 doğru (<strong>True</strong>), 0 yanlış (<strong>False</strong>) demektir. True/False değeri alan ifadelere mantıksal (boolean) ifadeler denir.</p>
+<pre><code class="language-python">x = 5
+x == 5   # True  -&gt; eşitlik kontrolü için ==
+x == 6   # False
+</code></pre>
+<p>Python'da nesnelerin mantıksal bir değeri vardır: Genel olarak <strong>sıfır ve boş veri yapıları False</strong>, geri kalan her şey True'dur. Bunu <code>bool()</code> gösterir:</p>
+<pre><code class="language-python">bool(10)    # True
+bool(&quot;ne&quot;)  # True   [belirsiz: örnek metin]
+bool(0)     # False
+bool(&quot;0&quot;)   # True  -&gt; tırnak içindeki 0 bir string'dir, boş değildir [belirsiz: örnek değer]
+bool([])    # False -&gt; boş liste
+</code></pre>
+<h4><code>and</code>, <code>or</code>, <code>not</code></h4>
+<pre><code class="language-python">python = True
+java = True
+
+if java and python:
+    print(&quot;Doğru&quot;)
+else:
+    print(&quot;Yanlış&quot;)
+</code></pre>
+<ul>
+<li><strong>and (ve):</strong> İki ifade de doğruysa sonuç doğrudur; biri bile yanlışsa sonuç yanlıştır.</li>
+<li><strong>or (veya):</strong> İfadelerden biri doğruysa sonuç doğrudur; ikisi de yanlışsa sonuç yanlıştır.</li>
+<li><strong>not (değil):</strong> Mantıksal değeri tersine çevirir: True → False, False → True.</li>
+</ul>
+<pre><code class="language-python">python = True
+not python   # False
+python = False
+not python   # True
+</code></pre>
+<hr>
+<h3>Karşılaştırma operatörleri ve iki uygulama (≈01:15–01:20)</h3>
+<p>Altı karşılaştırma operatörü vardır: <code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code>, <code>==</code>, <code>!=</code>.</p>
+<pre><code class="language-python">a = 5
+b = 6
+a &lt; b    # True
+a &gt; b    # False
+a == b   # False
+a != b   # True
+a &lt;= b   # True
+a &gt;= b   # False
+</code></pre>
+<h4>Uygulama 1: Şifre doğrulama (string karşılaştırma)</h4>
+<pre><code class="language-python">parola = &quot;123asd&quot;   # tırnaksız yazılınca hata verdi -&gt; string olmalı
+sifre = input(&quot;Şifrenizi giriniz: &quot;)
+
+if sifre == parola:
+    print(&quot;Şifre doğru&quot;)
+elif sifre != parola:
+    print(&quot;Şifre yanlış&quot;)
+</code></pre>
+<h4>Uygulama 2: Üç sayıdan en büyüğü</h4>
+<pre><code class="language-python">def en_buyuk(say1, say2, say3):
+    if say1 &gt;= say2 and say1 &gt;= say3:
+        return say1
+    elif say2 &gt;= say1 and say2 &gt;= say3:
+        return say2
+    else:
+        return say3
+
+print(en_buyuk(4, 5, 6))     # 6
+print(en_buyuk(4, 50, 6))    # 50
+print(en_buyuk(400, 50, 6))  # 400
+</code></pre>
+<hr>
+<h3>Sözlükler (dictionary) ayrıntılı (≈01:20–01:25)</h3>
+<p>Türkçesi sözlüktür; süslü parantezle oluşturulur ve <strong>key–value</strong> (anahtar–değer) ikililerinden oluşur.</p>
+<pre><code class="language-python">dil = {&quot;Ali&quot;: &quot;İngilizce&quot;,
+       &quot;Can&quot;: &quot;Almanca&quot;,
+       &quot;Ayşe&quot;: &quot;Fransızca&quot;}
+</code></pre>
+<p>Kodun kolay okunması önemlidir; bu yüzden hoca çiftleri alt alta yazdı. Burada Ali anahtar, İngilizce değerdir.</p>
+<pre><code class="language-python">len(dil)       # 3 -&gt; üç anahtar–değer çifti
+dil[0]         # KeyError -&gt; sözlükte indeks yoktur, anahtar vardır
+dil[&quot;Ali&quot;]     # 'İngilizce'
+dil[&quot;Can&quot;]     # 'Almanca'
+dil[&quot;Veli&quot;]    # KeyError -&gt; olmayan anahtar
+
+dil[&quot;Veli&quot;] = &quot;İspanyolca&quot;   # yeni çift ekleme
+dil[&quot;Ali&quot;] = &quot;Rusça&quot;         # var olan anahtarın değerini değiştirme
+del dil[&quot;Can&quot;]               # bir çifti silme
+</code></pre>
+<h4>Sözlük metotları</h4>
+<pre><code class="language-python">dil.keys()       # anahtarlar
+dil.values()     # değerler
+dil.items()      # anahtar–değer çiftleri
+dil.get(&quot;Ali&quot;)   # 'İngilizce'
+dil.clear()      # içini boşaltır -&gt; {}  (sözlük silinmez)
+del dil          # sözlüğün kendisini siler -&gt; NameError
+dir(dict)        # tüm sözlük metotları
+</code></pre>
+<hr>
+<h3><code>while</code> döngüsü ve kelime tahmin oyunu (≈01:25–01:34)</h3>
+<p>Bazen kodların defalarca tekrar etmesi gerekir. Aynı satırı kopyala-yapıştırla beş kez yazmak zaman kaybıdır; döngülerle bu iş kolayca yapılır.</p>
+<p><code>while</code> döngüsünde <strong>belirli bir koşul sağlandığı sürece</strong> kod bloğu tekrar eder. Hocanın <strong>üç altın kuralı</strong>: (1) başlangıç değeri, (2) koşul, (3) adım değeri. Bu üçü doğru yazılırsa döngü hatasız çalışır; adım değeri yazılmazsa döngü sonsuza kadar sürer.</p>
+<pre><code class="language-python">i = 1                          # 1) başlangıç değeri
+while i &lt;= 5:                  # 2) koşul
+    print(&quot;Tirendaz Akademi&quot;)
+    i += 1                     # 3) adım değeri (i = i + 1'in kısa yazımı)
+</code></pre>
+<p><strong>Nasıl çalışır?</strong> <code>i</code> = 1 → 1 ≤ 5 sağlanır, metin yazılır, <code>i</code> 2 olur, döngünün başına dönülür. Bu böyle sürer; <code>i</code> 6 olduğunda koşul sağlanmaz ve döngüden çıkılır.</p>
+<h4>Uygulama: Basit kelime tahmin oyunu</h4>
+<pre><code class="language-python">gizli_kelime = &quot;tirendaz&quot;
+tahmin = &quot;&quot;
+
+while tahmin != gizli_kelime:
+    tahmin = input(&quot;Tahmin giriniz: &quot;)
+
+print(&quot;Tebrikler kazandınız&quot;)
+</code></pre>
+<p>Tahmin yanlış olduğu sürece kullanıcıdan yeni tahmin istenir.</p>
+<h4>Geliştirilmiş sürüm: Tahmin hakkı 3</h4>
+<pre><code class="language-python">gizli_kelime = &quot;tirendaz&quot;
+tahmin = &quot;&quot;
+tahmin_sayisi = 0
+tahmin_limit = 3
+tahmin_cikis = False
+
+while tahmin != gizli_kelime and not(tahmin_cikis):
+    if tahmin_sayisi &lt; tahmin_limit:
+        tahmin = input(&quot;Tahmin giriniz: &quot;)
+        tahmin_sayisi += 1
+    else:
+        tahmin_cikis = True
+
+if tahmin_cikis:
+    print(&quot;Üzgünüz kaybettiniz&quot;)
+else:
+    print(&quot;Tebrikler kazandınız&quot;)
+</code></pre>
+<p><strong>Özet:</strong> Döngü iki koşulla döner: Tahmin gizli kelimeye eşit değilse <strong>ve</strong> <code>tahmin_cikis</code> False ise. Doğru tahminde döngü biter, <code>tahmin_cikis</code> False kaldığı için oyun kazanılır. Üç hakta bilinemezse <code>tahmin_cikis</code> True olur, döngü koşulu sağlanmaz ve oyun kaybedilir.</p>
+<hr>
+<h3><code>for</code> döngüsü ve <code>range</code> (≈01:34–01:39)</h3>
+<p><code>for</code>, Python'da çok sık kullanılır; string ve listelerin üzerinde kolayca gezilir.</p>
+<pre><code class="language-python">liste = [1, 2, 3, 4, 5]
+for sayi in liste:
+    print(sayi)
+
+isim = &quot;tirendaz&quot;
+for harf in isim:
+    print(harf)     # her harf ayrı satırda
+</code></pre>
+<h4><code>range</code></h4>
+<p><code>range</code>, verilen değerlere göre bir sayı dizisi üretir.</p>
+<pre><code class="language-python">for x in range(10):        # başlangıç verilmezse 0'dan başlar: 0..9
+    print(x)
+
+for x in range(5, 10):     # 5 dahil, 10 dahil değil: 5..9
+    print(x)
+
+for x in range(5, 10, 2):  # adım 2: 5, 7, 9
+    print(x)
+</code></pre>
+<pre><code class="language-python">isimler = [&quot;Ali&quot;, &quot;Can&quot;, &quot;Buse&quot;]
+for at in isimler:
+    print(at)
+
+for index in range(len(isimler)):   # indeks üzerinden
+    print(isimler[index])
+</code></pre>
+<h4>Uygulama: Listedeki sayıların toplamı</h4>
+<pre><code class="language-python">sayilar = [8, 15, 17, 20]
+toplam = 0
+for i in sayilar:
+    toplam = toplam + i
+print(toplam)   # 60
+</code></pre>
+<p><strong>Nasıl çalışır?</strong> <code>toplam</code> 0 → 0 + 8 = 8 → 8 + 15 = 23 → … → son eleman eklenince 60.</p>
+<hr>
+<h3><code>break</code>, <code>continue</code>, <code>pass</code> (≈01:39–01:44)</h3>
+<h4><code>break</code></h4>
+<p>Döngüden çıkmak için kullanılır. Hocanın ifadesiyle <code>break</code> "işi gücü bırak, döngü dışına çık" der.</p>
+<pre><code class="language-python">sayac = 0
+while sayac &lt; 10:
+    if sayac == 5:
+        break
+    print(sayac)
+    sayac += 1
+# 0 1 2 3 4
+</code></pre>
+<h4><code>continue</code></h4>
+<p>Kendisinden sonraki işleri durdurur ve sonraki adım için döngünün başına döner: "İşi gücü bırak, döngü başına dön."</p>
+<pre><code class="language-python">for sayilar in range(20):
+    if sayilar % 3 == 0:   # üçe bölümünden kalan 0 ise
+        continue
+    print(sayilar)
+# yalnızca 3'e bölünmeyen sayılar
+</code></pre>
+<p>Not: Hoca "0'dan 20'ye kadar" dedi; <code>range(20)</code> 0–19 arasını üretir.</p>
+<h4><code>pass</code></h4>
+<p>"Hiçbir şey yapmadan geç" demektir; işlem yapılmasını istemediğimiz durumlarda kullanılır.</p>
+<pre><code class="language-python">while True:
+    sayi = int(input(&quot;Bir sayı giriniz: &quot;))
+    if sayi &lt; 0:
+        pass
+    elif sayi == 0:
+        break
+    else:
+        print(&quot;Girdiğiniz sayı&quot;, sayi)
+</code></pre>
+<p>-5 ve -10 yok sayılır, 7 ekrana yazılır, 0 girildiğinde programdan çıkılır.</p>
+<p><strong>Özet:</strong> <code>break</code> döngüyü kırar ve akışı dışarı çıkarır; <code>continue</code> o adımın kalanını atlayıp döngü başına döner; <code>pass</code> hiçbir şey yapmaz.</p>
+<hr>
+<h3>Kümeler (set) ve frozenset (≈01:44–01:53)</h3>
+<p>Python'daki küme kavramı matematikteki gibidir: <strong>Her eleman bir kez yazılır</strong> ve <strong>elemanların sırasının önemi yoktur</strong>. Süslü parantezle oluşturulur.</p>
+<pre><code class="language-python">kume = {1, 2, 3}
+type(kume)    # set
+
+s = &quot;Ankara&quot;
+a = set(s)    # string'i kümeye çevirir; tekrar eden 'a'lardan yalnız biri alınır
+
+liste = [1, 2, 3, 1, 2, 4]
+b = set(liste)   # {1, 2, 3, 4} -&gt; tekrar edenler bir kez alınır
+</code></pre>
+<h4>Küme işlemleri (operatörlerle)</h4>
+<pre><code class="language-python">A = {1, 2, 3, 4, 5}
+B = {4, 5, 6, 7, 8, 9}
+
+print(A | B)   # birleşim
+print(A &amp; B)   # kesişim: {4, 5}
+print(A - B)   # fark (A'da olup B'de olmayan): {1, 2, 3}
+print(A ^ B)   # simetrik fark: {1, 2, 3, 6, 7, 8, 9}
+</code></pre>
+<h4>Küme metotları</h4>
+<pre><code class="language-python">dir(set)
+
+A = {1, 2, 3, 4}
+A.add(100)          # eleman ekler
+yedek = A.copy()    # kopyalar
+A.discard(1)        # eleman siler
+A.remove(2)         # eleman siler
+
+A = {1, 2, 3, 4}
+B = {3, 4, 5, 6}
+A.union(B)                  # {1, 2, 3, 4, 5, 6}
+A.intersection(B)           # {3, 4}
+A.difference(B)             # {1, 2}
+A.symmetric_difference(B)   # {1, 2, 5, 6}
+A.issubset(B)               # False; A = {3, 4} yapılırsa True
+B.issuperset(A)             # True -&gt; B, A'yı kapsar
+3 in A                      # True
+1 in A                      # False (A = {3, 4} iken)
+</code></pre>
+<p>Not: Kümeler sırasız olduğu için ekrana basılan sıra garanti değildir.
+Not: <code>discard</code> olmayan bir elemanı sessizce geçer; <code>remove</code> ise <code>KeyError</code> verir. Derste bu fark anlatılmadı.</p>
+<h4>Frozenset (donuk küme)</h4>
+<p>Kümelere listeler gibi eleman eklenip çıkarılabilir; <strong>donuk kümeler ise tuple'lar gibi değiştirilemez.</strong></p>
+<pre><code class="language-python">liste = [1, 2, 3, 4, 5]
+t = frozenset(liste)
+print(t)
+type(t)        # frozenset
+dir(frozenset) # add/remove gibi ekleme–silme metotları yok
+</code></pre>
+<hr>
+<h3>Hata yönetimi: <code>try</code>, <code>except</code>, <code>finally</code> (≈01:53–02:01)</h3>
+<p>Program yazarken hatalarla karşılaşılabilir. Ör. sayı beklenen yerde kullanıcı sayı dışında bir şey girerse Python programı durdurur ve hata verir; program "çöker". Olası hataları önceden kestirip önlem almak gerekir; bunun için <code>try</code>/<code>except</code> kullanılır.</p>
+<pre><code class="language-python">sayi = int(input(&quot;Bir sayı giriniz: &quot;))
+kare = sayi ** 2
+print(kare)
+# 5 -&gt; 25 ;  harf girilirse -&gt; ValueError: invalid literal for int() with base 10
+</code></pre>
+<pre><code class="language-python">try:
+    sayi = int(input(&quot;Bir sayı giriniz: &quot;))
+    kare = sayi ** 2
+    print(kare)
+except:
+    print(&quot;Geçersiz giriş&quot;)
+</code></pre>
+<p>Ama böyle yazınca <strong>bütün hatalar için aynı mesaj</strong> verilir ve kullanıcı nerede hata yaptığını anlamaz. Python'da birçok hata türü vardır; <code>except</code>'te hata türü belirtmek daha iyidir:</p>
+<pre><code class="language-python">except ValueError:
+    print(&quot;Geçersiz giriş&quot;)
+</code></pre>
+<h4>Birden fazla hata türü</h4>
+<p>İki sayının bölümünde iki hata olabilir: Sayı dışı giriş (<code>ValueError</code>) ve sıfıra bölme (<code>ZeroDivisionError</code>; bir sayının sıfıra bölümü tanımsızdır).</p>
+<pre><code class="language-python">try:
+    sayi1 = int(input(&quot;Bir sayı giriniz: &quot;))
+    sayi2 = int(input(&quot;Bir sayı daha giriniz: &quot;))
+    print(sayi1 / sayi2)
+except ValueError:
+    print(&quot;Geçersiz giriş&quot;)
+except ZeroDivisionError:
+    print(&quot;Sayı sıfıra bölünemez&quot;)
+</code></pre>
+<p>Hata türleri tek parantezde de yazılabilir; <code>as</code> ile Python'un kendi hata mesajı da gösterilir:</p>
+<pre><code class="language-python">except (ValueError, ZeroDivisionError) as hata:
+    print(&quot;Geçersiz giriş&quot;, hata)
+</code></pre>
+<h4><code>finally</code></h4>
+<p>Hata olsa da olmasa da <code>finally</code> bloğundaki kodlar <strong>mutlaka çalışır</strong>. Özellikle dosya işlemlerinde kullanılır: Dosya açıldıktan sonra kapatılması önemlidir; ama arada hata olursa kapatma komutuna hiç ulaşılamayabilir.</p>
+<pre><code class="language-python">try:
+    dosya = open(&quot;tirendazakademi.txt&quot;, &quot;r&quot;)
+except IOError:
+    print(&quot;Bir hata oluştu&quot;)
+finally:
+    dosya.close()
+</code></pre>
+<p>Not: Bu örnekte dosya hiç açılamazsa <code>dosya</code> değişkeni tanımlanmamış olur ve <code>finally</code> içindeki <code>close()</code> bu kez <code>NameError</code> verir. Hocanın da sonraki bölümde önerdiği <code>with</code> kullanımı bu sorunu ortadan kaldırır.</p>
+<hr>
+<h3>Dosya okuma (≈02:01–02:07)</h3>
+<p>Spyder'da <em>View → Panes → Files</em> [belirsiz: menü adı] ile çalışma dizinindeki dosyalar görülür. Çalışma dizini, çalışmaların kaydedildiği yerdir; yeri sağ üst köşede görünür ve oradan değiştirilebilir. Dizinde öğrencilerin matematik notlarının bulunduğu <code>notlar.txt</code> dosyası var.</p>
+<p>Dosya okumak/yazmak için <code>open</code> kullanılır; iki parametre alır: <strong>dosya adı</strong> ve <strong>açılma modu</strong>.</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Mod</th>
+<th>Anlamı</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"r"</code></td>
+<td>Okuma; yalnızca okunur, değişiklik yapılamaz (varsayılan)</td>
+</tr>
+<tr>
+<td><code>"w"</code></td>
+<td>Yazma; değişiklik ve yeni bilgi eklenebilir, ama <strong>var olan içeriğin üzerine yazar</strong></td>
+</tr>
+<tr>
+<td><code>"a"</code></td>
+<td>Ekleme (append); var olan değiştirilmez, yalnızca sona eklenir</td>
+</tr>
+<tr>
+<td><code>"r+"</code></td>
+<td>Hem okuma hem yazma</td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-python">dosya = open(&quot;notlar.txt&quot;, &quot;r&quot;)
+dosya = open(&quot;notlar.txt&quot;)    # ikinci parametre boşsa okuma modunda açılır
+</code></pre>
+<p>Dosya tam yoluyla da açılabilir: Dosya gezgininde yol kopyalanıp yapıştırılır; Windows yolundaki ters eğik çizgiler (<code>\</code>) değiştirilmelidir, çünkü Python onları kaçış işareti olarak algılar. Sonra yolun sonuna dosya adı eklenir.</p>
+<p>Not: Hocanın düz eğik çizgi kullandığı anlaşılıyor (<code>"C:/Users/.../notlar.txt"</code>); <code>r"C:\...\notlar.txt"</code> ya da <code>\\</code> de çalışır.</p>
+<p><strong>Açık kalan dosyalar sistemi gereksiz yere meşgul eder</strong>; iş bitince kapatılmalıdır:</p>
+<pre><code class="language-python">dosya.close()   # kapandıktan sonra dosyaya ulaşılamaz
+</code></pre>
+<h4>Okuma metotları</h4>
+<pre><code class="language-python">dosya = open(&quot;notlar.txt&quot;, &quot;r&quot;)
+print(dosya.readable())    # True -&gt; dosya okunabilir modda
+print(dosya.read())        # tüm içerik
+
+print(dosya.readline())    # birinci satır
+print(dosya.readline())    # tekrar çağrılınca ikinci satır
+
+print(dosya.readlines())   # bütün satırlar bir LİSTE olarak
+print(dosya.readlines()[1])# liste olduğu için indeksle tek satır alınır
+
+for notlar in dosya:       # for ile satır satır okuma
+    print(notlar)
+</code></pre>
+<p>Not: Hoca bu satırları ayrı ayrı çalıştırıyor. Hepsi aynı açık dosya üzerinde peş peşe çalışırsa, okuma imleci ilerlediği için sonrakiler boş döner.</p>
+<h4><code>with</code> bloğu</h4>
+<p>Hata olduğunda kapatma satırına gelinmeden akış kesilebilir ve dosya açık kalır. Önceki bölümdeki <code>try/finally</code> bir çözümdü; ancak dosyanın <strong>otomatik kapanması için <code>with</code> kullanmak daha iyidir</strong>, <code>close()</code> yazmaya gerek kalmaz.</p>
+<pre><code class="language-python">with open(&quot;notlar.txt&quot;, &quot;r&quot;) as dosya:
+    print(dosya.read())
+# blok bitince dosya otomatik kapanır
+</code></pre>
+<hr>
+<h3>Dosyaya yazma: sona, başa ve ortaya ekleme (≈02:07–02:12)</h3>
+<h4>Sona ekleme (<code>"a"</code>)</h4>
+<pre><code class="language-python">with open(&quot;notlar.txt&quot;, &quot;a&quot;) as dosya:
+    dosya.write(&quot;Burak 100&quot;)
+</code></pre>
+<p>Ekrana bir şey yazılmaz, ama dosyada son satırdaki "Deniz 80"in hemen yanına "Burak 100" eklenir. Yeni satıra eklemek için başa kaçış karakteri konur:</p>
+<pre><code class="language-python">with open(&quot;notlar.txt&quot;, &quot;a&quot;) as dosya:
+    dosya.write(&quot;\nBurak 100&quot;)
+</code></pre>
+<h4>Yazma modu (<code>"w"</code>)</h4>
+<p>Yazma modunda yazılan bilgi <strong>dosyadaki bilgilerin üzerine yazılır</strong>; dikkatli kullanılmazsa eski bilgiler silinir. Bu modla yeni dosya da oluşturulabilir:</p>
+<pre><code class="language-python">with open(&quot;notlar1.txt&quot;, &quot;w&quot;) as dosya:
+    dosya.write(&quot;Burak 100&quot;)   # notlar1.txt oluşur
+# &quot;Fatih 100&quot; yazılıp tekrar çalıştırılırsa &quot;Burak 100&quot; gider, &quot;Fatih 100&quot; gelir
+</code></pre>
+<h4>Başa ekleme (<code>"r+"</code> + <code>seek</code>)</h4>
+<pre><code class="language-python">with open(&quot;notlar.txt&quot;, &quot;r+&quot;) as dosya:
+    x = dosya.read()          # önce mevcut içeriği oku ve sakla
+    dosya.seek(0)             # imleci 0. konuma (dosyanın başına) getir
+    dosya.write(&quot;Fatih 100\n&quot; + x)
+</code></pre>
+<p><code>seek</code> dosya üzerinde gezinmeyi sağlar; <code>seek(0)</code> imleci sıfırıncı bayta getirir.</p>
+<h4>Ortaya ekleme (<code>readlines</code> + <code>insert</code> + <code>writelines</code>)</h4>
+<p><code>readlines</code> liste döndürdüğü için listelerin değiştirilebilir olmasından yararlanılır:</p>
+<pre><code class="language-python">with open(&quot;notlar.txt&quot;, &quot;r+&quot;) as dosya:
+    veri = dosya.readlines()
+    veri.insert(1, &quot;Ali 70\n&quot;)   # 1. indekse ekle (orada &quot;Ahmet 85&quot; vardı)
+    dosya.seek(0)
+    dosya.writelines(veri)
+</code></pre>
+<p>Sonuçta 1. indeksteki satırın yerine "Ali 70" eklenir, diğer satırlar aşağı kayar.</p>
+<p>Not: Türkçe karakterli dosyalarda <code>open(..., encoding="utf-8")</code> vermek, özellikle Windows'ta karakter bozulmasını önler. Derste anlatılmadı.</p>
+<hr>
+<h3>Modüller ve paket yönetimi (≈02:13–02:19)</h3>
+<p>Modüller aslında Python dosyalarıdır: Birbiriyle ilgili kodlar bir araya getirilip bir dosya oluşturulur; bu dosyaya modül denir. Modüllerde hazır fonksiyonlar vardır; bunları yeniden yazmaya gerek yoktur. İki tür modül vardır: <strong>hazır modüller</strong> ve <strong>kendi yazdığımız modüller</strong>.</p>
+<h4>Hazır modüller</h4>
+<pre><code class="language-python">import math          # Spyder altını sarı çizer: &quot;import ettin ama kullanmadın&quot; uyarısı;
+                     # modülden bir fonksiyon kullanılınca uyarı kaybolur
+dir(math)            # modüldeki tüm fonksiyonlar
+math.sqrt(16)        # 4.0
+math.factorial(5)    # 120
+
+import math as m     # uzun adı kısaltma
+m.factorial(6)       # 720
+
+from math import sqrt, factorial   # yalnızca gerekenleri al
+sqrt(36)             # 6.0
+factorial(4)         # 24
+
+from math import *   # hepsini al -&gt; TAVSİYE EDİLMEZ
+</code></pre>
+<p>Hocanın ifadesiyle "Amerika'yı yeniden keşfetmeye gerek yok"; hazır fonksiyonları kullanın. <code>from math import *</code> tavsiye edilmez, çünkü bütün fonksiyonlar kontrolsüzce içe aktarılır; kendi yazdığınız fonksiyonların adlarıyla çakışabilir ve program düzgün çalışmayabilir.</p>
+<h4>Üçüncü taraf modüller: pip ve conda</h4>
+<p><code>math</code> gibi standart modüllerin yanında, gömülü gelmeyen <strong>üçüncü taraf (third-party) modüller</strong> internetten indirilerek kullanılır. Bunun için <strong>pip</strong> kullanılır; Python'u bir platformla kurduğunuzda pip genellikle yüklü gelir (çok nadiren gelmezse ayrıca indirilir). pip ile paket yüklenir, güncellenir ve kaldırılır:</p>
+<pre><code class="language-bash">pip install modul_adi
+</code></pre>
+<p>Python'u Anaconda ile kullanıyorsanız <strong>conda</strong> paket yöneticisini de kullanabilirsiniz.</p>
+<h4>Kendi modülümüzü yazmak</h4>
+<p>Kendi fonksiyonlarınızı yazdığınız her dosya aslında bir modüldür ve başka bir dosyada kullanılabilir. <strong>Dikkat:</strong> Kullanılacak modül <strong>aynı çalışma dizininde</strong> olmalıdır. Özellikle çok kişinin çalıştığı büyük projelerde modüllerle çalışmak, kodların bir merkezden yönetilmesini sağlar.</p>
+<p>Çalışma dizininde sağ tık → <em>New → File</em> ile <code>toplama.py</code> oluşturulur:</p>
+<pre><code class="language-python"># toplama.py
+def top(a, b):
+    print(a + b)
+</code></pre>
+<pre><code class="language-python"># başka bir dosyada
+import toplama as tp
+tp.top(3, 4)   # 7
+</code></pre>
+<hr>
+<h3>Nesne tabanlı programlama: sınıf, nesne, <code>__init__</code> (≈02:19–02:27)</h3>
+<p>Python nesne tabanlı bir dildir; <strong>Python'da her şey bir nesnedir</strong>, fonksiyonlar ve veri tipleri de. Ama günlük hayattaki her şeyi string ya da int gibi tiplerle ifade edemeyiz; kendi nesnelerimizi oluşturmak için <strong>sınıf</strong> (class) kullanılır. Sınıflar nesne üretmemizi sağlayan soyut veri tipleridir; <strong>nesneler sınıfların somutlaşmış örnekleridir</strong> (instance).</p>
+<p><strong>Hocanın benzetmesi:</strong> Bilgisayar bir sınıftır; RAM, işlemci, anakart, klavye, ekran onun nitelikleridir. Laptop bilgisayar sınıfının bir örneğidir: Bilgisayar sınıfının bütün özelliklerini taşır, ayrıca kendine özgü özellikleri vardır.</p>
+<pre><code class="language-python">class Ogrenciler:
+    pass          # şimdilik boş sınıf
+</code></pre>
+<ul>
+<li>Sınıf <code>class</code> anahtar kelimesiyle oluşturulur; ardından gelen kelime sınıfın adıdır. <strong>Sınıf adlarında büyük harfle başlamak adettendir.</strong></li>
+<li>Sınıfın değişkenleri (nitelikleri) ve metotları sınıfın gövdesine yazılır.</li>
+</ul>
+<h4>Sınıf nitelikleri</h4>
+<pre><code class="language-python">class Ogrenciler:
+    isim = &quot;&quot;        # değer atanmadı [belirsiz: boş string mi, başka bir şey mi]
+    okul = &quot;lise&quot;
+    yas = 18
+
+print(Ogrenciler.isim)   # boş
+print(Ogrenciler.okul)   # lise
+print(Ogrenciler.yas)    # 18
+
+Ogrenciler.yas = 17      # başlangıç değeri değiştirilebilir
+print(Ogrenciler.yas)    # 17
+</code></pre>
+<p>Niteliklere erişmek için sınıf adı <strong>parantezsiz</strong> kullanılır ve nokta konur.</p>
+<h4>Nesne üretmek</h4>
+<p>Nesne üretmek fonksiyon çağırmaya benzer: Sınıf parantezle çağrılıp bir değişkene atanır. Nesne, sınıfın bütün özelliklerini taşır.</p>
+<pre><code class="language-python">talebe1 = Ogrenciler()
+print(talebe1.okul)     # lise
+
+talebe1.isim = &quot;Ali&quot;    # boş niteliğe atama
+print(talebe1.isim)     # Ali
+print(talebe1.okul)     # lise -&gt; atanmayan nitelik sınıftaki başlangıç değerini alır
+
+talebe2 = Ogrenciler()  # istediğimiz kadar nesne üretebiliriz
+talebe2.isim = &quot;Can&quot;
+print(talebe2.isim, talebe2.okul)   # Can lise
+</code></pre>
+<h4><code>__init__</code> ile nesne nitelikleri</h4>
+<p>Nesnenin niteliklerini belirlemek için <code>__init__</code> fonksiyonu kullanılır.</p>
+<pre><code class="language-python">class Ogrenciler:
+    def __init__(self, isim, yas):
+        self.isim = isim
+        self.yas = yas
+
+talebe1 = Ogrenciler(&quot;Ali&quot;, 18)
+print(talebe1.isim)   # Ali
+print(talebe1.yas)    # 18
+</code></pre>
+<ul>
+<li><code>__init__</code>'in <strong>ilk parametresi her zaman <code>self</code> olmak zorundadır</strong>; <code>self</code> sınıftan üretilen örnekleri (nesneleri) temsil eder.</li>
+<li><code>self.isim = isim</code>: Nesne oluştururken verilen ilk parametre, nesnenin <code>isim</code> niteliği olur.</li>
+</ul>
+<h4>Başka metotlar</h4>
+<p><code>__init__</code> kullanmak zorunlu değildir; başka metotlar da eklenebilir:</p>
+<pre><code class="language-python">class Ogrenciler:
+    def __init__(self, isim, yas):
+        self.isim = isim
+        self.yas = yas
+
+    def goster(self):
+        return &quot;Öğrenci ismi: &quot; + self.isim
+
+o1 = Ogrenciler(&quot;Ali&quot;, 18)
+print(o1.goster())   # Öğrenci ismi: Ali
+</code></pre>
+<h4>Sınıfı başka bir modülden kullanmak</h4>
+<p>Sınıf <code>deneme.py</code> dosyasına yazılmışsa başka bir dosyadan import edilerek kullanılabilir:</p>
+<pre><code class="language-python">import deneme
+o2 = deneme.Ogrenciler(&quot;Ayşe&quot;, 16)   # önce modül adı, sonra sınıf adı
+print(o2.isim, o2.yas)               # Ayşe 16
+</code></pre>
+<hr>
+<h3>Kalıtım (inheritance), metot ezme ve <code>super()</code> (≈02:27–02:34)</h3>
+<p>Kalıtım (bazı kaynaklarda "miras alma"), nesne tabanlı programlamanın önemli özelliklerinden biridir: Bir sınıftaki özelliklerin alt sınıflara geçmesi, yani <strong>ebeveyn sınıfın (parent class)</strong> niteliklerinin <strong>çocuk sınıfa (child class)</strong> aktarılmasıdır. Hocanın benzetmesi: Gerçek hayatta da anne-babanın bazı özellikleri çocuğa geçer; çocuğun bunların yanında kendine has özellikleri de vardır.</p>
+<pre><code class="language-python">class Ebeveyn:
+    def __init__(self, isim, memleket):
+        self.isim = isim
+        self.memleket = memleket
+
+    def goster(self):
+        print(&quot;Adım&quot;, self.isim, &quot;ve memleketim&quot;, self.memleket)
+
+class Cocuk(Ebeveyn):   # parantez içine ebeveyn sınıfı yazılır
+    pass
+
+c1 = Cocuk(&quot;Ali&quot;, &quot;İzmir&quot;)
+c1.goster()   # Adım Ali ve memleketim İzmir
+</code></pre>
+<p>Ebeveynin kodları kopyala-yapıştırla çocuğa da yazılabilirdi, ama kod tekrarlanmış olurdu. Miras alma, bir kez yazılan kodun farklı yerlerde kullanılmasını sağlar ve kodu tekrardan kurtarır. Ebeveyn sınıfa <strong>üst sınıf</strong> ya da <strong>taban sınıf</strong> (base class), çocuk sınıfa <strong>alt sınıf</strong> (subclass) denir.</p>
+<h4>Yeni özellik ekleme ve metot ezme (overriding)</h4>
+<pre><code class="language-python">class Cocuk(Ebeveyn):
+    okul = &quot;lise&quot;
+
+    def goster(self):
+        print(&quot;Okulum&quot;, self.okul)
+
+c1 = Cocuk(&quot;Ali&quot;, &quot;İzmir&quot;)
+print(c1.okul)   # lise
+c1.goster()      # Okulum lise -&gt; çocuktaki metot çalıştı
+</code></pre>
+<p><code>goster</code> hem ebeveynde hem çocukta var; çalışan, <strong>çocuk sınıftaki</strong> metottur. Alt sınıftaki tanım, üst sınıftan geleni ezer. İngilizcede buna <strong>overriding</strong> denir; Türkçede "üzerine yazma" ya da "baskın olma" diye çevrilir.</p>
+<h4><code>super()</code> ile üst sınıfın kodunu kullanmak</h4>
+<p>Çocuk sınıfa kendi <code>__init__</code>'i yazılabilir. Üst sınıftaki fonksiyonun kodları da kullanılmak isteniyorsa <strong><code>super()</code></strong> kullanılır; <code>super</code>, üst sınıftaki fonksiyonları çağırmaya yarar.</p>
+<pre><code class="language-python">class Cocuk(Ebeveyn):
+    def __init__(self, isim, memleket, yas):
+        super().__init__(isim, memleket)   # burada self yazılmaz
+        self.yas = yas                      # üst sınıfta olmayan nitelik
+
+    def goster(self):
+        super().goster()          # üst sınıftaki goster'i çalıştır
+        print(&quot;Yaşım&quot;, self.yas)  # üstüne ekstra görev
+
+c1 = Cocuk(&quot;Ali&quot;, &quot;İzmir&quot;, 18)
+print(c1.yas)    # 18
+print(c1.isim)   # Ali
+c1.goster()
+# Adım Ali ve memleketim İzmir
+# Yaşım 18
+</code></pre>
+<p><code>super()</code> yalnızca <code>__init__</code> için değil, diğer metotlar için de kullanılabilir.</p>
+<p><strong>Özet:</strong> Kodları tekrar yazmamak için ebeveyn sınıftan çocuk sınıfa miras geçirilir. Ebeveynin nitelikleri ve metotları aynen korunur; çocuk sınıf hem ebeveynin özelliklerini taşır hem kendi özelliklerine sahip olur.</p>
+<hr>
+<h3>Kapsam (scope): yerel ve global değişkenler (≈02:34–02:37)</h3>
+<p>Python'da fonksiyonların ve sınıfların bir kapsama alanı vardır; buna <strong>ad uzayı</strong> (namespace) denir. Her nesnenin geçerli ve etkin olduğu bir ad uzayı vardır.</p>
+<pre><code class="language-python">def kare():
+    x = 5
+    return x ** 2
+
+print(x)   # NameError: name 'x' is not defined
+</code></pre>
+<p>Buradaki <code>x</code> <strong>yerel (local)</strong> değişkendir; yalnızca <code>kare</code> fonksiyonunun içinden erişilir. Fonksiyonun dışında tanımlanan değişken ise <strong>global</strong> olur:</p>
+<pre><code class="language-python">x = 7
+
+def kare():
+    x = 5
+    return x ** 2
+
+print(x)        # 7  -&gt; global x
+print(kare())   # 25 -&gt; fonksiyon önce kendi yerel x'ini kullanır
+</code></pre>
+<p>Adları aynı olsa da iki <code>x</code> farklı nesnelerdir. <strong>Fonksiyonlar önce kendi yerel değişkenlerini kullanır; yerel değişken yoksa global olanı kullanır:</strong></p>
+<pre><code class="language-python">x = 7
+
+def kare():
+    return x ** 2
+
+print(kare())   # 49 -&gt; yerel x olmadığı için global x kullanıldı
+</code></pre>
+<h4><code>global</code> anahtar kelimesi</h4>
+<p>Yerel bir değişkeni global yapmak için <code>global</code> kullanılır; böylece değişkene fonksiyon dışından da erişilir.</p>
+<pre><code class="language-python">x = 10
+
+def fonk1():
+    x = 15
+
+def fonk2():
+    print(x)
+
+fonk1()
+fonk2()   # 10
+
+def fonk1():
+    global x
+    x = 15
+
+fonk1()
+fonk2()   # 15
+</code></pre>
+<hr>
+<h3>Lambda fonksiyonları ve <code>map</code> (≈02:37–02:40)</h3>
+<p>Normalde fonksiyon <code>def</code> ve bir isimle tanımlanır:</p>
+<pre><code class="language-python">def fonk1(x):
+    return x ** 2
+
+print(fonk1(5))   # 25
+</code></pre>
+<p><code>def</code> ve isim kullanmadan, <strong><code>lambda</code></strong> anahtar kelimesiyle oluşturulan fonksiyonlara <strong>lambda fonksiyonları</strong> denir. Önce <code>lambda</code>, sonra parametreler, iki nokta üst üste ve fonksiyonun görevi yazılır.</p>
+<pre><code class="language-python">fonk2 = lambda x: x ** 2
+print(fonk2(6))      # 36
+
+fonk3 = lambda x, y: x + y
+print(fonk3(3, 4))   # 7
+</code></pre>
+<p>Lambda fonksiyonları <strong>kısa ve isimsiz</strong> bir fonksiyon gerektiğinde kullanılır. Birden fazla parametre alabilir, ama <strong>yalnızca tek bir görev (ifade)</strong> yapar.</p>
+<h4><code>map</code> ile lambda</h4>
+<p>Fonksiyonlar başka fonksiyonların içinde de kullanılabilir. <code>map</code>, parametre olarak bir fonksiyon ve bir liste alır; fonksiyonu listedeki her elemana uygular.</p>
+<pre><code class="language-python">sayilar = [1, 2, 3, 4, 5]
+kareler = list(map(lambda x: x ** 2, sayilar))
+print(kareler)   # [1, 4, 9, 16, 25]
+</code></pre>
+<p><code>map</code> sonucu doğrudan liste olarak vermez; sonuç <code>list()</code> içine alınarak listeye çevrilir.</p>

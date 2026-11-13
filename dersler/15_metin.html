@@ -1,0 +1,355 @@
+<h2>15 · HuggingFace ile Çalışmak — Ders Metni (ayıklanmış)</h2>
+<blockquote>
+<p>Kaynak: Skool otomatik altyazısı (makine transkripti) + hocanın ders dosyaları (<code>1_hg.ipynb</code>, <code>2_test_supabase.py</code>). Kodlar ders dosyalarından alınmıştır. Emin olunamayan ad/sayılar <strong>[belirsiz]</strong> ile işaretlidir.</p>
+<p><strong>Transkriptte boşluklar:</strong> ≈00:38–00:52 (PyTorch kurulumunun devamı yok), ≈00:59–01:18 (mola), ≈02:15–02:31 (mola). 01:18 ve 02:31 anlatımın ortasından başlıyor.</p>
+</blockquote>
+<hr>
+<h3>Ders öncesi sohbet: web sitesi ve AI ile kodlama (≈00:02–00:06)</h3>
+<p>Bir öğrenci hocanın web sitesini nasıl yaptığını sordu. Hoca şöyle anlattı:</p>
+<ul>
+<li>Siteyi doğrudan yapay zekâya "kendi kafasına göre" yaptırmadı. Önce beğendiği bir sitenin şemasını aldı, <strong>Canva</strong> üzerinde sayfa sayfa kendi düzenini çizdi (üst banner, ana sayfa, iletişim bilgileri, "kendimi tanıtayım" bölümü, eğitim verilen kurumlar vb.).</li>
+<li>Bu şablonu <strong>Claude Code</strong>'a verdi; önce Claude Code ile başladı, sonra Codex ile devam etti. Sonuç, istediği gibi ve "slop" (özensiz, şablon) hissi vermeyen bir site oldu.</li>
+<li>Profesyonel ekipler ve kurumsal şirketlerde tasarım/mockup için <strong>Figma</strong> kullanılıyor; hoca içerik ürettiği için Canva'ya alışkın.</li>
+<li>Model seçimi: planlamayı <strong>Opus</strong> ile yaptırdı. Hoca'nın tavsiyesi: karmaşık bir projede planı güçlü model (Opus) ile çıkarın, kodlamayı daha küçük/ucuz bir modele yaptırın; token maliyeti böylece düşer.</li>
+</ul>
+<p>Hoca ayrıca ileride agent'ları, bağlam yönetimini (context management), araç kullanımı ve protokolleri, planlama–değerlendirme, multi-agent sistemleri ve kod agent'ı uygulamalarını işleyeceği yeni kursunun konularını özetledi.</p>
+<h3>Şimdiye kadar ne gördük? Kursun "çatısı" (≈00:09–00:11)</h3>
+<p>Altıncı haftaya gelindi. Hocanın özeti:</p>
+<ol>
+<li>AI mühendisliği nedir, LLM'lere giriş, prompt ve context engineering → temel atıldı.</li>
+<li>Embedding ve vektör veritabanları.</li>
+<li>AI mühendisinin genelde ilk uygulaması olan <strong>RAG</strong>; ileri RAG teknikleri ve sorgu (query) teknikleri.</li>
+<li>Agent'lara giriş, agent mimarileri (çok sayıda mimari var, iki-üç tanesine bakıldı).</li>
+<li>MCP ve açık kaynak (open) LLM'ler.</li>
+</ol>
+<p>Hoca <strong>Andrew Ng</strong>'nin bir görüşünü aktardı: Artık yazılımcı olsun olmasın, IT'de çalışan ve kendini geliştirmek isteyen herkesin AI mühendisliği konularını bilmesi gerekiyor; okumayı öğrenmek için alfabeyi öğrenmek nasıl zorunluysa bu da öyle — "öğrensem de olur, öğrenmesem de" değil.</p>
+<p>Benzetme: "Temelden başladık, binayı inşa ettik; bugün bu binanın <strong>çatısını</strong> yapacağız." Önce HuggingFace, ardından <strong>deployment (canlıya alma)</strong> kısmı.</p>
+<h3>HuggingFace nedir? (≈00:11–00:13)</h3>
+<ul>
+<li>Açık kaynak modellerle çalışmak için en çok kullanılan iki araç <strong>Ollama</strong> ve <strong>HuggingFace</strong>. Ollama ChatGPT'den sonra çıktı; HuggingFace'in geçmişi daha eski.</li>
+<li>HuggingFace <strong>2017</strong>'de bir chatbot şirketi olarak kuruldu. Transformer mimarisinden sonra birçok model geliştirildi; bu modellerle çalışmak için <strong><code>transformers</code></strong> kütüphanesini yazdılar. Bu kütüphaneyle büyük dil modelleri çok kolay çalıştırılabiliyor.</li>
+<li>HuggingFace aslında uçtan uca makine öğrenmesi analizleri için bir <strong>framework</strong>. Hiyerarşi: modül → kütüphane → framework. Framework birden fazla kütüphaneyi barındırır. İçinde bilgisayarlı görü (computer vision), NLP, ses vb. için ayrı kütüphaneler var.</li>
+</ul>
+<h3>HuggingFace Hub turu: Models, Datasets, Spaces (≈00:13–00:17, 00:23–00:28)</h3>
+<p><strong>Models</strong>
+- Şu anda <strong>3 milyondan fazla</strong> açık kaynak model var ve sayı sürekli artıyor.
+- Sıralama seçenekleri: trend olanlar, en çok beğenilenler (likes), en çok indirilenler (en çok indirilenler arasında <strong>Sentence Transformers</strong> modelleri), en yeni oluşturulanlar.
+- En çok beğenilen model olarak bir Qwen modeli gösterildi ("Qwen 3.8 27B" gibi okunuyor <strong>[belirsiz]</strong>).
+- Sol panelde <strong>Tasks</strong>: multimodal (görüntü + metin), computer vision (örn. image classification), NLP, ses (audio), tabular (tablo verisi).
+- <strong>Libraries</strong> filtresi: PyTorch, TensorFlow, JAX. Kütüphane PyTorch tabanlı geliştirildi; TensorFlow desteği sonradan eklenmişti ama son zamanlarda kaldırıldı. Artık ağırlıklı olarak <strong>PyTorch</strong>; JAX da kullanılıyor.
+- <strong>Languages</strong> filtresi: Türkçe seçince Türkçe modeller (ve çok dilli modeller) geliyor. Örneğin <strong>Trendyol</strong>'un modelleri var (e-ticaret odaklı bir LLM <strong>[belirsiz: model adı]</strong>). Genelde var olan bir modeli alıp Türkçe için <strong>fine-tune</strong> ediyorlar.
+- Parametre aralığı filtresi ile küçük modelleri seçebilirsiniz (örn. 3B–6B arası).</p>
+<p><strong>Datasets</strong>
+- <strong>1 milyondan fazla</strong> açık veri seti var. Eskiden veri setleri farklı web sitelerinden toplanıyordu; artık merkezi yer HuggingFace.</p>
+<p><strong>Spaces</strong>
+- Başkalarının geliştirdiği uygulamalar (demolar). Büyük firmaların da uygulamaları var; örneğin bir dönem Stable Diffusion'ı çok kişi buradan test ediyordu.
+- <strong>Files</strong> sekmesinden uygulamanın tüm kodları görülebiliyor (açık kaynak). Kendi uygulamanızı da buraya yükleyebiliyorsunuz; GitHub gibi katkıda bulunulabiliyor.</p>
+<p><strong>Hocanın tavsiyesi — kopyala, anla, değiştir:</strong> Bir şey öğrenmek için önce kopyalamak gerekir. Başkasının uygulamasını almaktan çekinmeyin; açık kaynak olduğu için kullanabilirsiniz. Önce aynen çalıştırın, mantığını anlayın, sonra küçük değişiklikler yapın; sonra kendi GitHub'ınıza, kendi HuggingFace sayfanıza, CV'nize koyun. Hoca'ya göre artık tersine mühendislikle (reverse engineering) çok şey yapılabildiği için kodu saklamanın anlamı kalmadı.</p>
+<h3>Kaggle ve Google Colab: ücretsiz GPU ve kariyer (≈00:17–00:23)</h3>
+<p><strong>Kaggle</strong>
+- Hem veri setleri hem notebook'lar hem eğitimler var. Ücretsiz GPU veriyor: <strong>haftalık 30 saat</strong>. (Hoca bir de "32 GB" bir kaynaktan söz etti <strong>[belirsiz: RAM mi VRAM mı]</strong>.) Google Cloud'a bağlayarak daha fazlası kullanılabiliyor.
+- Eskisi kadar popüler değil (hocanın gözlemi), ama kesinlikle tavsiye ediyor.
+- <strong>Unvanlar (title):</strong> Expert, Master, Grandmaster. Bunlar iyi bir referans/reklam oluyor; işe alımda şirketlerin dikkatini çekiyor ("bu kişi gerçekten bu işle uğraşmış").
+- <strong>Yarışmalar (Competitions):</strong> Büyük ödüllü yarışmalar var. Bazı şirketler yarışma açıp ilk beşe girenleri mülakata çağırıyor.</p>
+<p><strong>Google Colab</strong>
+- Ücretsiz GPU (T4) var ama sınırlı: kapatıp açınca hata alabilirsiniz; "günlük 12 saat" deniyor, hocaya göre daha az.
+- Colab Pro ile A100, L4 gibi GPU'lar seçilebiliyor. Bir öğrenci geçen yılki fiyatı aylık yaklaşık 165 TL olarak verdi; kredilerin hızlı bittiğini söyledi.
+- Çalışma zamanı türünü (runtime type) değiştirerek GPU seçilir — <strong>GPU seçmeyi unutmayın</strong>; A100 iyi bir seçim.
+- Bu derste büyük modeller indirileceği için güçlü bilgisayarı olmayanlar Colab kullanabilir.</p>
+<h3>Ortam kurulumu: Conda, uv, GPU ve PyTorch (≈00:28–00:38)</h3>
+<p>Masaüstünde bir klasör (<code>Day11</code>) açıldı, VS Code ile açıldı.</p>
+<p><strong>Conda mı uv mi?</strong>
+- Hoca bu derste <strong>Anaconda</strong> kullandı. uv ile de yapılabilir, ama Conda'yı bilmekte fayda var.
+- Conda biraz yavaş; uv arka planda Rust olduğu için daha hızlı. uv ile <code>uv pip</code> kullanılabiliyor.
+- Conda'nın avantajı: bir sanal ortam oluşturup onu başka projelerde de kullanabiliyorsunuz. Yine de her proje için ayrı sanal ortam daha iyi.
+- uv'de bir dosya çalıştırıldığında sanal ortam otomatik aktif olur; Conda'da elle aktif etmek gerekir.</p>
+<pre><code class="language-bash">conda --version                      # hocada 26.1.1
+conda create -n genai python=3.11    # 3.11 temel bir sürüm olduğu için seçildi (3.12 de olur)
+conda activate genai                 # terminalde (genai) görünür
+</code></pre>
+<p>uv hatırlatması: <code>uv init</code> ile proje başlatılır, paketler <code>uv add</code> / <code>uv pip install</code> ile yüklenir.</p>
+<p><strong>Ekran kartını kontrol etme</strong></p>
+<pre><code class="language-bash">nvidia-smi
+</code></pre>
+<p>Hocanın kartı bir RTX 5000 serisi kart <strong>[belirsiz: model ve VRAM]</strong>. Bu komut Mac'te çalışmaz; Mac'te bilgiler sistem ayarlarından görülür.</p>
+<blockquote>
+<p><strong>Soru:</strong> Mac (32 GB birleşik bellek, VRAM/RAM ayrımı yok) bu işler için yeterli mi, sonraki bilgisayarda ne önerirsiniz?
+<strong>Cevap:</strong> Ne için kullanacağınıza bağlı. 32 GB birleşik bellekle 27B'lik bir modeli bile çalıştırabilirsiniz; bu bir avantaj. Ama NVIDIA kadar hızlı değil. Veri analizi/veri bilimi ve bu kurs için mevcut bilgisayar yeterli, bir-iki yıl rahat kullanılır. Gerçekten büyük işler yapacaksanız en iyisi <strong>RTX 5090</strong> (yaklaşık 400 bin TL); 5080 iyi ama VRAM'i yetersiz kalabilir.</p>
+</blockquote>
+<p><strong>PyTorch kurulumu</strong>
+- pytorch.org → "Get Started": Stable sürüm, işletim sistemi (Windows/Mac/Linux), paket olarak <strong>pip</strong> (eskiden Conda seçeneği vardı, kaldırıldı), dil Python, ardından <strong>CUDA</strong> sürümü seçilir. Python 3.10 ve sonrası gerekiyor.
+- <strong>CUDA</strong>, NVIDIA'nın geliştirdiği bir araç; matematiksel işlemleri <strong>GPU</strong>'da yaptırmayı sağlar. Kurulmazsa model GPU ile çalışmaz.
+- Sitenin ürettiği komut kopyalanıp terminale yapıştırılır. Windows seçildiği hâlde komut <code>pip3</code> ile geliyor; Windows'ta <code>pip</code> yazılmalı, "3" silinir.
+- Dikkat: Yanlış seçimle <strong>CPU sürümü</strong> kurulabilir; GPU'lu sürümün kurulduğundan emin olun.</p>
+<blockquote>
+<p>Not: Transkriptte hoca "CPU'da yapmamızı sağlıyor" diyor ama bağlamdan kastedilen GPU'dur. Kurulumun devamı (≈00:38–00:52) transkriptte yok.</p>
+</blockquote>
+<p>Kurulumu test eden ilk notebook hücresi:</p>
+<pre><code class="language-python">import torch
+
+print(torch.cuda.is_available())
+print(torch.version.cuda)
+print(torch.cuda.get_device_name(0))
+</code></pre>
+<p>Mac'te CUDA yerine <strong>MPS</strong> (Apple GPU) arka ucu kullanılır; bir öğrencinin çıktısında MPS görüldü.</p>
+<h3>İlk pipeline: metin sınıflandırma / duygu analizi (≈00:53–00:58)</h3>
+<p>HuggingFace'in en güzel tarafı: <strong>birkaç satır kodla</strong> büyük modellerle çalışabilmek. Bunun için <code>pipeline</code> kullanılır (başka yöntemler de var).</p>
+<p><strong>Model nasıl seçilir?</strong> huggingface.co → Models → Tasks altında NLP → <strong>Text Classification</strong>. Trend olan / en çok beğenilen modellere bakılır; isterseniz parametre filtresiyle küçük modelleri seçersiniz. Model adının yanındaki kopyala butonuyla adı alıp koda yapıştırırsınız. Hoca küçük bir model seçti: <strong>DistilBERT</strong>.</p>
+<p><strong>BERT / DistilBERT hatırlatması:</strong> Transformer mimarisi iki parçadan oluşur: <strong>encoder</strong> ve <strong>decoder</strong>. Decoder'dan GPT geliştirildi (metin üretmek için). Encoder kısmı metin sınıflandırma gibi işler için kullanılıyor; Google 2018'de buradan <strong>BERT</strong>'i geliştirdi. <strong>DistilBERT</strong>, BERT'in daha küçük bir versiyonu.</p>
+<blockquote>
+<p>Not: Hoca DistilBERT'i "quantize edilmiş hali gibi düşünebilirsiniz" diye anlattı; teknik olarak DistilBERT bilgi damıtma (knowledge distillation) ile küçültülmüş bir modeldir, quantization değil.</p>
+</blockquote>
+<pre><code class="language-python">from transformers import pipeline
+
+classifier = pipeline(
+    'text-classification',
+    model=&quot;distilbert/distilbert-base-uncased-finetuned-sst-2-english&quot;
+)
+</code></pre>
+<pre><code class="language-python">classifier(&quot;I really enjoyed this movie.&quot;)
+</code></pre>
+<ul>
+<li><code>model</code> parametresi verilmezse o görev için <strong>ön tanımlı (default) model</strong> iner.</li>
+<li><code>pipeline</code>'ın güzel tarafı: hem <strong>modeli</strong> hem de o modelin <strong>tokenizer</strong>'ını indirir. Her modelin kendi tokenizer'ı vardır ve metin o tokenizer'a göre token'lara ayrılmalıdır.</li>
+<li>Çıktı: <code>POSITIVE</code>, skor ≈ <strong>0.99</strong>. Öğrencilerde de aynı sonuç çıktı.</li>
+</ul>
+<h3>(Mola sonrası) Agent'larla bilimsel araştırma — hocanın deneyimi (≈01:18–01:26)</h3>
+<p>Hoca, bir yurt dışı konferansı için genetik varyantlar üzerine yaptığı bir çalışmayı anlattı. Bunu bir agent aracıyla (transkriptte "Hermes" gibi okunuyor <strong>[belirsiz]</strong>) ve bir Qwen modeliyle <strong>[belirsiz: model adı/sürümü]</strong> yaptırdı:</p>
+<ul>
+<li>Agent gece boyunca çalıştı: veriyi indirdi, kodları kendisi yazdı, testleri ve analizleri yaptı, okunacak makaleleri indirdi, sonuçları raporladı; kendi metodoloji eksiğini bulup kapattı.</li>
+<li><strong>Denetleyici agent:</strong> Bir agent analizi yapıyor, başka bir agent bunu kontrol ediyor. İki farklı model (bir Qwen, bir OpenAI modeli) kullanıp kararlarını karşılaştırmayı planlıyor.</li>
+<li>Hoca'nın yorumu: "Herkes uygulama yapıyor ama herkes yeni bir şey bulamıyor." Agent'ları iyi yönlendirerek makale yazmak / araştırma yapmak daha değerli olabilir. Eskiden bir çalışma için biri kod, biri alan bilgisi olmak üzere iki-üç kişi gerekirdi; artık tek kişi birçok araştırma yapabilir.</li>
+<li>Ama <strong>yazarken anlamak şart</strong>: agent'tan ne yaptığını adım adım ve teknik olarak açıklamasını isteyin; kendi ifadelerinizle yazmak daha iyidir.</li>
+<li>Bir öğrencinin önerisi (hoca beğendi): Modelleri <strong>çapraz kontrol</strong> ettirmek — örn. Codex bir şey yazıyor, ChatGPT'ye kontrol ettiriyorsun; ayrıca bir "karar mercii" ajan belirleyip ona rol vermek (araştırmacı gözüyle, yayıncı gözüyle bak). Tartışmaları okumak da öğretici oluyor.</li>
+<li>Tıp alanında bu yaklaşımın önemi: yanlış teşhis örneği verildi; bir AI teşhis koyarken diğerinin kontrol etmesi bu riski azaltabilir.</li>
+</ul>
+<h3>Gradio ile basit arayüz (≈01:26–01:38)</h3>
+<p><strong>Gradio</strong>, Streamlit gibi bir arayüz kütüphanesi; hocaya göre daha basit ve kolay. Doğrudan notebook içinde uygulama geliştirilebiliyor.</p>
+<pre><code class="language-bash">uv pip install gradio scikit-image
+</code></pre>
+<p>Önce model kullanmadan basit bir işlem: yüklenen resmi siyah-beyaza (gri tonlamaya) çeviren fonksiyon.</p>
+<pre><code class="language-python">from skimage.color import rgb2gray
+
+def transform_image(img):
+    return rgb2gray(img)
+</code></pre>
+<pre><code class="language-python">import gradio as gr
+
+demo = gr.Interface(
+    fn=transform_image,
+    inputs=gr.Image(),
+    outputs=&quot;image&quot;
+)
+demo.launch()
+</code></pre>
+<ul>
+<li><code>fn</code>: çalışacak fonksiyon; <code>inputs</code>: girdi bileşeni (resim); <code>outputs</code>: çıktı tipi (resim).</li>
+<li>Hoca önce burada model gerekip gerekmediğini tartıştı; gerek yok — fonksiyon resmi doğrudan dönüştürüyor.</li>
+<li>Notebook içinde arayüz açıldı; resim yüklenip <strong>Submit</strong>'e basınca siyah-beyaz hali geldi. Verilen link tarayıcıda yeni sekmede de açılabiliyor.</li>
+<li>Bu uygulama <strong>HuggingFace Spaces</strong>'te yayınlanabilir.</li>
+</ul>
+<h3>Model kartı (Model Card) okumak (≈01:30–01:35)</h3>
+<p>Örnek olarak Facebook'un geliştirdiği bir "ResNet-50" modeli aratıldı.</p>
+<blockquote>
+<p>Not: Anlatılan özellikler (sınıflar: person, traffic light, street sign; <code>max_position_embeddings: 1024</code>; <code>activation_function: relu</code>; ≈167 MB) <strong>facebook/detr-resnet-50</strong> nesne tespiti modeline uyuyor <strong>[belirsiz: tam model adı]</strong>.</p>
+</blockquote>
+<ul>
+<li><strong>Model card:</strong> modelin tanımı, kullanımı ve hazır kod örnekleri. Bu kodlar doğrudan Colab'da veya kendi bilgisayarınızda çalıştırılabilir.</li>
+<li><strong>Files and versions:</strong> dosyalar ve boyut (bu model ≈167 MB, küçük). NLP modelleri genelde daha büyük.</li>
+<li><strong>safetensors:</strong> HuggingFace'in geliştirdiği ağırlık formatı; önceden PyTorch'un <code>.bin</code> formatı kullanılıyordu.</li>
+<li><strong>config.json:</strong> modelin ayarları — hangi etiketlere (label) sınıflandırdığı, model tipi, aktivasyon fonksiyonu, girdi beklentileri vb.</li>
+<li><strong>Inference widget:</strong> Model sayfasından doğrudan test edilebiliyor; ancak artık <strong>kredi istiyor</strong>. Hoca, HuggingFace'in <strong>NVIDIA</strong> tarafından satın alındığını ve bazı şeylerin değiştiğini söyledi (hocanın aktardığı bilgi).</li>
+</ul>
+<blockquote>
+<p><strong>Soru:</strong> Yurt dışındaki marketlerin self-checkout (kendin öde) kasalarında kamera ürünleri tanıyıp sınıflandırıyor; bunlar bu tür modeller mi?
+<strong>Cevap:</strong> Evet, bu tür modeller. Birazdan yaş ve duygu tahmini yapan benzer modelleri göreceğiz.</p>
+</blockquote>
+<h3>HuggingFace CLI: giriş, indirme ve önbellek (≈01:36–01:41, 01:48–01:51)</h3>
+<p>Terminalden HuggingFace işlemleri için <code>huggingface_hub</code> kurulur:</p>
+<pre><code class="language-bash">uv pip install huggingface_hub
+hf auth login       # tarayıcıda yeni sayfa açılır, token ile giriş onaylanır
+hf auth whoami      # kullanıcı ve organizasyon bilgisini gösterir
+hf download &lt;model_adi&gt;   # örn. hocanın indirdiği ~167 MB'lık Facebook modeli
+</code></pre>
+<ul>
+<li>Login, örneğin fine-tune ettiğiniz bir modeli kendi sayfanıza yüklemek için gerekir. <strong>Bu derste login olmadan da işlemler yapılabiliyor</strong>; hoca sadece yapılabildiğini gösterdi.</li>
+<li><strong>Önbellek (cache):</strong> Model bir kez indirilir, sonra oradan kullanılır; <code>pipeline</code> da aynı önbelleği kullanır, tekrar indirmez. Konum: <code>C:\Users\&lt;kullanıcı&gt;\.cache\huggingface\hub</code>. Hocanın önbelleği <strong>29 GB</strong> yer kaplıyordu — "indirip unutuyoruz, arada temizlemek lazım."</li>
+</ul>
+<blockquote>
+<p><strong>Soru:</strong> <code>hf download</code> ile modeli indirmemiz şart mı?
+<strong>Cevap:</strong> Hayır. <code>pipeline</code> modeli zaten kendisi indiriyor. <code>hf download</code> sadece terminalden de indirilebildiğini göstermek içindi. İndirme terminalden, notebook/kod hücresinden veya <code>pipeline</code> ile yapılabilir.</p>
+</blockquote>
+<p><strong>Görevlerin kapsamı:</strong> Computer vision altında image classification, object detection, image segmentation (nesneleri bölge bölge ayırma), video classification, text-to-video gibi görevler var. Segmentasyon eskiden çok meşhurdu; artık büyük modeller bu işleri de yaptığı için daha çok o alanda spesifik çalışanlar kullanıyor. Text-to-video gibi açık kaynak ücretsiz modellerle projeler ücretli servislere gerek kalmadan yapılabilir.</p>
+<h3>Görüntüden duygu analizi (≈01:42–01:58)</h3>
+<p>Model seçimi: Models → Image Classification → "facial emotion" araması → <strong>dima806/facial_emotions_image_detection</strong> (o ay ≈5.220 indirme). <code>config.json</code>'daki etiketler: sad, angry, neutral, happy, surprise vb.</p>
+<pre><code class="language-python">from transformers import pipeline
+
+emotion = pipeline(
+    task=&quot;image-classification&quot;,
+    model=&quot;dima806/facial_emotions_image_detection&quot;)
+</code></pre>
+<pre><code class="language-python">from PIL import Image
+</code></pre>
+<pre><code class="language-python">image = Image.open(&quot;docs/01.png&quot;)
+</code></pre>
+<pre><code class="language-python">from IPython.display import display
+
+display(image) 
+</code></pre>
+<pre><code class="language-python">img = Image.open(&quot;C:/Users/PC/Desktop/Day11/docs/01.png&quot;).convert(&quot;RGB&quot;)
+</code></pre>
+<pre><code class="language-python">preds = emotion(img)
+</code></pre>
+<pre><code class="language-python">print(preds[:5]) 
+</code></pre>
+<ul>
+<li>Resimler proje kökündeki <code>docs/</code> klasörüne kondu; notebook kök dizinde.</li>
+<li><code>.convert("RGB")</code>: Resmi <strong>3 kanala</strong> çevirir; modelin beklediği şekle getirmek için. Aksi hâlde hata alınabilir.</li>
+<li>Sonuç: <strong>happy ≈ 0.92</strong>, surprise ≈ 0.04, neutral ≈ 0.01. "Bu kadar kolay."</li>
+</ul>
+<p>Bu derste yaşanan sorunlar ve çözümleri:
+- İlk denemede bir hata (index aralığı ile ilgili) alındı; hoca muhtemelen resmin modelin istediği formatta/boyutta olmamasından kaynaklandığını söyledi ve RGB dönüşümüyle devam etti.
+- Kernel yeniden başlayınca <code>Image</code> tanımsız hatası → import hücrelerini yeniden çalıştırmak gerekti.
+- Bir üst klasörde çalışıldığı için resim bulunamadı → VS Code doğru klasörde (<code>Day11</code>) yeniden açıldı.
+- Bir öğrencide "dosya bulunamadı" → mutlak yolu kopyalayıp yapıştırın; <strong>Windows'ta ters eğik çizgileri (<code>\</code>) düz eğik çizgiye (<code>/</code>) çevirin</strong>. Mac/Linux'ta bu sorun yok.
+- Bir öğrencinin kernel'i <code>pipeline</code> çalışırken üç kez öldü (model ≈343 MB); restart önerildi, kesin neden bulunamadı.</p>
+<h3>Görüntüden yaş tahmini (≈01:59–02:08)</h3>
+<p>Models → "age classifier" araması → <strong>nateraw/vit-age-classifier</strong> (ViT tabanlı).</p>
+<pre><code class="language-python">age_classifier = pipeline(
+    task=&quot;image-classification&quot;,
+    model=&quot;nateraw/vit-age-classifier&quot;
+)
+</code></pre>
+<pre><code class="language-python">img = Image.open(&quot;docs/evren.png&quot;).convert(&quot;RGB&quot;)
+</code></pre>
+<pre><code class="language-python">age_classifier(img)
+</code></pre>
+<ul>
+<li>Model ağırlıkları ≈<strong>343 MB</strong> (<code>.bin</code> formatında). Hoca hatırlattı: Model indirmek aslında <strong>ağırlıkları (weights)</strong> indirmektir.</li>
+<li>Sonuç: en yüksek olasılık <strong>40–49</strong>, ikinci <strong>30–39</strong> — doğru tahmin. Öğrencilerin denemelerinde de makul sonuçlar çıktı.</li>
+<li><strong>Hata:</strong> İlk denemede yanlış model seçildi: aynı isimli, başka bir kullanıcının yüklediği (sadece 45 indirmeli) bir kopya. "Invalid model index" hatası verdi. Doğrusu ≈150.000 indirmeli olan. <strong>Ders: Aynı isimli modellerde indirme sayısına ve yükleyene bakın; kopyalar hatalı dosya içerebilir.</strong></li>
+</ul>
+<blockquote>
+<p><strong>Soru:</strong> Neden <code>convert("RGB")</code> yapıyoruz?
+<strong>Cevap:</strong> Model kartında Files → <code>config.json</code>'a bakınca model resmi 3 kanallı (RGB) istiyor. Resim 2 boyutlu (gri) ya da farklı formatta olabilir; dönüşüm onu modelin istediği şekle getirir. Muhtemelen resim zaten 3 kanallıydı; hoca config dosyasına bakıp modelin nasıl veri istediğini görmeyi göstermek için ekledi.</p>
+</blockquote>
+<p>Hoca'nın kapanış notu: HuggingFace'le yapılacak çok şey var ama vakit kısıtlı. <strong>LoRA / QLoRA ile fine-tuning</strong>'i de anlatmayı düşünüyordu; yetişmezse bir notebook paylaşacak.</p>
+<h3>Bitirme projesi ve sertifika (≈02:09–02:14)</h3>
+<ul>
+<li>Ders gelecek salı bitiyor. Projeyi <strong>gelecek cumartesiye kadar</strong> göndermek isteniyor (yoğun çalışanlar için biraz esneyebilir). Hoca herkesle tek tek yazışıp ne yapılacağını konuşacak.</li>
+<li>Proje yapanlara <strong>başarı sertifikası</strong>, yapmayanlara katılım sertifikası verilecek.</li>
+<li>Önerilen proje listesi paylaşıldı (agentic RAG, reasoning, LLM ile memory vb.). Hocanın tavsiyesi: Birlikte yapılan projeleri alıp geliştirin; örneğin bir projede <strong>Streamlit</strong> arayüzü yoksa siz ekleyin. Çok uzatmayın; ellerinizi kirletmek ve CV'ye bir çıktı eklemek önemli.</li>
+<li>Disiplin üzerine: "İş zamanla yayılır" (Parkinson yasası) — biraz itilmeye/son tarihe ihtiyacımız var.</li>
+</ul>
+<h3>Deployment projesine giriş: yol haritası (≈02:31–02:33)</h3>
+<p>Bir uygulamayı herkese açmak için <strong>deploy etmek (canlıya almak)</strong> gerekir. Bu ders başlanıp gelecek ders bitirilecek proje — aynı zamanda bitirme projesi örneği:</p>
+<pre><code>Kurulum → Supabase (veritabanı + bağlantı) → LangSmith (izleme/tracing)
+       → Vektör veritabanı → Tool → Agent → Uygulamayı izleme → Streamlit arayüzü
+</code></pre>
+<ul>
+<li><strong>Model:</strong> OpenAI modeli.</li>
+<li><strong>Vektör veritabanı:</strong> <strong>Supabase</strong> — PostgreSQL tabanlı, bulutta çalışan bir veritabanı ("öğrendikçe çok seveceksiniz").</li>
+<li><strong>Agent'lar:</strong> <strong>LangGraph</strong> agent'ları.</li>
+<li><strong>İzleme:</strong> <strong>LangSmith</strong> — uygulamaları takip (tracing) etmeyi sağlar.</li>
+</ul>
+<h3>Proje kurulumu (≈02:33–02:35)</h3>
+<p>Yeni klasör açılıp VS Code'da açıldı:</p>
+<pre><code class="language-bash">uv init --python 3.12
+</code></pre>
+<p>Ardından kütüphaneler yüklendi. Hocanın saydığı paketler: <code>langchain</code> (1.1 ve üzeri), <code>langgraph</code>, <code>langchain-openai</code>, <code>langchain-community</code>, <code>langgraph-cli</code> (bazı işlemler terminalden yapılacak), <code>langsmith</code>, <code>supabase</code>, <code>python-dotenv</code>.</p>
+<blockquote>
+<p>Not: Tam komut ders dosyalarında yok; anlatıma göre yaklaşık hali şöyledir:
+<code>bash
+uv add "langchain&gt;=1.1" langgraph langchain-openai langchain-community langgraph-cli langsmith supabase python-dotenv</code></p>
+</blockquote>
+<p>Ortam değişkenleri için <code>.env</code> dosyası oluşturuldu; ilk olarak <code>OPENAI_API_KEY</code> eklendi (önceki projelerdeki <code>.env</code> de kopyalanabilir). Başka model de kullanılabilir; hoca uğraşmamak için OpenAI'ı tercih etti.</p>
+<h3>Supabase: hesap, proje ve anahtarlar (≈02:35–02:52)</h3>
+<ul>
+<li>Supabase'de <strong>pgvector</strong> eklentisi ile vektör araması ve benzerlik (similarity) işlemleri yapılacak.</li>
+<li><strong>Ücretsiz plan</strong> limitli ama bu proje için yeterli; büyük projelerde Pro'ya geçilir.</li>
+<li>Giriş: GitHub veya e-posta ile. Sağ üstten <strong>Dashboard</strong> → organizasyon (hoca kendi organizasyonunu kullandı) → <strong>New project</strong>.</li>
+<li>Proje oluştururken <strong>bölge (region)</strong>: Size yakın bir yer seçmekte fayda var (öğrenciler Avrupa seçti); bu projede çok veri olmayacağı için fark etmez.</li>
+<li>Oluştururken bir <strong>veritabanı şifresi</strong> veriliyor — <strong>saklayın</strong>, sonra kullanılacak. Her proje için ayrı şifre var.</li>
+<li>Arayüz: <strong>Table Editor</strong> (tablolar), <strong>SQL Editor</strong> (SQL sorguları), <strong>Database</strong>, <strong>Authentication</strong> vb.</li>
+</ul>
+<p><strong><code>.env</code> değişkenleri:</strong></p>
+<ol>
+<li><code>SUPABASE_URL</code> — proje sayfasında <strong>Connect</strong> → Project URL kopyalanır.</li>
+<li><code>SUPABASE_SECRET_KEY</code> — <strong>Project Settings → API Keys</strong> → alttaki <strong>Secret key</strong> (<code>sb_secret_...</code> ile başlar).</li>
+<li><code>DATABASE_URL</code> — <strong>Connect</strong> → Direct → connection string → <strong>Session pooler</strong> → bağlantı dizesi kopyalanır. İçinde kullanıcı adı, host (AWS üzerinde), port ve veritabanı adı var. <code>[YOUR-PASSWORD]</code> kısmına kendi şifrenizi yazın ve <strong>köşeli parantezleri de kaldırın</strong>.</li>
+</ol>
+<p>Supabase'e iki türlü bağlanılabiliyor: Supabase istemcisi (URL + key) üzerinden veya doğrudan PostgreSQL (<code>DATABASE_URL</code>) üzerinden. Bu derste önce Supabase istemcisiyle bağlantı denendi.</p>
+<blockquote>
+<p><strong>Soru:</strong> API key oluştururken "publishable key" mi "new secret key" mi seçeceğiz?
+<strong>Cevap:</strong> Yeni oluşturmanıza gerek yok; ön tanımlı bir secret key geliyor. Proje ayarlarından <strong>secret key</strong>'i alın (ders sonunda bunun önemi ortaya çıktı, aşağıya bakın).</p>
+<p><strong>Soru:</strong> Proje oluştururken otomatik RLS seçeneğini işaretleyecek miyiz?
+<strong>Cevap:</strong> Hayır, RLS'i kod (SQL) tarafında açacağız.</p>
+</blockquote>
+<h3>SQL Editor'da tablo oluşturma ve RLS (≈02:52–02:58)</h3>
+<p>SQL Editor'da hocanın paylaştığı sorgu çalıştırıldı (sağ üstte <strong>Run</strong>). Sorgunun yaptıkları:</p>
+<ol>
+<li><code>public</code> şeması içinde <strong><code>students</code></strong> tablosu oluşturur.</li>
+<li><code>id</code>: her öğrenciye otomatik artan bir kimlik; aynı zamanda <strong>primary key</strong>.</li>
+<li><code>name</code>: metin sütunu.</li>
+<li><code>course</code>: metin, <strong>boş olamaz</strong> (<code>not null</code>).</li>
+<li><code>INSERT</code> ile örnek (dummy) veriler: [belirsiz: ilk isim, "Ayşe" olabilir] → Python, Mehmet → Yapay Zekâ, Zeynep → Veri Bilimi.</li>
+<li><strong>Satır düzeyi güvenlik (Row Level Security, RLS)</strong> açılır — herkes tabloya erişemesin diye.</li>
+<li>Bir <strong>policy</strong> ile erişim sadece <code>service_role</code> (backend rolü) için verilir; bu rol dışındakiler satırları göremez.</li>
+</ol>
+<blockquote>
+<p>Not: SQL kodu ders dosyalarında yok; yukarıdaki maddeler anlatımdan çıkarılmıştır. Yaklaşık karşılığı:
+<code>sql
+create table public.students (
+  id bigint generated always as identity primary key,
+  name text,
+  course text not null
+);
+insert into public.students (name, course) values
+  ('Ayşe', 'Python'), ('Mehmet', 'Yapay Zeka'), ('Zeynep', 'Veri Bilimi');
+alter table public.students enable row level security;
+create policy "service role access" on public.students
+  for all to service_role using (true) with check (true);</code></p>
+</blockquote>
+<p>Çalıştırdıktan sonra <strong>Table Editor → students</strong>'ta tablo ve veriler görünür; "artık bulutta tablomuz var."</p>
+<p>Sorunlar: Sohbete yapıştırılan kodda görünmez karakterler/boşluklar hata verdi ("syntax error") → hoca bozuk karakterleri sildi; bazı öğrenciler kodu Claude'a düzelttirip yapıştırdı. Sorguyu iki kez çalıştırınca da "zaten var" hatası alınabilir.</p>
+<h3>Python'dan Supabase bağlantı testi (≈02:58–03:06)</h3>
+<p>Yeni dosya: <code>supabase.py</code> (ders dosyalarında <code>2_test_supabase.py</code>).</p>
+<pre><code class="language-python">import os
+
+from dotenv import load_dotenv
+from supabase import create_client
+
+load_dotenv()
+
+supabase = create_client(
+    os.environ[&quot;SUPABASE_URL&quot;],
+    os.environ[&quot;SUPABASE_SECRET_KEY&quot;],
+)
+
+response = (
+    supabase.table(&quot;students&quot;)
+    .select(&quot;id, name, course&quot;)
+    .order(&quot;id&quot;)
+    .execute()
+)
+
+# print(&quot;✅ Bağlantı ve tablo okuma başarılı!&quot;)
+
+for student in response.data:
+    print(f&quot;{student['id']} | {student['name']} | {student['course']}&quot;)
+</code></pre>
+<ul>
+<li><code>load_dotenv()</code>: <code>.env</code> içindeki ortam değişkenlerini çalışma ortamına alır.</li>
+<li><code>create_client(...)</code>: URL ve secret key ile Supabase istemcisi oluşturur.</li>
+<li><code>students</code> tablosundan <code>id, name, course</code> seçilir, <code>id</code>'ye göre sıralanır, <code>execute()</code> ile çalıştırılır.</li>
+<li>Önce sadece "Bağlantı ve tablo okuma başarılı" yazdırıldı; sonra bu satır yoruma alınıp satırlar ekrana basıldı: <code>1 | &lt;isim&gt; | Python</code>, <code>2 | Mehmet | Yapay Zeka</code> … biçiminde.</li>
+</ul>
+<pre><code class="language-bash">uv run supabase.py
+</code></pre>
+<p>Sonuç: Lokal bilgisayardan buluttaki Supabase tablosuna bağlanıp verileri çekebildik. Bir sonraki adım: metni alıp token'lara, token'ları vektörlere çevirip Supabase'e kaydetmek ve veritabanında <strong>en yakın vektörleri</strong> bulmak (vektör araması).</p>
+<p><strong>Derste yaşanan sorunlar:</strong>
+- <strong>Bağlantı "başarılı" ama veri gelmiyor (boş liste):</strong> Öğrenci <strong>publishable key</strong> (<code>sb_publishable_...</code>) almıştı. RLS açık ve policy sadece <code>service_role</code> için olduğundan publishable key satırları göremiyor. Çözüm: <strong>Secret key</strong> (<code>sb_secret_...</code>) alınmalı. Bir öğrenci bir gün önce aynı hatayı yaşayıp böyle çözmüş.
+- <strong>"Non-printable character" hatası:</strong> Sohbetten kopyalanan kodda <code>print</code> satırının başında görünmez boşluk vardı; silinince düzeldi.
+- <strong>Değişiklik yansımıyor:</strong> <code>.env</code> / <code>.py</code> dosyası <strong>kaydedilmeden</strong> çalıştırılmış. VS Code'da Auto Save açılabilir.
+- <strong>Türkçe karakter hatası:</strong> Bir öğrencide proje adı/yolunda Türkçe karakter kaynaklı bir hata vardı; çözümü derste bitmedi.</p>
+<p>Hoca bir sonraki (son) derste bu projeye devam edileceğini söyledi.</p>

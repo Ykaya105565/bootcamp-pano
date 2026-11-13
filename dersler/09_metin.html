@@ -1,0 +1,527 @@
+<h2>09 · Day05 – RAG Giriş — Ders Metni (ayıklanmış)</h2>
+<blockquote>
+<p>Kaynak: Skool otomatik Türkçe altyazısı (09.txt) + hocanın ders dosyaları (indexing.ipynb, test.txt) + konu anlatım çizimi.
+Kodlar transkriptten değil, hocanın <code>indexing.ipynb</code> dosyasından alınmıştır.
+<strong>Kayıt boşlukları:</strong> ≈00:50–01:08 (mola) ve ≈02:00–02:33 (mola + kayıt boşluğu). İkinci boşlukta kalan <strong>embedding ve Chroma'ya kaydetme</strong> adımı transkriptte yoktur; o bölüm <code>indexing.ipynb</code> dosyasından tamamlanmış ve aşağıda ayrıca işaretlenmiştir.</p>
+</blockquote>
+<hr>
+<h3>Ders öncesi sohbet: yeni meslekler (≈00:00–00:02)</h3>
+<p>Ders başlamadan önceki sohbette yapay zekâ ile birlikte yükselen yeni bir meslekten söz edildi: <em>forward deployed engineer</em> (FDE) ve buna yakın "AI solutions engineer" rolü. Hocanın tarifi: bir şirkete gidiyorsunuz, onların iş süreçlerini ve kullandıkları programları öğreniyorsunuz, sonra bu süreçleri yapay zekâya taşıyorsunuz. Büyük şirketler bu profili şu anda aktif olarak arıyor. Hoca, ileride hem bu tür "çözüm üreten" mühendisliğin hem de DT/AI engineering rollerinin çok önemli olacağını düşündüğünü söyledi.</p>
+<p>Dersin planı: önce geçen dersin tekrarı, sonra 10 soruluk bir Kahoot, ardından RAG konusu.</p>
+<h3>Tekrar: Veri türleri, embedding ve vektör veritabanları (≈00:02–00:14)</h3>
+<h4>Yapılandırılmış ve yapılandırılmamış veri</h4>
+<p>Veriler ikiye ayrılır:</p>
+<ul>
+<li><strong>Yapılandırılmış veri (structured data):</strong> Tablo biçimindeki, belirli alanlardan ve sütunlardan oluşan, sütun tipleri tanımlı veriler. Analiz etmesi, makine öğrenmesinde kullanması ve parametrik/parametrik olmayan analizlerle çalışması kolaydır. Saklamak için klasik <strong>SQL veritabanları</strong> kullanılır.</li>
+<li><strong>Yapılandırılmamış veri (unstructured data):</strong> Görüntü, metin, ses, video gibi daha karmaşık veriler. Saklamak için <strong>NoSQL</strong> veritabanları (ör. MongoDB) kullanılır.</li>
+</ul>
+<h4>Embedding</h4>
+<p>Büyük dil modelleri (LLM) görüntüden, metinden ya da sesten doğrudan anlamaz; <strong>sayısal veriden</strong> anlar. Bu yüzden girdileri modele vermeden önce işleriz. <strong>Girdileri sayısal temsillere çevirmeye embedding</strong> denir. Hoca embedding'lerin modern yapay zekânın temelini oluşturduğunu bir kez daha vurguladı.</p>
+<p>Bir embedding aslında bir <strong>vektördür</strong> ve bir boyutu vardır (10, 100 boyutlu olabilir; OpenAI'nin ya da açık kaynak modellerin ürettikleri ör. ~1500 boyutlu olabilir). Hoca matematiksel ayrıntıya girmeye gerek olmadığını, bunları framework'lerin ve kütüphanelerin yaptığını söyledi: "Gözünüz korkmasın; biz sadece bir OpenAI embedding modeline girdiyi vereceğiz, model bunu embedding'e çevirecek." Yine de teoriyi bilmek hem mülakatlarda (engineering mülakatlarında bu sorular çıkıyor) hem de daha iyi proje kurmakta işe yarar. Asıl odak: <strong>problemi belirlemek ve onu çözecek mimariyi/sistemi seçmek.</strong></p>
+<p>Konular üst üste inşa ediliyor: LLM'ler → prompt engineering → context engineering → embedding → vektör veritabanları → bu ders <strong>RAG</strong>.</p>
+<h4>Keyword arama vs. semantik arama</h4>
+<ul>
+<li><strong>Keyword arama:</strong> Kelime eşleşmesine bakar. Klasik veritabanlarında yapılabilir.</li>
+<li><strong>Semantik arama (semantic search):</strong> Anlam benzerliğine bakar. Yapay zekâda önemli olan budur. Örnek: "okyanus" yazınca sadece "okyanus" değil, "deniz" gibi benzer kavramlar da gelsin; "kangal" yazınca köpek, golden vb. de gelsin.</li>
+</ul>
+<h4>Klasik DB + eklenti yaklaşımı (pgvector)</h4>
+<p>Klasik veritabanları (MySQL, PostgreSQL, MongoDB) vektör/benzerlik aramasında iyi çalışmaz. Son dönemde geliştirilen <strong>eklentilerle</strong> bunları yapay zekâ ile çalışabilir hâle getirebiliyoruz. Örnek: <strong>PostgreSQL + pgvector</strong>.</p>
+<ul>
+<li>Klasik SQL tablosu: <code>ID | Title | Content</code> — indeksler B-tree, GIN (full-text keyword search). Benzerlik araması yok, sadece keyword eşleşmesi.</li>
+<li>pgvector eklendiğinde tabloya bir <strong>Embedding sütunu</strong> eklenir (ör. <code>Vector(768)</code>); indeksler B-tree + <strong>HNSW / IVFFlat</strong> (vektör benzerlik araması). Böylece semantik arama, <strong>hibrit sorgular (vektör + SQL)</strong> ve yerel vektör işlemleri yapılabilir.</li>
+</ul>
+<p>Sorun: Veri büyüdükçe bu yapılar hızlı çalışmaz; klasik DB'lerin indeks yapıları ve teknikleri arama işlemleri için çok uygun değildir.</p>
+<h4>Vektör veritabanları</h4>
+<p>Bu sorunları gidermek için <strong>vektör veritabanları</strong> geliştirildi; LLM'lerin yaygınlaşmasıyla çok popüler oldular. Çok sayıda seçenek var; doğru olanı seçmek önemli bir konu.</p>
+<ul>
+<li><strong>Küçük uygulamalar / prototipler için:</strong></li>
+<li><strong>FAISS</strong> — Facebook (Meta) tarafından geliştirildi; bellekte (in-memory) çalışabiliyor, dosya yüklemeden doğrudan bellekten veri çekilebiliyor.</li>
+<li><strong>Chroma</strong> — kurulumu kolay, "sevdiğimiz" hafif bir vektör veritabanı.</li>
+<li><strong>Büyük ölçekli sistemler için:</strong> <strong>Qdrant, Weaviate, Milvus, Pinecone.</strong> Pinecone yalnızca bulutta çalışıyor; diğerleri hem açık kaynak/yerel hem bulutta kullanılabiliyor. Bunların YouTube kanallarında örnek projeler var.</li>
+</ul>
+<p>Hocanın benzetmesi: <strong>"Bakkaldan ekmek almak için Ferrari kullanmaya gerek yok."</strong> Küçük projede FAISS/Chroma, büyük projede büyük ölçekli vektör DB'ler.</p>
+<p><strong>Soru:</strong> İşletmede ~5 milyon kayıt, aynı anda çok kullanıcının yüklenebildiği performans odaklı bir sistem düşünürsek PostgreSQL + pgvector öne çıkıyor gibi; önüne hızlandırma için Redis cache konabilir; Qdrant kullananları da duydum. Böyle bir yaklaşım mı doğru?
+<strong>Cevap:</strong> Evet, veritabanı proje bazlı seçilmeli. Şirket zaten PostgreSQL ile çalışıyorsa ve ekip onu biliyorsa, pgvector ekleyerek yapay zekâ çalışmaları yapılabilir. Mimari ve teknoloji seçimi şirkete/projeye göre yapılır.</p>
+<h3>Kahoot (≈00:14–00:24)</h3>
+<p>Geçen dersin tekrarı olarak 10 soruluk Kahoot yapıldı. Sorular ve doğru cevaplar:</p>
+<ol>
+<li><strong>Metin, görüntü, ses veya video gibi karmaşık yapıdaki verilere ne ad verilir?</strong> → Yapılandırılmamış veriler.</li>
+<li><strong>Klasik keyword search neden "Arabam bozuldu" ile "Aracım çalışmıyor" arasındaki benzerliği yakalayamaz?</strong> → Keyword aramada birebir kelime eşleşmesine bakılır; iki cümlede ortak kelime olmadığı için benzerlik yakalanmaz. Semantik aramada anlam benzerliğine bakılır.</li>
+<li><strong>Kullanıcının arama sorgusunu vektöre çevirip anlamca en yakın sonuçları getirme işlemine ne denir?</strong> → Semantik arama (semantic search).</li>
+<li><strong>Metinleri sabit uzunlukta embedding vektörlerine dönüştürmek için kullanılan popüler Python kütüphanesi?</strong> → Sentence Transformers (açık kaynak, Hugging Face ekosisteminde; Transformer mimarisinden yararlanır; kelime, cümle, paragraf veya doküman embedding'i üretebilir).</li>
+<li><strong>Vektör verilerini standart bir SQL veritabanında saklayabilsek de en büyük dezavantaj nedir?</strong> → Yüksek boyutlu vektörlerde benzerlik aramasının çok yavaş olması.</li>
+<li><strong>Hem embedding'leri hem de yazar, tarih gibi yapılandırılmış metadata bilgilerini birlikte kullanan sistem nedir?</strong> → Hibrit veritabanı yaklaşımı (hoca: performans açısından en iyi yöntem).</li>
+<li><strong>Vektör veritabanı seçerken yapılan en büyük hata nedir?</strong> → İhtiyaca bakmadan doğrudan en güçlü veya en popüler olanı seçmek. Proje ihtiyacına göre seçilmeli.</li>
+<li><strong>Meta tarafından geliştirilen, çok hızlı çalışan ama tek başına bir veritabanı değil kütüphane olan araç?</strong> → FAISS (hem GPU'da hem CPU'da çalışabiliyor, bellekte kullanılabiliyor).</li>
+<li><strong>Kurulumu kolay, küçük RAG projeleri için en çok tercih edilen hafif vektör deposu?</strong> → ChromaDB. (PostgreSQL diyenler oldu; o da kullanılabilir ama klasik DB kategorisinde olduğu için doğru cevap Chroma kabul edildi.)</li>
+<li><strong>Mevcut PostgreSQL veritabanına vektör saklama ve benzerlik araması yeteneği kazandıran eklenti?</strong> → pgvector.</li>
+<li>(Son soru) <strong>Şirket içinde büyük ölçekli, milyonlarca doküman içeren sistemler kurmak için öne çıkan vektör DB(ler) hangisi(leri)?</strong> → Büyük ölçekli seçenekler (Qdrant / Weaviate / Milvus / Pinecone grubundan). Altyazıda doğru şık "… ve Milvus" gibi duyuluyor; muhtemelen <strong>Weaviate ve Milvus</strong> <strong>[belirsiz]</strong>.</li>
+</ol>
+<blockquote>
+<p>Not: Transkriptte soru numaraları karışık okunuyor (hoca "on soruluk" dedi ama 11 soru sayılıyor); muhtemelen bir soru numarası altyazıda kaymış.</p>
+</blockquote>
+<p>Kahoot sonrası bir öğrencinin yorumu: pgvector önemli; ücretsiz ve vazgeçilmez taraf büyük olasılıkla PostgreSQL olacak; Supabase'in ücretsiz katmanında da PostgreSQL var. Hoca: bunların hepsini bilmek zorunda değilsiniz ama bilirseniz daha iyi proje yaparsınız ve mülakatlarda çıkıyor.</p>
+<h3>Dersin sonunda yapılacak uygulamanın demosu (≈00:26–00:33)</h3>
+<p>Hoca, ileride kurulacak hazır bir <strong>RAG uygulamasını</strong> çalıştırarak gösterdi (terminalden çalıştırılan bir web arayüzü; dosya adı transkriptte "rag app" gibi duyuluyor, tam komut <strong>[belirsiz]</strong>):</p>
+<ol>
+<li>Arayüze OpenAI API anahtarı girilir (isteyen başka bir sağlayıcının API anahtarını da kullanabilir).</li>
+<li>Bir PDF yüklenir. Uygulama PDF'i hazırlar: <em>"PDF hazır, 8 metin parçası oluşturuldu."</em> PDF bir kütüphanenin kurallarıyla ilgili.</li>
+<li>Sorular sorulur:
+   - "Öğrenci üyeler aynı anda en fazla kaç kitap alabilir?" → "En fazla 3 kitap ödünç alabilir." LLM bunu kendi başına bilemez; sistem dokümana bakarak cevap verir.
+   - "İki kitap beşer gün geç iade edildiğinde toplam gecikme cezası kaç TL olur?" → "20 TL."</li>
+<li>Uygulama cevabın <strong>hangi parçadan (chunk)</strong> geldiğini de gösteriyor.</li>
+</ol>
+<p><strong>Soru:</strong> Birden fazla PDF yüklersek (ör. bir kimya öğretmeni arka planda çok sayıda PDF yüklese) cevabın hangi PDF'ten geldiğini söyleyebilir mi?
+<strong>Cevap:</strong> Evet; bu bilgiyi <strong>metadata</strong> üzerinden alabiliyoruz.</p>
+<p>(Bu uygulamanın kodlanması bir sonraki derse bırakıldı.)</p>
+<h4>Bu ara konuşmalardan çıkan pratik notlar</h4>
+<ul>
+<li><strong>Model maliyeti:</strong> Çin menşeli modeller (ör. Qwen <strong>[belirsiz]</strong>) Claude/OpenAI modellerine göre çok daha ucuz (kabaca 1/3–1/5 fiyat). Ancak veri gizliliği endişesi var; veriler karşı tarafa gönderiliyor.</li>
+<li><strong>Gizlilik için maskeleme:</strong> Bir öğrenci, kurumlarda hassas verilerin <strong>maskelenerek</strong> gönderildiğini, dönüşte maskenin geri çevrildiğini anlattı. Hoca: büyük sağlayıcılara da tam güvenmek zor; ideal olan kendi modellerimiz ya da <strong>lokal modeller</strong>, ama bunun için güçlü donanım gerekiyor.</li>
+<li><strong>Eğitim ortamı:</strong> Öğrenci bilgisayarları zayıfsa ortamı <strong>Docker</strong> içinde kurup dağıtmak veya bulutta (AWS, Azure vb.) bir makine ayağa kaldırıp uzaktan bağlanmak bir seçenek.</li>
+</ul>
+<h3>Proje yapmak, vibe coding ve mimari bilgisi (≈00:34–00:41)</h3>
+<p>Bir öğrenci daha önce bir RAG projesi yapıp canlıya aldığını, ama "biraz vibe coding'e kaçtığını, birçok şeyin kontrolünde olmadığını" söyledi. Bir başkası, Python ile çalışmak istediğini söylemesine rağmen Claude'un JavaScript/TypeScript'te ısrar ettiğini (BM25 ve arama performansı gerekçesiyle) anlattı.</p>
+<p>Hocanın tavsiyeleri:
+- <strong>Proje yaparak öğrenilir.</strong> Projeler hem öğretir hem CV'ye eklenir. Diploma ve not ortalaması hâlâ önemli ama özellikle yurt dışında projelere bakılıyor; Türkiye'de etiketler (diploma vb.) hâlâ ağır basıyor ama projelerle desteklemek gerekiyor.
+- <strong>Başta mimariyi söyleyin.</strong> "Backend'de Python, frontend'de Streamlit ya da JavaScript kullanmak istiyorum" derseniz model ona göre yapar; önce <strong>plan</strong> yaptırırsanız daha iyi sonuç alırsınız. Bilgi sahibi olursanız modeli siz yönlendirirsiniz.
+- <strong>Vibe coding'in riskleri:</strong> Hem öğrenme keyfi kalmıyor hem de yanlış yöne gidebiliyor; işin içinden çıkamıyorsunuz. Bitmiş bir "çalışan şey" ürün değildir: güvenlik, eşzamanlı kullanıcı yükü, entegrasyon testleri gibi konular var. Kodu okuyup anlayabilmeli, müşteriye/patrona mimariyi ve kullanılan teknolojiyi anlatabilmeli, bir hata çıktığında nasıl çözeceğinizi söyleyebilmelisiniz.
+- Bir öğrenci <strong>SLA / çözüm süresi</strong> konusunu açtı: Vibe coding ile yapılmış bir sistemde hata çözme süresi tesadüfe kalır (5 dakika da sürebilir, 1 hafta da).
+- Hocanın izlediği bir videodan aktarım: Eskiden problemi anlar, çözüm üretir, kodu yazardık. Artık kod yazma kısmını büyük ölçüde yapay zekâ yapabiliyor; <strong>bize düşen problemi anlamak, çözüm üretmek, sistemi ve mimariyi kurmak, hangi teknolojiyi kullanacağımızı bilmek.</strong> Yapay zekâ doğru kullanılırsa işleri hızlandırır; yanlış kullanılırsa kısır döngüye girilir.</p>
+<h3>RAG nedir? (≈00:41–00:48)</h3>
+<h4>"Yapay zekâ mühendisinin Hello World'ü"</h4>
+<p>Bir programlama dili öğrenirken ekrana önce "Hello World" yazdırırız. Hocaya göre <strong>bir AI engineer için RAG projesi Hello World'dür</strong>: çoğu AI mühendisinin ilk LLM uygulaması RAG'dır.</p>
+<h4>Problem: LLM'ler özel bilgiyi bilemez</h4>
+<p>LLM'ler internetteki <strong>genel bilgilerle</strong> eğitilir. Bizim ya da şirketlerin <strong>özel bilgilerini</strong> bilemezler. Bunları bilebilmeleri için iki teknik var: <strong>fine-tuning</strong> ve <strong>RAG</strong>.</p>
+<h4>Fine-tuning</h4>
+<ul>
+<li>Büyük dil modelleri devasa veri setleriyle eğitilir (<strong>pre-training</strong>); bunlara <strong>base model</strong> ya da <strong>foundation model</strong> denir.</li>
+<li>Bu modeli <strong>alana özgü bir veri setiyle</strong> tekrar eğitmek (ör. kodlamada ya da satrançta uzman olsun diye) → <strong>fine-tuning</strong>; çıkan modele <strong>fine-tuned LLM</strong> denir. Kullanıcı bu modele sorgu gönderip alana özgü cevaplar alır.</li>
+<li><strong>Fine-tuning'de parametreler tekrar eğitilir.</strong> Bugün modeller milyarlarca, hatta trilyon (1–1,2 trilyon) parametreli; küçük modeller 8B, 35B gibi.</li>
+<li><strong>Dezavantajları:</strong> masraflı (güçlü bilgisayar/GPU gerekir), zaman alıcı (bir-iki gün sürebilir), uzmanlık gerektirir (belki uzman çalıştırmak gerekir, o da ek maliyet).</li>
+</ul>
+<p>Her tekniğin avantajı ve dezavantajı var; hangisini nerede kullanacağınızı bilmeniz gerekiyor.</p>
+<h4>RAG</h4>
+<ul>
+<li>Modeli yeniden eğitmeden, <strong>bizim verilerimize bakarak</strong> cevap vermesi için <strong>2020'de</strong> RAG tekniği ortaya çıktı.</li>
+<li><strong>Parametreler yeniden eğitilmez → az masraflı.</strong></li>
+<li>Verdiğimiz verilere göre cevap verdiği için modeller <strong>halüsinasyon görmez</strong> (hocanın ifadesi; bkz. Ders Notları'ndaki not).</li>
+<li>LLM'lerin iki büyük problemi: <strong>halüsinasyon</strong> ve <strong>güncel verilere erişememe.</strong> RAG ikisini de çözmeye yardım eder.</li>
+<li>Masrafın az olması ve verilerin daha çok <strong>lokalde</strong> kalması nedeniyle <strong>şirketler genelde RAG'ı tercih eder.</strong></li>
+</ul>
+<h4>Açılım: Retrieval-Augmented Generation</h4>
+<ul>
+<li><strong>Retrieval (getirme):</strong> Sorguyla ilgili verileri (vektör veritabanından) yakalayıp getirmek.</li>
+<li><strong>Augmented (zenginleştirme):</strong> Promptu/bağlamı (context) zenginleştirmek. Model normalde prompt + kendi bilgisiyle cevap verir; biz ona bağlam verip girdiyi zenginleştirdiğimizde daha iyi cevap verir. Önceki derslerdeki vurgu: <strong>"Context her şeydir."</strong></li>
+<li><strong>Generation (üretme):</strong> Model cevabı üretir.</li>
+</ul>
+<p>RAG <strong>adım adım devam eden bir pipeline'dır</strong>: önce indeksleme, indekslenen veriyi vektör veritabanında saklama, sonra sorguya göre semantik arama ve cevap üretme. Kullanım alanları (çizimden): <strong>şirket içi chatbot, PDF asistanı, müşteri destek asistanı.</strong></p>
+<p><strong>Soru (mola öncesi):</strong> "Fine-tuning'de parametreler yeniden eğitilir" derken parametreden kasıt nedir?
+<strong>Cevap:</strong> Parametreler modelin <strong>ağırlıklarıdır (weights)</strong>. Yapay sinir ağlarında (perceptron'lar) nöronlar arasındaki bağlantılar vardır; bu bağlantılara parametre ya da ağırlık diyoruz. Fine-tuning'de bu ağırlıklar tekrar eğitilir; RAG'da eğitilmez. Bu nedenle hoca RAG'ı "parametrik olmayan (non-parametric) bir teknik" olarak niteledi.</p>
+<p><em>(≈00:50–01:08 mola — kayıt yok.)</em></p>
+<h3>Neden RAG? — Canlı demo (≈01:08–01:15)</h3>
+<p>Kullanıcı LLM'e soru sorar, LLM bildiği şekilde cevap üretir. Ama bilmediği bir soru geldiğinde ya halüsinasyon görür ya da "bilmiyorum" der. <strong>Model belirli bir tarihe kadarki verilerle eğitilmiştir</strong>; dış dünyaya bağlanmadıkça (bir araç kullanmadıkça) sonrasını bilemez.</p>
+<p>Demo:
+1. Bir sohbet asistanında (hoca Claude, öğrenciler ChatGPT kullandı) <strong>web aramasını kapatıp</strong> şunu soruyoruz: <em>"Web aramasını kullanma, kendi bilgine göre cevap ver: Claude Sonnet 5.5 çıktı mı?"</em> (Sonnet 5.5 dersin bir gün öncesinde çıkmıştı.)
+2. Model güvenilir biçimde teyit edemeyeceğini söylüyor. (Hocanın ilk denemesi bir proje içinde olduğu için önceki konuşmalardan bilgi taşıdı; yeni, boş bir sohbette sorunca "doğrulayamam" dedi.)
+3. Şimdi bir <strong>context</strong> veriyoruz:</p>
+<blockquote>
+<p>Claude Sonnet 5.5 modeli çıktı mı? Sadece aşağıdaki sana verdiğim bağlama göre cevap ver:
+Anthropic'in yeni modeli Sonnet 5.5 çıktı. Sonnet 5'e göre %30 daha hızlı, daha akıllı ve maliyeti %30'a kadar daha düşük. Maliyet değişmedi: bir milyon girdi token 2 dolar, çıktı ise 10 dolar.</p>
+</blockquote>
+<ol start="4">
+<li>Model bu bağlama göre cevap verdi: "Verdiğin bağlama göre Claude Sonnet 5.5 çıktı…"</li>
+</ol>
+<p>Çıkarımlar (çizimden):
+- Model verdiğimiz bilgiye göre cevap verdi. <strong>Fine-tuning yapmadık; sadece modele bilgi verdik.</strong>
+- Küçük bir bilgiyi elle verip cevap aldık. Ama bir chatbot'a devasa veri vermek kolay değil: <strong>binlerce PDF, yüzlerce sayfalık doküman</strong> elle verilemez.
+- Kullanıcının istediği cevabın yer aldığı metni elle bulup getirmek zor; ayrıca bütün şirket verisini doğrudan vermek çok fazla token harcar ve çok maliyetli olur.
+- Çözüm: Bu işe <strong>programatik</strong> yaklaşıp <strong>RAG sistemleri kurmak.</strong></p>
+<h3>RAG pipeline'ının 3 aşaması (≈01:15–01:20)</h3>
+<p>Dokümanları doğrudan modele verirsek context büyür ve <strong>maliyet artar</strong>. Modele yalnızca <strong>ilgili dokümanları</strong> vermemiz gerekir. Bunun için dokümanları <strong>indekslememiz</strong> gerekir; indeksleme = verileri embedding'e çevirmek + vektör veritabanında saklamak.</p>
+<p><strong>1. Adım — Verileri indeksle (indexing)</strong>
+- <strong>Verileri yükle:</strong> PDF, metin, TXT, ileride görüntü vb.
+- <strong>Verileri parçala:</strong> Küçük parçalara ayır; bu parçalara <strong>chunk</strong> denir (text chunks).
+- <strong>Verileri uzaya taşı:</strong> Her parçayı embedding'e çevir (vector embeddings).
+- <strong>Verileri sakla:</strong> Embedding'leri vektör veritabanında sakla.</p>
+<p><strong>2. Adım — İlgili verileri yakala (retrieval)</strong>
+- Kullanıcının sorgusunu (user query) al.
+- Sorguyu da embedding'e çevir.
+- Vektör veritabanında bu embedding'e <strong>en yakın</strong> dokümanları bul.
+- Bunları en yakın en üstte olacak şekilde <strong>sırala</strong> (Top-K chunks).
+- Bulunan parçalar + kullanıcının sorgusu birlikte LLM'e verilir; <strong>bu bizim context'imizdir.</strong></p>
+<p><strong>3. Adım — Cevabı üret (generation)</strong>
+- LLM bu context'e bakarak cevabı (response) üretir.</p>
+<h3>RAG için framework'ler (≈01:20–01:25)</h3>
+<blockquote>
+<p>Not: Bu bölümün başı transkriptte kopuk/tekrarlı (altyazı bozulmuş). Başlıklar hocanın çiziminden tamamlandı.</p>
+</blockquote>
+<ul>
+<li><strong>LangChain:</strong> En çok kullanılan, <strong>en büyük ekosisteme</strong> sahip, daha kapsamlı/kompleks framework. LLM'lerle uygulama geliştirmek için kullanılır. RAG, ajanlar (<strong>LangGraph</strong>, Deep Agent) ve gözlemlenebilirlik/izleme (observability → <strong>LangSmith</strong>) tarafı var.</li>
+<li><strong>LlamaIndex:</strong> <strong>RAG öncelikli</strong>, RAG'a odaklanmış bir framework.</li>
+<li><strong>Haystack:</strong> Avrupa merkezli <strong>deepset</strong> şirketi tarafından geliştirildi. Kurumsal desteği var ama <strong>topluluk desteği az</strong>; topluluk az olunca proje, kaynak ve doküman da az oluyor.</li>
+</ul>
+<p>Bu derste <strong>LangChain</strong> kullanılıyor.</p>
+<ul>
+<li><strong>Lang</strong> = Language (büyük dil modelleri), <strong>Chain</strong> = zincir → <strong>pipeline.</strong> Adımları zincirleme birbirine bağlayabiliyoruz; bir adımın çıktısı bir sonrakinin girdisi oluyor. RAG da bir pipeline'dır: <strong>Indexing → Retrieval → Generation.</strong></li>
+<li><strong>Model bağımsız çalışır:</strong> İstediğiniz sağlayıcıyı kullanabilirsiniz (OpenAI, Claude, Gemini, açık kaynak modeller).</li>
+<li>Çizimdeki not: <strong>Basit uygulamalarda (ör. soru-cevap chatbot) LangChain kullanmaya gerek yok; karmaşık, çok adımlı uygulamalarda LangChain.</strong></li>
+<li>LangChain bir ekosistem/şemsiye: <strong>LangChain Core</strong> (prompt hazırlama, context için araçlar), <strong>LangGraph</strong> (ajanlar), <strong>LangSmith</strong> (observability). Bunlar ileride projelerde tek tek kullanılacak. (Bir öğrencinin sorusu üzerine: LangChain'in kütüphaneleri ikinci derste anlatılmıştı.)</li>
+</ul>
+<h3>Uygulama: Proje kurulumu (≈01:25–01:32)</h3>
+<ol>
+<li>Masaüstünde <code>day05</code> adında bir klasör oluştur ve VS Code ile aç (File → Close Folder → Open Folder ile de açılabilir).</li>
+<li>Terminali aç ve <strong>uv</strong> ile projeyi başlat:</li>
+</ol>
+<pre><code class="language-bash">uv init --python 3.12
+</code></pre>
+<p>Bu komutla Python sürümü, <code>.gitignore</code>, bağımlılıkların yazılacağı <code>pyproject.toml</code> gibi dosyalar oluşur.</p>
+<ol start="3">
+<li>Paketleri yükle:</li>
+</ol>
+<pre><code class="language-bash">uv add langchain jupyter
+</code></pre>
+<p>Hoca uv'nin hızını övdü: "pip olsa bekletirdi, paketleri tek tek bulup yüklerdi; uv çok hızlı." Yüklenen paketlerin sürümleri <code>pyproject.toml</code>'a eklenir, oradan takip edilebilir.</p>
+<ol start="4">
+<li>Proje kökünde <code>docs</code> klasörü oluştur, <code>test.txt</code> dosyasını içine koy (doğrudan köke de koyulabilir; düzen için klasör açıldı). Metin "Antik Yunan'da Yaşam" başlıklı, paragraflardan oluşan bir yazı: şehir devletleri (polis), Atina ve Sparta, toplumsal gruplar, kadınların rolü, eğitim, gymnasiumlar, din ve festivaller, tapınaklar, ekonomi, agora, deniz ticareti, sanat-mimari, mühendislik ve mirası.</li>
+<li>Kökte <code>indexing.ipynb</code> notebook'unu oluştur, kernel olarak <strong>Select Kernel → Python Environments → day05</strong> ortamını seç.</li>
+</ol>
+<h3>Uygulama: Dokümanı yükleme ve Document nesnesi (≈01:32–01:39)</h3>
+<h4>Dosya yolunu Path nesnesine çevirme</h4>
+<p>Hata almamak ve işletim sisteminden bağımsız, standart bir şekilde çalışmak için dosya yolunu <code>pathlib.Path</code> nesnesine çeviriyoruz. (Hoca, bazı işletim sistemlerinde yolun ters eğik çizgiyle yazılması gerektiğini söyledi — hangi sistem için söylendiği <strong>[belirsiz]</strong>; <code>Path</code> bu farkları zaten yönetir.)</p>
+<pre><code class="language-python">from pathlib import Path 
+
+path = Path(&quot;./docs/test.txt&quot;)
+</code></pre>
+<h4>Metni okuma</h4>
+<p>Türkçe karakterlerin doğru okunması için <code>encoding="utf-8"</code>. İlk 100 karakteri yazdırarak kontrol ediyoruz.</p>
+<pre><code class="language-python">text = path.read_text(encoding=&quot;utf-8&quot;)
+text[:100]
+</code></pre>
+<p>Pipeline'ın ilk adımı olan <strong>verilerin yüklenmesi</strong> böylece tamamlandı.</p>
+<h4>LangChain Document nesnesine çevirme</h4>
+<p>Parçalamadan önce metni LangChain'in <strong>Document</strong> nesnesine çeviriyoruz. Neden? <strong>Metadata'ları takip edebilmek için</strong> — yani cevabın kaynağını (hangi dosya, hangi parça, hangi PDF) bilebilmek için. Bir cevapta sorun olursa metadata'ya bakarak cevabı kontrol edebiliriz.</p>
+<pre><code class="language-python">from langchain_core.documents import Document
+
+raw_documents = [
+    Document(
+    page_content=text,
+    metadata={&quot;source&quot;: &quot;docs/test.txt&quot;},
+    )
+]
+</code></pre>
+<p><code>raw_documents</code> bir liste; içinde tek bir Document var. Kontrol:</p>
+<pre><code class="language-python">raw_documents[0].metadata[&quot;source&quot;]
+</code></pre>
+<pre><code class="language-python">raw_documents[0].page_content[:100]
+</code></pre>
+<p>Elimizde tek doküman olduğu için yalnızca <code>[0]</code> indeksi çalışır; <code>[1]</code> hata verir.</p>
+<h3>Neden parçalara (chunk) ayırıyoruz? (≈01:39–01:44)</h3>
+<p>Metni bütün olarak LLM'e verirsek çok fazla token harcanır. Dokümanı chunk'lara bölüp sorguyla <strong>ilgili yeri</strong> bulur, yalnızca onu modele veririz:</p>
+<ul>
+<li><strong>Token maliyetini azaltır.</strong></li>
+<li><strong>Context'i şişirmez</strong> (context window uzunluğunu azaltır). Context window'un belirli bir uzunluğu var.</li>
+</ul>
+<p><strong>"RAG öldü mü?" tartışması:</strong> Context window'lar büyüdükçe "istediğimiz kadar doküman verebiliyoruz, RAG'a gerek kalmadı" deniyor. Hocaya göre <strong>RAG ölmez</strong>, çünkü: context şişince model düzgün cevap vermiyor (pencere ne kadar büyük olursa olsun) ve maliyet çok yükseliyor.</p>
+<h4>RecursiveCharacterTextSplitter</h4>
+<p>Bunun için <code>langchain-text-splitters</code> paketindeki <strong>RecursiveCharacterTextSplitter</strong> kullanılıyor:</p>
+<pre><code class="language-bash">uv add langchain-text-splitters
+</code></pre>
+<p>Bu sınıf metni <strong>doğal yerlerden</strong> böler: önce <strong>paragraflara</strong> bölmeye çalışır; olmuyorsa <strong>satırlara</strong>; o da olmuyorsa <strong>boşluklara</strong> göre böler.</p>
+<h3>Chunk size ve chunk overlap (≈01:44–01:48)</h3>
+<h4>Chunk size</h4>
+<p><strong>Projenize ve metninize göre seçin.</strong>
+- <strong>Çok büyük</strong> olursa modele gereksiz bilgi verirsiniz.
+- <strong>Çok küçük</strong> olursa model doğru bilgiyi yakalayamaz (yeterli bilgi beslenmez).</p>
+<p>Hocanın başparmak kuralları (karakter cinsinden):</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Metin türü</th>
+<th>chunk_size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Kısa metinler</td>
+<td>300 – 600</td>
+</tr>
+<tr>
+<td>Makaleler, ders notları</td>
+<td>600 – 1000</td>
+</tr>
+<tr>
+<td>Uzun/çok büyük metinler</td>
+<td>1000 – 2000</td>
+</tr>
+</tbody>
+</table></div>
+<h4>Chunk overlap</h4>
+<p><strong>Ardışık parçalar arasındaki ortak bölüm.</strong> Bölerken bağlamı kaybetmemek için bir sonraki parçaya tam bitiş noktasından değil, <strong>biraz geriden</strong> başlarız; böylece model bir önceki parçanın bağlamını da bilir ve <strong>anlam bütünlüğü korunur.</strong> (Çizimde: "This is the text I would like to chunk up. It is the example text for this exercise." cümlesi üzerinde Chunk 1st / 2nd / 3rd ve aradaki overlap bölgeleri gösterildi.)</p>
+<ul>
+<li><strong>Overlap az</strong> → cümleler arasındaki bağlantı kopar.</li>
+<li><strong>Overlap çok</strong> → gereksiz bilgi tekrar eder.</li>
+<li>Başparmak kuralı: <strong>chunk size'ın %10–20'si.</strong> Ör. 600 için 60–120; 1000 için 100–200.</li>
+</ul>
+<p>Hoca: "RAG'da en çok sıkıntı yaşanan, en çok anlaşılmayan yer burası. Bunu anlarsanız diğer yerler çok rahat. Bunları framework/kütüphane kendisi yapıyor; biz sadece kullanıyoruz ve ne anlama geldiklerini bilmemiz yeterli."</p>
+<h3>Uygulama: Metni parçalara ayırma (≈01:48–02:00)</h3>
+<pre><code class="language-python">from langchain_text_splitters import RecursiveCharacterTextSplitter 
+
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=600,
+    chunk_overlap=120,
+    # Chunk kaçıncı karakterden başlıyor
+    add_start_index=True  
+)
+</code></pre>
+<ul>
+<li><code>chunk_size=600</code>: Metin çok büyük değil, 600 seçilebilir.</li>
+<li><code>chunk_overlap=120</code>: 600'ün %20'si (önce daha fazla yazılmıştı; "biraz fazla" deyip %20'ye çekti).</li>
+<li><code>add_start_index=True</code>: Her chunk'ın orijinal metinde <strong>kaçıncı karakterden başladığını</strong> metadata'ya (<code>start_index</code>) yazar.</li>
+</ul>
+<p>Splitter'ı Document listesine uyguluyoruz:</p>
+<pre><code class="language-python">documents = text_splitter.split_documents(raw_documents)
+</code></pre>
+<pre><code class="language-python">print(documents[0].page_content)
+</code></pre>
+<pre><code class="language-python">print(documents[1].page_content)
+</code></pre>
+<p><strong>Sonuç:</strong> İlk chunk tam olarak ilk paragraf, ikinci chunk ikinci paragraf ("Atina, …" ile başlayıp "…amaçlanıyordu." ile biten). Splitter beklendiği gibi <strong>önce paragrafa göre</strong> bölmüş. Burada overlap oluşmamış, çünkü paragraflar 600 karakterden kısa ve her paragraf tek parça alındığı için bağlam kayması yok.</p>
+<h4>Overlap'ı görmek için deneme</h4>
+<p>Hoca overlap'ın etkisini göstermek için ayırıcıları değiştirdi: varsayılan paragraf önceliği yerine önce <strong>boşluğa</strong>, sonra <strong>karaktere</strong> göre bölmesini istedi (komutlar WhatsApp'tan paylaşıldı; kaynak notebook'ta bu hücre yok). Bu durumda ilk chunk tam 600 karakter oldu ("Antik Yunan'da Yaşam…" başlayıp "…tanınıyordu" civarında bitiyor) ve sonraki chunk 120 karakterlik overlap ile biraz geriden ("Bu nedenle…" civarından) başladı.</p>
+<blockquote>
+<p>Not: Bu deneme hücresi kaynak dosyada yok. Konuşmadan anlaşılan ayar <code>separators=[" ", ""]</code> benzeri bir şeydi; ayrıca "şunu da yüz elli yapalım" denen bir parametre var (hangisi olduğu <strong>[belirsiz]</strong>). Aşağıdaki kod yalnızca fikri göstermek için yeniden kurgulanmıştır, hocanın orijinal kodu değildir:
+<code>python
+demo_splitter = RecursiveCharacterTextSplitter(
+    separators=[" ", ""],   # paragraf/satır yerine önce boşluk, sonra karakter
+    chunk_size=600,
+    chunk_overlap=120,
+    add_start_index=True,
+)</code></p>
+</blockquote>
+<p>Bizim dokümanımız paragraf paragraf güzel ayrıldığı için bu deneme kullanılmadı; baştaki ayarlarla hücreler tekrar çalıştırıldı.</p>
+<pre><code class="language-python">documents = text_splitter.split_documents(raw_documents)
+
+print(documents[0].page_content)
+</code></pre>
+<pre><code class="language-python">len(documents[0].page_content)
+</code></pre>
+<p>Paragraf bazlı bölmede ilk chunk'ın uzunluğu <strong>411</strong> karakter çıktı (600 değil); yani overlap'a gerek kalmadı. Paragraflar büyük olsaydı overlap devreye girerdi.</p>
+<p><strong>Soru:</strong> Parça parça yazdırınca 120 karakterlik overlap'ı göremedim. Neden?
+<strong>Cevap:</strong> Varsayılan olarak paragrafa göre böldüğü için overlap gerekmedi (chunk'lar 600'e ulaşmadı). Boşluğa göre böldüğümüz denemede 600 karakterlik kesimler oluştu ve overlap orada göründü.</p>
+<p><strong>Soru:</strong> <code>documents[16]</code> gibi büyük bir indeks denediğimde "index out of range" hatası aldım. Kaç chunk oluştuğunu nereden bilebilirim?
+<strong>Cevap:</strong> Listenin uzunluğuna bakarak:</p>
+<pre><code class="language-python">len(documents)
+</code></pre>
+<p><em>(≈02:00–02:33 mola + kayıt boşluğu — aşağıdaki bölüm transkriptte yok.)</em></p>
+<h3>[Kayıt boşluğu — notebook'tan tamamlandı] Embedding ve Chroma'ya kaydetme (≈02:00–02:33)</h3>
+<blockquote>
+<p><strong>Bu bölüm transkriptte yer almıyor.</strong> Videoda bu aralıkta ses yok (mola + kayıt boşluğu). Hocanın 02:33'teki tekrarından bu aralıkta "chunk'ları embedding'e çevirip vektör veritabanında <code>antik_yunan</code> adıyla sakladık" adımının yapıldığı anlaşılıyor. Kodlar ve sıralama <code>indexing.ipynb</code> dosyasından alınmıştır; açıklamalar "Not:" niteliğindedir (hocanın sözlü anlatımı kayıtta yok).</p>
+</blockquote>
+<p>Gerekli paketler (kurulum komutu transkriptte yok; import'lardan çıkarılan paket adları):</p>
+<pre><code class="language-bash">uv add langchain-openai langchain-chroma python-dotenv
+</code></pre>
+<p>API anahtarını <code>.env</code> dosyasından yükleme (<code>OPENAI_API_KEY</code>):</p>
+<pre><code class="language-python">from dotenv import load_dotenv 
+
+load_dotenv()
+</code></pre>
+<p>OpenAI embedding modelini tanımlama:</p>
+<pre><code class="language-python">from langchain_openai import OpenAIEmbeddings
+embeddings = OpenAIEmbeddings(
+ model=&quot;text-embedding-3-small&quot;
+)
+</code></pre>
+<p>Chunk'ların metinlerini bir listeye alıp embedding'e çevirme (ne olduğunu görmek için manuel adım):</p>
+<pre><code class="language-python">texts = [doc.page_content for doc in documents]
+</code></pre>
+<pre><code class="language-python">texts 
+</code></pre>
+<pre><code class="language-python">vectors = embeddings.embed_documents(texts)
+</code></pre>
+<pre><code class="language-python">print(&quot;Parça sayısı:&quot;, len(documents))
+print(&quot;Vektör sayısı:&quot;, len(vectors))
+print(&quot;Vektör boyutu:&quot;, len(vectors[0]))
+print(&quot;İlk 5 değer:&quot;, vectors[0][:5])
+</code></pre>
+<p>Not: Parça sayısı ile vektör sayısı eşittir (her chunk'a bir vektör). <code>text-embedding-3-small</code> varsayılan olarak 1536 boyutlu vektör üretir.</p>
+<p>Chroma vektör veritabanına kaydetme:</p>
+<pre><code class="language-python">from langchain_chroma import Chroma
+</code></pre>
+<pre><code class="language-python">PERSIST_DIR = &quot;./chroma_db&quot;
+</code></pre>
+<pre><code class="language-python">import shutil
+
+shutil.rmtree(PERSIST_DIR, ignore_errors=True)
+</code></pre>
+<pre><code class="language-python">vector_store = Chroma.from_documents(
+    documents=documents,
+    embedding=embeddings,
+    persist_directory=PERSIST_DIR,
+    collection_name=&quot;antik_yunan&quot;,
+)
+</code></pre>
+<p>Not: <code>shutil.rmtree</code> ile hücre her çalıştırıldığında eski veritabanı silinir, böylece aynı chunk'lar tekrar tekrar eklenip çoğalmaz. <code>Chroma.from_documents</code> chunk'ları embedding modeliyle vektöre çevirip <code>./chroma_db</code> klasörüne, <code>antik_yunan</code> koleksiyonuna kalıcı olarak yazar.</p>
+<h3>Retriever: İlgili verileri yakalama (≈02:33–02:37)</h3>
+<p>Hocanın aradan sonraki tekrarı: Dokümanları aldık → chunk'lara ayırdık → embedding'e (sayısal temsillere, vektörlere) çevirdik → vektör veritabanında sakladık. Verilerimiz artık vektör veritabanında <code>antik_yunan</code> adıyla duruyor. Sıradaki adım: kullanıcının sorgusunu almak, embedding'e çevirmek, <strong>semantik arama</strong> yapıp en ilişkili parçaları bulmak.</p>
+<p>LangChain'in bunun için çok kullanışlı bir aracı var: <strong>retriever.</strong> <code>as_retriever</code> üç işi bir anda yapar:
+1. Sorguyu embedding'e çevirir.
+2. Bu embedding'i vektör DB'deki embedding'lerle karşılaştırır.
+3. En benzer dokümanları bulup döndürür.</p>
+<pre><code class="language-python">retriever = vector_store.as_retriever()
+</code></pre>
+<pre><code class="language-python">docs = retriever.invoke(
+ &quot;Antik Yunan'da kadınların toplumdaki rolü nedir?&quot;
+)
+docs
+</code></pre>
+<pre><code class="language-python">len(docs)
+</code></pre>
+<p>Varsayılan değer <strong>4</strong> olduğu için 4 doküman döndü. Context'in fazla şişmemesi için bu sayıyı kendimiz ayarlayabiliriz (3, hatta 2 de olabilir; duruma göre değişir):</p>
+<pre><code class="language-python">retriever_k3 = vector_store.as_retriever(
+    search_kwargs={&quot;k&quot;: 3}
+)
+</code></pre>
+<pre><code class="language-python">docs = retriever_k3.invoke(
+    &quot;Antik Yunan'da kadınların toplumdaki rolü nedir?&quot;
+)
+len(docs)
+</code></pre>
+<p>→ 3 doküman.</p>
+<h3>Prompt şablonu: ChatPromptTemplate (≈02:37–02:41)</h3>
+<p>Bulunan dokümanları (context) ve soruyu, geçen derste gördüğümüz <strong>prompt template</strong> ile LLM'e vereceğiz.</p>
+<pre><code class="language-python">from langchain_core.prompts import ChatPromptTemplate
+
+SYSTEM_PROMPT = ( 
+    &quot;Answer the question based only on the following context. &quot; 
+    &quot;If the answer isn't in the context, say you don't know.\n\n&quot; 
+    &quot;Context:\n{context}&quot; )
+
+prompt = ChatPromptTemplate([ 
+    (&quot;system&quot;, SYSTEM_PROMPT), 
+    (&quot;human&quot;, &quot;{question}&quot;), 
+])
+</code></pre>
+<ul>
+<li><strong>System prompt</strong> modele bir rol verir: "Sadece aşağıdaki bağlama göre cevap ver; cevap bağlamda yoksa bilmediğini söyle."</li>
+<li><code>{context}</code> ve <code>{question}</code> süslü parantez içinde yazılır, çünkü süslü parantezle <strong>değişken</strong> tanımlanır.</li>
+<li><code>("human", "{question}")</code>: kullanıcının sorusu.</li>
+</ul>
+<p>Şablonu düzgün görmek için:</p>
+<pre><code class="language-python">prompt.pretty_print()
+</code></pre>
+<p>Sistem mesajı, context'in geleceği yer ve sorunun geleceği yer görünür. Bu şablonu modele vereceğiz; model şablonu anlayıp ona göre cevap verecek.</p>
+<pre><code class="language-python">prompt.input_variables
+</code></pre>
+<p>→ <code>context</code> ve <code>question</code>. ChatPromptTemplate'in en güzel tarafı bu değişkenleri istediğimiz gibi ayarlayabilmemiz.</p>
+<h4>Dokümanları düz metne çevirme</h4>
+<p><code>docs</code> bir liste; her elemanında <code>metadata</code> ve <code>page_content</code> var. Modele liste olarak değil <strong>düz metin</strong> olarak vermek istiyoruz; bunun için sadece <code>page_content</code>'leri alıp birleştiren bir fonksiyon:</p>
+<pre><code class="language-python">def format_docs(docs):
+ return &quot;\n\n&quot;.join(doc.page_content for doc in docs)
+</code></pre>
+<pre><code class="language-python">format_docs(docs)
+</code></pre>
+<h3>LLM ve zincir (chain) (≈02:41–02:50)</h3>
+<pre><code class="language-python">from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(
+    model=&quot;gpt-5.6-luna&quot;,
+    temperature=0
+)
+</code></pre>
+<p><strong>Temperature:</strong> 0 olursa model kesin, deterministik cevap verir, rastgelelik olmaz, yorum katmaz; 1'e yaklaştıkça daha yaratıcı/üretken cevaplar verir. Burada kesin cevap istediğimiz için 0.</p>
+<p>Pipeline'ı (zinciri) LangChain'in <strong>pipe (<code>|</code>)</strong> operatörüyle kuruyoruz; pipe adımları birbirine bağlar (prompt → LLM):</p>
+<pre><code class="language-python">rag_chain = prompt | llm
+</code></pre>
+<p>Retriever'ı k=3 ile yeniden tanımlayıp soruyu soruyoruz (retriever: soruyu alır, embedding'e çevirir, vektör DB'de en yakın metinleri bulup döndürür):</p>
+<pre><code class="language-python">retriever = vector_store.as_retriever(search_kwargs={&quot;k&quot;: 3})
+
+question = &quot;Antik Yunan'da kadınların toplumdaki rolü nedir?&quot;
+
+docs = retriever.invoke(question)
+</code></pre>
+<pre><code class="language-python">response = rag_chain.invoke({
+    &quot;context&quot;: docs,
+    &quot;question&quot;: question
+})
+
+print(response.content)
+</code></pre>
+<p><strong>Derste yaşanan hata:</strong> Hoca önce yeni çıkan daha güncel bir modeli (transkriptte "GPT-6 luna" gibi duyuluyor <strong>[belirsiz]</strong>) denedi; <code>temperature=0</code> ile hata aldı. Modeli <code>gpt-5.6-luna</code>'ya geri alınca çalıştı. Hocanın tahmini: yeni modelde <code>temperature</code> parametresi kaldırılmış olabilir; parametreleri sonra bakılacak. (Ders sırasında OpenAI'nin yeni bir 6.1 modeli yayımladığı da görüldü.)</p>
+<p><strong>Sonuç:</strong> "Antik Yunan'da kadınların toplumdaki rolü şehir devletlerine göre değişiyordu. Atina'da kadınlar çoğunlukla ev işlerini yönetiyor…" Dokümandaki ilgili paragrafla birebir uyumlu; model bağlama göre cevap verdi.</p>
+<h4>Model takip kaynakları (yan sohbet)</h4>
+<p>Modelleri karşılaştırmak için hoca <strong>LMArena</strong> sıralamasına bakılmasını, bağımsız kurumların değerlendirmeleri için de <strong>Artificial Analysis</strong>'i takip etmeyi önerdi. Öğrenciler birbirlerini (sosyal medyada) takip edip topluluk olmayı konuştu.</p>
+<h3>Tüm akışı bir fonksiyonda toplamak: <code>@chain</code> dekoratörü (≈02:50–02:53)</h3>
+<p>Tekrar: dokümanları aldık → chunk'lara ayırdık → embedding'e çevirdik → vektör DB'de sakladık → soruyu aldık → retriever soruyu embedding'e çevirip en yakın verileri buldu → context + soruyu prompt template'e yazdık → LLM'e verdik → LLM context'e bakarak cevap verdi.</p>
+<p>Bu adımları tekrar tekrar yazmamak için bir fonksiyonda topluyoruz. <strong>Dekoratör</strong>, bir Python fonksiyonuna ekstra özellik kazandırmaktır (ör. bir fonksiyonu tool'a çevirmek için <code>@tool</code> dekoratörü kullanılır). Burada fonksiyonun zincir (chain) gibi çalışmasını istediğimiz için <strong><code>@chain</code></strong> dekoratörü kullanılıyor:</p>
+<pre><code class="language-python">from langchain_core.runnables import chain
+
+@chain 
+def qa(question: str): 
+    docs = retriever.invoke(question) 
+
+    context = format_docs(docs) 
+
+    formatted_prompt = prompt.invoke({ 
+        &quot;context&quot;: context, 
+        &quot;question&quot;: question 
+    }) 
+
+    answer = llm.invoke(formatted_prompt) 
+
+    return answer
+</code></pre>
+<p>Akış: soru alınır → embedding'e çevrilip en yakın dokümanlar bulunur → düz metne (context) çevrilir → prompt'a yerleştirilir (formatlanmış prompt) → LLM'e verilir → cevap döndürülür.</p>
+<pre><code class="language-python">response = qa.invoke(&quot;Antik Yunan'da günlük yaşam nasıldı?&quot;) 
+
+print(response.content)
+</code></pre>
+<h3>Kaynakları göstermek ve "bilmediğini bilmek" (≈02:53–02:55)</h3>
+<p>Cevabın <strong>hangi dokümanlardan</strong> geldiğini de görmek için fonksiyonun bir sözlük döndürmesini, içinde <code>docs</code> anahtarı da olmasını sağlıyoruz:</p>
+<pre><code class="language-python">@chain 
+def qa_with_sources(question: str): 
+    docs = retriever.invoke(question) 
+
+    context = format_docs(docs) 
+
+    formatted_prompt = prompt.invoke({ 
+        &quot;context&quot;: context, 
+        &quot;question&quot;: question 
+    }) 
+
+    answer = llm.invoke(formatted_prompt) 
+
+    return { 
+        &quot;answer&quot;: answer.content, 
+        &quot;docs&quot;: docs 
+    }
+</code></pre>
+<pre><code class="language-python">result = qa_with_sources.invoke( 
+    &quot;Antik Yunan'da günlük yaşam nasıldı?&quot;
+)
+</code></pre>
+<pre><code class="language-python">for doc in result[&quot;docs&quot;]:
+    print(doc.page_content)
+    print(doc.metadata)
+    print(&quot;-&quot; * 50)
+</code></pre>
+<p>Çıktıda en yakın chunk'lar ve metadata'ları görünüyor: <code>source</code> (tek dosya kullandığımız için hep <code>docs/test.txt</code>) ve <code>start_index</code> (ör. bir chunk 0. karakterden, biri 940., biri 2003. karakterden başlıyor). Birden fazla PDF ya da sayfalı PDF olsaydı hangi dosya/sayfadan geldiği de burada görülürdü.</p>
+<p>Son olarak dokümanda <strong>olmayan</strong> bir şey soruyoruz:</p>
+<pre><code class="language-python"># RAG'in en kritik davranışı: bilmediğini bilmek
+no_question = &quot;Antik Yunan'da hangi kripto paralar kullanılıyordu?&quot; 
+
+result = qa_with_sources.invoke(no_question) 
+
+# Cevabı görelim
+print(result[&quot;answer&quot;]) 
+</code></pre>
+<p>Model "bilmiyorum" anlamında cevap verdi: bu konunun verilen metinde yer almadığını söyledi. System prompt'taki "cevap bağlamda yoksa bilmediğini söyle" talimatı burada işe yaradı.</p>
+<h3>Kapanış (≈02:55–03:00)</h3>
+<ul>
+<li>Öğrenciler ekran görüntülerini paylaştı. Bir öğrenci kod yazarak derse katılmanın konudan kopmamayı sağladığını söyledi; hoca da yaparak öğrenmenin önemini vurguladı.</li>
+<li>Hata alan bir öğrenciye çözüm: model adını tekrar <code>gpt-5.6-luna</code> yapıp <strong>Restart → Run All</strong>.</li>
+<li>Bir öğrencinin ekranında kripto sorusunun cevabının sonunda tuhaf (Yunan alfabesine benzeyen) karakterler çıktı; hoca nedenini netleştirmedi, normalde çıkmaması gerektiğini söyledi <strong>[belirsiz]</strong>.</li>
+<li>Hoca, kripto parayla para kazanmak için yapay zekâ öğrenmeye gelen bir katılımcı anekdotunu anlattı: "Herkes kafasında bir proje oluştursun"; hedefe kilitlenmek motivasyon sağlıyor.</li>
+<li>Hoca notebook'u Skool'a yükleyecek.</li>
+<li>Demo olarak gösterilen PDF yüklemeli RAG uygulaması <strong>bir sonraki derste</strong> yapılacak.</li>
+</ul>

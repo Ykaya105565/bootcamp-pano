@@ -1,0 +1,348 @@
+<h2>08 · Day04 – Vektör Veri Tabanları — Ders Metni (ayıklanmış)</h2>
+<blockquote>
+<p>Kaynak: Skool otomatik transkripti + hocanın ders dosyaları (<code>01-Keyword-Search.ipynb</code>, <code>02-Semantic-Search.ipynb</code>, <code>03-Vector-DB.ipynb</code>) + konu anlatım çizimi.
+Kod blokları hocanın dosyalarındaki gerçek haliyle verilmiştir.</p>
+<p><strong>Transkript boşlukları:</strong> 00:01–00:30 arası transkriptte yok (kayıt 00:31'de konunun ortasından başlıyor). 01:06–01:21 ve 02:07–02:51 araları mola; ancak 02:07–02:51 aralığında transkriptte yalnızca müzik görünüyor, oysa çizimde "12:21"den sonra işlenen <em>NoSQL vs vektör DB, hibrit yaklaşım, vektör DB seçimi</em> bölümleri var. Bu bölümler aşağıda <strong>yalnızca çizimden</strong> aktarılmış ve öyle işaretlenmiştir.</p>
+</blockquote>
+<hr>
+<h3>0. Giriş: Vektör veri tabanları ve embedding'e genel bakış (≈00:00–00:31, transkriptte yok — çizimden)</h3>
+<p>Not: Bu kısmın sesi/transkripti yok; hocanın tahtasının ilk bölümünden aktarılmıştır.</p>
+<ul>
+<li>Görsel, metin ve ses gibi her türlü veri <strong>sayısal temsillere</strong> (embedding) çevrilir. Örnek: bir kedi resmi → <code>[0.12, -0.45, 0.88, ...]</code>.</li>
+<li>Bu temsiller öğrenilmiş bir uzayda (Dimension 1 / Dimension 2) anlamca yakın olanlar birbirine yakın düşecek şekilde konumlanır: <em>Animals</em> (cat, dog, puppy, kitten), <em>Vehicles</em> (bus, car, truck), <em>Food</em> (apple, banana, orange), <em>Royalty</em> (king, queen, prince). "Kiwi" diye arama yapıldığında, aradığımız şey Food kümesine yakın düşer.</li>
+<li><strong>İki tür arama vardır:</strong></li>
+<li>Anahtar kelime araması (keyword search) → kelime eşleşmesine bakar.</li>
+<li>Anlamsal arama (semantic search) → anlam eşleşmesine bakar.</li>
+<li>Embedding'e çevirme tekniklerinden biri <strong>Word2Vec</strong>. Ünlü örnek: <code>vec("king") − vec("man") + vec("woman") ≈ vec("queen")</code>.</li>
+</ul>
+<h3>1. Statik ve bağlamsal embedding; Word2Vec ve Doc2Vec (≈00:31–00:35)</h3>
+<ul>
+<li><strong>Statik embedding'in dezavantajı:</strong> Word2Vec gibi yöntemlerde her kelimenin <strong>tek bir vektörü</strong> vardır; kelimeler anlamına/bağlamına bakılmadan vektörleştirilir. Örneğin "Apple" hem şirket hem meyve anlamına gelir, ama tek vektörle temsil edildiği için model hangisinin kastedildiğini ayırt edemez. Bu anlamı <strong>cümlenin bağlamından</strong> çıkarmamız gerekir.</li>
+<li>Bu ihtiyaçtan <strong>bağlamsal embedding (contextual embedding)</strong> kavramı doğdu. Embedding'ler ikiye ayrılır:</li>
+<li><strong>Statik (sabit) embedding'ler</strong> – Word2Vec'te olduğu gibi.</li>
+<li><strong>Bağlamsal embedding'ler</strong> – Transformer mimarisiyle elde edilir. Transformer, 2017'de Google ekibinin ortaya koyduğu mimaridir. Bu mimariyle statik embedding'ler cümlenin anlamına göre değişen <strong>dinamik</strong> embedding'lere dönüşür. Böylece "I ate an apple for breakfast." ile "Apple released a new iPhone." cümlelerindeki "apple"lar farklı temsil edilir ve model farkı anlayabilir.</li>
+<li><strong>Word2Vec vs Doc2Vec:</strong> Word2Vec her kelimeyi, Doc2Vec ise her dokümanı vektöre çevirir.</li>
+<li>Bir cümlenin/dokümanın tek vektörü nasıl elde edilir? Önce her kelime/token ayrı ayrı embedding'e çevrilir, sonra bu embedding'lerin <strong>ortalaması</strong> alınır. Örnek: "Kangal güçlü bir çoban köpeğidir." cümlesindeki beş token'ın her biri, diyelim 300 boyutlu birer vektör olsun; ortalamaları alınınca cümleyi temsil eden tek bir 300 boyutlu vektör elde edilir.</li>
+<li>Boyut sayısı modele göre değişir: 300, 1000, 3000, 5000, hatta 10.000'e kadar çıkabilir. Boyut büyüdükçe işlem maliyeti artar ama daha iyi sonuç alınabilir.</li>
+</ul>
+<h3>2. Dersin planı (≈00:35–00:36)</h3>
+<p>Bu derste işlenecek konular:
+1. Vektör veri tabanları nedir?
+2. Klasik ve vektör veri tabanları arasındaki fark
+3. Vektör veri tabanı çeşitleri
+4. Uygulamalar (arada ve sonda vektör DB uygulaması)</p>
+<h3>3. Yapılandırılmış ve yapılandırılmamış veriler (≈00:36–00:40)</h3>
+<ul>
+<li>Veriler ikiye ayrılır:</li>
+<li><strong>Yapılandırılmış (structured) veriler:</strong> Düzenlidir, genellikle tablo halinde ifade edilir — Excel tablosu gibi. Sütunları bellidir, birincil anahtar (primary key), yabancı anahtar (foreign key) vardır. Örneğin ID, last name, first name, birthday, country sütunlu bir tablo. Bunlarla çalışmak kolaydır; regresyon, lojistik regresyon gibi klasik makine öğrenmesi analizleri doğrudan uygulanabilir. MySQL, PostgreSQL gibi klasik veri tabanlarında kolayca saklanırlar.</li>
+<li><strong>Yapılandırılmamış (unstructured) veriler:</strong> Daha karmaşıktır — görüntü, metin, ses, video, IoT sensör verileri gibi. PDF de tablo şeklinde olmadığı için yapılandırılmamış veridir. Klasik yöntemler bunları analiz edemiyordu; derin öğrenme ve ardından üretken yapay zekâ (GenAI) yöntemleriyle artık bunlarla çalışabiliyoruz. Dünyadaki verilerin büyük kısmı bu türdendir.</li>
+<li>Yapılandırılmamış veriyi klasik veri tabanında saklamak zordur. Diyelim bir PDF'in metnini çıkarıp bir sütuna yazdık; saklamış oluruz, ama <strong>anlamsal arama</strong> yapamayız. Klasik veri tabanında yalnızca <strong>anahtar kelime araması</strong> yapılabilir. Yapay zekâ çalışmalarında ise anlamsal arama isteriz.</li>
+</ul>
+<h3>4. Proje ortamının kurulumu (≈00:40–00:47)</h3>
+<p>Masaüstünde yeni bir klasör (<code>D4</code>) açılıp VS Code ile açıldı; terminalde:</p>
+<pre><code class="language-bash">uv init --python 3.12
+uv add jupyter
+</code></pre>
+<ul>
+<li>Her proje için ayrı bir çalışma ortamı kurmak tavsiye edilir; böylece kütüphane sürümleri çakışmaz.</li>
+<li>Jupyter çekirdeği (kernel) görünmezse <code>ipykernel</code> paketi de eklenebilir (<code>uv add ipykernel</code>). Kernel listede çıkmazsa VS Code'u kapatıp açmak çoğu zaman çözüyor.</li>
+<li><strong><code>uv sync</code>:</strong> Başkasının projesini (ör. hocanın proje klasörünü) indirdiğinizde, o projede kullanılan kütüphaneleri aynı sürümleriyle kurmak için <code>uv sync</code> yeterlidir.</li>
+<li><code>uv</code> ile sorun yaşayan öğrenciler <code>pip install</code> veya Conda ile ilerleyebilir. Hoca: "Yalnızca bir araca bağlı kalmayın; uv sorun çıkarırsa Conda'ya, o da olmazsa pip'e geçebilmek için hepsini bilmek önemli."</li>
+<li>Yeni bir notebook dosyası (<code>.ipynb</code>; düz Python dosyası <code>.py</code>) oluşturulup kernel olarak projenin Python ortamı (<code>D4</code>) seçildi.</li>
+</ul>
+<h3>5. Uygulama 1 – SQLite ile anahtar kelime araması (≈00:47–01:06)</h3>
+<p><code>sqlite3</code> kütüphanesi Python ile birlikte gelir, ayrıca kurmaya gerek yoktur. Küçük veri tabanı işleri için önerilir; daha karmaşık işler için MySQL/PostgreSQL kullanılabilir.</p>
+<pre><code class="language-python">import sqlite3
+conn = sqlite3.connect(&quot;:memory:&quot;)
+cur = conn.cursor()
+</code></pre>
+<ul>
+<li><code>connect(":memory:")</code> ile bellekte bir veri tabanı oluşturulup bağlanılır.</li>
+<li>İmleç (cursor) ile veri ekleme, silme, güncelleme gibi işlemler yapılır.</li>
+</ul>
+<p>Tablo oluşturma (SQL komutu):</p>
+<pre><code class="language-python">cur.execute(&quot;CREATE TABLE dokumanlar (id INTEGER PRIMARY KEY, icerik TEXT)&quot;)
+</code></pre>
+<p><code>id</code> tam sayı ve birincil anahtar (benzersiz), <code>icerik</code> metin sütunudur.</p>
+<p>Kayıtların eklenmesi:</p>
+<pre><code class="language-python">kayitlar = [
+(&quot;Aracım çalışmıyor, motor garip sesler çıkarıyor.&quot;,),
+(&quot;Otomobilim marş basmıyor, aküyü değiştirdim ama olmadı.&quot;,),
+(&quot;Yeni arabamı geçen hafta aldım, çok memnunum.&quot;,),
+(&quot;Bilgisayarım açılmıyor, ekran siyah kalıyor.&quot;,),
+(&quot;Vasıtam servise gitti, fren balatası değişecek.&quot;,),
+]
+cur.executemany(&quot;INSERT INTO dokumanlar (icerik) VALUES (?)&quot;, kayitlar)
+</code></pre>
+<ul>
+<li>Her kayıt tek elemanlı bir demettir (tuple), bu yüzden sonda virgül var. Hoca kendi notundaki eski (tuple'sız) sürümü yapıştırdığı için önce hata aldı; tuple'lı haliyle <code>executemany</code> doğru çalıştı.</li>
+</ul>
+<p>Kayıtları görüntüleme:</p>
+<pre><code class="language-python">cur.execute(&quot;SELECT * FROM dokumanlar&quot;)
+cur.fetchall()
+</code></pre>
+<p>Çıktıda <code>id</code> ve <code>icerik</code> sütunları gelir.</p>
+<p><strong>Anahtar kelime araması:</strong></p>
+<pre><code class="language-python">cur.execute(&quot;SELECT icerik FROM dokumanlar WHERE icerik LIKE '%araba bozuldu%'&quot;)
+sonuc = cur.fetchall()
+print(&quot;Bulunan satır:&quot;, len(sonuc))
+</code></pre>
+<p>Sonuç: <strong>0 satır.</strong> Oysa "Aracım çalışmıyor…", "Otomobilim marş basmıyor…", "Vasıtam servise gitti…" cümlelerinin hepsi araba arızasıyla ilgili; aslında bu üçünün gelmesini bekleriz.</p>
+<pre><code class="language-python">cur.execute(&quot;SELECT icerik FROM dokumanlar WHERE icerik LIKE '%araba%'&quot;)
+sonuc = cur.fetchall()
+print(&quot;Bulunan satır:&quot;, len(sonuc))
+</code></pre>
+<p>Sonuç: <strong>1 satır</strong> — sadece "Yeni arabamı geçen hafta aldım…" (çünkü "araba" kelimesi yalnızca orada geçiyor). Üstelik bu cümle arızayla ilgili bile değil.</p>
+<p><strong>Ders:</strong> Anahtar kelime araması bire bir kelime eşleşmesine baktığı için eş anlamlıları (araç, otomobil, vasıta) yakalayamaz. İşte burada vektör veri tabanları devreye girer.</p>
+<blockquote>
+<p><strong>Soru:</strong> Hücre çıktısındaki <code>sqlite3.Cursor at 0x...</code> ifadesi neyi gösteriyor?
+<strong>Cevap:</strong> Nesnenin bellekte saklandığı adresi gösterir; bir tür işaretçi (pointer) mantığı.</p>
+</blockquote>
+<h3>6. Anlamsal arama ve vektör veri tabanının rolü (≈01:26–01:31)</h3>
+<ul>
+<li>Kelime araması bire bir eşleşme aradığı için yapay zekâ çalışmalarına uygun değildir; biz <strong>anlama göre</strong> arama yapmak isteriz. Bunun için vektör veri tabanları kullanılır.</li>
+<li>Akış: Girdi alınır → model bunu embedding'e çevirir → embedding'ler üzerinde sayısal işlem yapılabildiği için anlamca yakın cümleler/dokümanlar bulunabilir.</li>
+<li>Örnek: "Arabam bozuldu." ve "Aracım çalışmıyor." cümlelerinin embedding'leri birbirine çok yakındır (<code>[0.12, -0.48, 0.76, …]</code> ve <code>[0.13, -0.50, 0.96, …]</code>); "Bugün hava oldukça sıcak." ise uzayda farklı bir yerde durur (<code>[0.93, -0.70, 0.16, …]</code>). Böylece "arabam bozuldu" araması "aracım çalışmıyor"u getirir.</li>
+<li>Arama yapabilmek için bu embedding'lerin bir yerde saklanması gerekir: <strong>vektör veri tabanları</strong>. Kullanım alanları:</li>
+<li>Anlamsal aramalar</li>
+<li>RAG (gelecek haftanın konusu)</li>
+<li>Görsel benzerlik aramaları</li>
+<li><strong>RAG'deki yeri:</strong> PDF/doküman alınır → parçalara (chunk) ayrılır → her parça embedding vektörüne çevrilir → vektör veri tabanında saklanır → buradan sorgulama yapılır.</li>
+<li>Hocanın vurgusu: "Yapay zekâ çağındayız diye klasik veri tabanlarını küçümsemeyin; çok önemliler, en azından temel seviyede SQL bilmek gerekiyor. Vektör veri tabanları kadar klasik veri tabanları da önemli."</li>
+<li><strong>Metinleri embedding'e çevirmenin iki yolu:</strong></li>
+<li><strong>OpenAI embedding modelleri</strong> — API üzerinden, ücretli.</li>
+<li><strong>Sentence Transformers</strong> — açık kaynaklı, yerel (lokal) çalışan Python kütüphanesi. Bu derste ikisi de kullanıldı.</li>
+</ul>
+<h3>7. Uygulama 2 – Sentence Transformers ile anlamsal arama (≈01:31–01:46)</h3>
+<p>Yeni notebook: <code>02-Semantic-Search.ipynb</code>. Kütüphane kurulumu:</p>
+<pre><code class="language-bash">uv add sentence-transformers
+</code></pre>
+<pre><code class="language-python">from sentence_transformers import SentenceTransformer
+model = SentenceTransformer(&quot;paraphrase-multilingual-MiniLM-L12-v2&quot;)
+</code></pre>
+<ul>
+<li><code>SentenceTransformer</code> büyük harfle başladığı için bir sınıftır (Python'da sınıf adları genelde büyük harfle başlar).</li>
+<li>Küçük ve <strong>çok dilli (multilingual)</strong> bir model seçildi; çünkü Türkçe metinlerle çalışıyoruz. Yalnızca İngilizce bir model Türkçe token'ları iyi temsil edemez.</li>
+<li>Kütüphane kurulduktan hemen sonra import hata verebilir; bu durumda <strong>kernel'i yeniden başlatmak</strong> gerekir. Model ilk seferde indirilir (birkaç yüz MB, biraz zaman alır), sonra önbellekten (cache) hızla yüklenir.</li>
+</ul>
+<p>Kayıtlar aynı tutulup listeye çevrildi:</p>
+<pre><code class="language-python">metinler = [k[0] for k in kayitlar]
+</code></pre>
+<p>Tuple'lardan metinler çıkarılıp düz bir listeye (köşeli parantez) konuyor; kütüphane girdiyi liste olarak alıyor.</p>
+<pre><code class="language-python">vektorler = model.encode(metinler)
+print(vektorler.shape)
+</code></pre>
+<ul>
+<li><code>encode</code> metinleri sayısal vektörlere çevirir. Burada <strong>token'lar değil, cümlenin tamamı</strong> embedding'e çevriliyor; model Transformer tabanlı olduğu için embedding'ler bağlama göre ayarlanıyor.</li>
+<li>Hoca vurguladı: Bu model nihai bir çıktı (metin) üretmiyor. Transformer'da girdiler önce embedding'e çevrilir, sonra mimarinin bir bölümünde bağlamsal embedding'e dönüşür; biz modelin son çıktısını değil, bu <strong>bağlamsal embedding</strong> ara sonucunu alıyoruz.</li>
+<li>Çıktı: <code>(5, 384)</code> → 5 cümle, her biri 384 boyutlu vektör.</li>
+</ul>
+<blockquote>
+<p><strong>Soru (hocadan):</strong> Token'ları ayrı ayrı embedding'e çeviriyorduk; cümlenin tamamı nasıl tek embedding oluyor?
+<strong>Cevap (bir öğrenci, hoca onayladı):</strong> Önce her token embedding'e çevrilir, sonra bu embedding'lerin ortalaması alınır; böylece cümlenin embedding'i elde edilir. Hoca: "Kaputun altında nasıl çalıştığını bilmek önemli."</p>
+</blockquote>
+<p>Sorgunun embedding'e çevrilmesi ve benzerlik hesabı:</p>
+<pre><code class="language-python">sorgu = &quot;araba bozuldu&quot;
+sorgu_vek = model.encode(sorgu)
+skorlar = model.similarity(sorgu_vek, vektorler)[0]
+print(skorlar)
+</code></pre>
+<ul>
+<li>Sorgu da kayıtlarla aynı modelle embedding'e çevrilmelidir.</li>
+<li><code>similarity</code> sorgu vektörüyle tüm kayıt vektörleri arasındaki benzerlik skorlarını verir. Hoca önce "küçük olan daha yakın" dedi, sonra düzeltti: Bu bir <strong>benzerlik</strong> skoru olduğu için <strong>büyük olan daha benzerdir</strong>.</li>
+</ul>
+<p>En benzer üç sonucu sıralı yazdırma:</p>
+<pre><code class="language-python">import numpy as np
+
+print(&quot;Sorgu:&quot;, sorgu)
+print(&quot;-&quot; * 40)
+
+for i in np.argsort(-skorlar)[:3]:
+    print(f&quot;{skorlar[i]:.3f} {metinler[i]}&quot;)
+</code></pre>
+<ul>
+<li><code>"-" * 40</code> sorgu ile sonuçları ayırmak için 40 çizgi basar.</li>
+<li><code>np.argsort</code> küçükten büyüğe sıralar; skorları <strong>eksi ile çarparak</strong> büyükten küçüğe sıralama elde edilir, <code>[:3]</code> ile ilk üçü alınır.</li>
+</ul>
+<p>Sonuç ("araba bozuldu" için):
+1. "Otomobilim marş basmıyor, aküyü değiştirdim ama olmadı."
+2. "Aracım çalışmıyor, motor garip sesler çıkarıyor."
+3. "Yeni arabamı geçen hafta aldım, çok memnunum."</p>
+<p>Anahtar kelime aramasında hiç bulunamayan arıza cümleleri artık en üstte geliyor.</p>
+<h3>8. Sektör sohbeti (≈01:50–01:54, özet)</h3>
+<p>Ders arasında öğrencilerle kısa bir sektör sohbeti yapıldı:
+- 2026 yol haritalarında öne çıkan konulardan biri <strong>harness engineering</strong>: Yapay zekâyı yalnızca araç kullanan bir şey olarak değil, dış dünyayla etkileşen ve araçları bir bütün halinde kullanan bir sistem olarak görmek. Hoca, ileride bir ajan (agent) eğitiminde kendi harness'lerini adım adım kuracaklarını söyledi.
+- Hocanın görüşü: Bazı kavramlar (ör. bağlam mühendisliği / context engineering) aslında zaten yapılan şeylerin yeni adlarla vurgulanmasıdır; bazen popülerlik ve satış için abartılıyor.
+- Türkiye'den teknik olarak çok iyi insanlar ve projeler çıkıyor, ancak <strong>pazarlama</strong> tarafında zayıfız; ABD bunu çok iyi yapıyor. Hoca yine de Türkiye'den güzel projeler çıkacağını düşünüyor.</p>
+<h3>9. SQL ve vektör veri tabanlarının karşılaştırılması (≈01:54–02:06)</h3>
+<ul>
+<li><strong>Klasik veriler düzenlidir → SQL veri tabanları bunlarla çok güçlüdür:</strong> arama, değiştirme, güncelleme, silme çok kolaydır.</li>
+<li><strong>Yapay zekâ verileri karmaşıktır →</strong> anlamsal arama yapmak isteriz → bu yüzden verileri sayısal vektörlere çeviririz.</li>
+<li>SQL veri tabanlarında vektör saklamak için <code>vector FLOAT[]</code> gibi bir veri tipi kullanılabilir; bazı klasik veri tabanları bunu destekler. Örnek tablo: <code>ID | Title | Embedding VECTOR(768)</code> → <code>1 | Doc A | [0.023, −0.145, 0.892, …]</code> (768 ondalıklı sayı).</li>
+<li><strong>Sorun:</strong> SQL veri tabanı bu sayı listesinin <strong>anlamını bilmez</strong>; sadece sayıları görür, veriyi anlamaz. Bizim amacımız ise en yakın metni bulmaktır. Bu yüzden ya doğrudan bir vektör veri tabanı kullanmalı ya da klasik veri tabanını bir <strong>eklentiyle</strong> genişletmeliyiz.</li>
+<li><strong>Klasik DB + eklenti yaklaşımının sorunları:</strong></li>
+<li>Performans sorunu (ör. hızlı benzerlik araması yapamamak)</li>
+<li>Vektör işlemlerini iyi yapamaması</li>
+<li>Ölçeklenebilirlik sorunu: vektör sayısı arttıkça arama zorlaşır.</li>
+</ul>
+<p><strong>Vektör veri tabanlarının sunduğu ek özellikler:</strong></p>
+<ol>
+<li><strong>Yüksek boyutlu veride hızlı arama / indeksleme.</strong> Bir kitaptaki ya da internetteki tüm cümleleri tek tek karşılaştırmak çok maliyetlidir. Vektör DB'ler bunun için özel indeksleme teknikleri kullanır: <strong>LSH</strong> (Locality-Sensitive Hashing) ve <strong>HNSW</strong> (Hierarchical Navigable Small World). Bu teknikler <strong>benzer vektörleri yakın yerlere yerleştirir</strong>, böylece arama hızlanır. Klasik veri tabanları bunları desteklemez.</li>
+<li><strong>Vektör işlemlerini doğrudan destekler</strong>, elle hesaplama gerektirmez: kosinüs benzerliği (cosine similarity), Öklid mesafesi (Euclidean distance), k-en yakın komşu (k-NN) araması.</li>
+<li><strong>Yaklaşık aramayı hızlı yapar.</strong> Yapay zekâ uygulamalarında çoğu zaman kesin sonuç gerekmez. Örneğin RAG sisteminde kullanıcının sorusuyla en ilgili dokümanları getirmek yeterlidir; yaklaşık sonuç işimizi görür.</li>
+<li><strong>Seyrek (sparse) vektörleri verimli saklar.</strong>
+   - <strong>Sparse vektör:</strong> Değerlerinin çoğu sıfır olan vektör. Örnek: 30.000 kelimelik bir sözlükte yalnızca "apple" kelimesi 1, diğer 29.999 boyut 0'dır; 5 kelimelik bir cümlede 5 boyut 1, geri kalanı 0'dır.
+   - <strong>Dense (yoğun) vektör:</strong> Embedding'ler dense vektördür; örneğin 30.000 boyut birkaç yüz boyuta (çizimde 784) indirgenir ve değerlerin çoğu sıfırdan farklıdır.
+   - Sıfırları saklamak boşuna yer kaplar ve işlemleri yavaşlatır. Vektör DB yalnızca sıfır olmayan konumları tutar. Örnek: <code>[0, 0, 0.8, 0, 0, 0.3, 0]</code> → sparse gösterim: <code>indices = [2, 5]</code>, <code>values = [0.8, 0.3]</code>. Böylece çok daha az bellek harcanır.</li>
+</ol>
+<h3>10. NoSQL vs vektör veri tabanları; hibrit yaklaşım; doğru vektör DB seçimi (≈02:07–02:51 — transkriptte yok, yalnızca çizimden)</h3>
+<p>Not: Hoca 02:06'da "NoSQL ile vektör veri tabanlarını karşılaştıracağız, sonra bir uygulama yapacağız" dedi; çizimde bu bölüm "12:21" başlığıyla yer alıyor, ancak transkriptte bu aralık müzik/sessizlik olarak geçiyor. Aşağıdaki içerik tahtadan aktarılmıştır; sözlü açıklamalar elimizde yok.</p>
+<p><strong>NoSQL vs vektör veri tabanları</strong>
+- SQL veri tabanları yapısal olmayan verilerle verimli çalışamıyordu → 2005'te NoSQL veri tabanları çıktı (JSON, XML gibi formatlar).
+- GenAI için iki ihtiyaç doğdu: verileri saklamak ve <strong>anlam benzerliğine göre aramak</strong>.
+- Bazı NoSQL veri tabanları vektörler için eklenti ekledi: <strong>Redis RediSearch</strong> → vektör benzerlik araması; <strong>MongoDB Atlas</strong> → vektör arama özelliği.</p>
+<p><strong>Hibrit yaklaşım: yapılandırılmış + vektör veri</strong>
+- Gerçek hayatta sadece vektör saklamak yetmez; <strong>metadata</strong>'ların da saklanması gerekebilir.
+- Bir doküman arama sistemi: dokümanlar vektöre çevrilir + metadata (tarih, görüntülenme sayısı, etiketler, kategori) tutulur.
+- "2023'ten sonraki bilim kategorisindeki 10 dokümanı getir" → vektör araması + metadata filtreleme = <strong>hibrit yaklaşım</strong>.
+- <strong>Hibrit veri tabanı mimarisi:</strong> Geleneksel SQL tablosu (<code>ID | Title | Content</code>, indeksler: B-tree, GIN — tam metin anahtar kelime araması; benzerlik araması yok, sadece kelime eşleşmesi, içerik "opak") + <strong>pgvector</strong> eklentisi → vektör destekli tablo (<code>ID | Title | Content | Embedding Vector(768)</code>, indeksler: B-tree + HNSW/IVFFlat; anlamsal benzerlik araması, hibrit sorgular (vektör + SQL), yerel vektör işlemleri).
+- Örnek istek: "2024'ten sonra yayımlanan, bilim kategorisindeki ve yapay zekâ ile ilgili en iyi 10 dokümanı getir." Bu istek şöyle ayrışır:
+  - "yapay zekâya benzeyen" → vektör benzerlik araması
+  - <code>category = "science"</code> → metadata filtresi
+  - <code>publish_date &gt; "2024-01-01"</code> → tarih filtresi
+  - "ilk 10 sonuç" → sıralama ve limit</p>
+<p>Örnek hibrit sorgu (sözde kod):</p>
+<pre><code>FIND TOP 10 SIMILAR VECTORS TO [0.1, 0.2, ..., 0.5]
+WHERE metadata.category = 'science'
+AND metadata.publish_date &gt; '2024-01-01'
+ORDER BY similarity DESC
+</code></pre>
+<p>PostgreSQL + pgvector kodu (çizimdeki haliyle; çizimde tarih burada <code>2023-01-01</code>):</p>
+<pre><code class="language-sql">SELECT
+    title,
+    category,
+    publish_date,
+    views,
+embedding &lt;=&gt; :query_vector AS distance
+FROM documents
+WHERE category = 'science'
+    AND publish_date &gt; '2023-01-01'
+ORDER BY distance ASC
+LIMIT 10;
+</code></pre>
+<p><strong>Doğru vektör veri tabanını nasıl seçeriz?</strong>
+- Vektör veri tabanları LLM'lerle birlikte popüler oldu. Zaman çizelgesi: FAISS (2017), Milvus ve Weaviate (2019), Vald (≈2020), Pinecone (2021), ChromaDB (≈2022).
+- Projenize göre seçim yapabilirsiniz:
+  - <strong>Küçük deneyler ve RAG uygulamaları için:</strong> <strong>FAISS</strong> (Meta'nın geliştirdiği) ve <strong>Chroma</strong> (Python ile hızlıca başlamak için; yerel RAG uygulamaları için ideal).
+  - <strong>Zaten kullandığınız bir veri tabanı varsa:</strong> PostgreSQL → <strong>pgvector</strong>; MongoDB → <strong>MongoDB Vector</strong> (Atlas Vector Search).
+  - <strong>Büyük ölçekli ve şirket içinde çalışacak sistemler:</strong> <strong>Qdrant, Weaviate, Milvus</strong> (açık kaynak; lokal + bulut) ve <strong>Pinecone</strong> (sadece bulutta çalışıyor).</p>
+<h3>11. OpenAI API anahtarının ayarlanması (≈02:52–03:00)</h3>
+<p>Not: Bu bölümün başı transkriptte yok; kayıt hocanın ortam değişkenini gösterdiği yerden başlıyor.</p>
+<p>İki yöntem gösterildi:
+1. <strong>Ortam değişkeni (environment variable):</strong> Windows'ta Sistem → Ortam Değişkenleri'nden <code>OPENAI_API_KEY</code> tanımlanır (terminalde <code>set</code> ile de ayarlanabilir; ilk derste gösterilmişti). Bu tanımlıysa <code>.env</code> dosyasına gerek kalmaz.
+2. <strong><code>.env</code> dosyası:</strong> Proje klasöründe <code>.env</code> adlı bir dosya oluşturulup içine <code>OPENAI_API_KEY=...</code> yazılır. <strong>Değişken adını büyük harfle yazmak önemli</strong>, yoksa tanınmayabilir. Kullanmak için <code>python-dotenv</code> kütüphanesi kurulmalıdır.</p>
+<pre><code class="language-python">from dotenv import load_dotenv
+load_dotenv()
+</code></pre>
+<p><code>load_dotenv()</code> <code>.env</code> içindeki değişkenleri ortama yükler; ardından OpenAI istemcisi anahtarı otomatik bulur.</p>
+<h3>12. Uygulama 3 – OpenAI embedding + FAISS vektör veri tabanı (≈02:53–03:10)</h3>
+<p>Notebook: <code>03-Vector-DB.ipynb</code>. Örnek "chunk"lar:</p>
+<pre><code class="language-python">text_chunks = [
+    &quot;Gökyüzü mavidir.&quot;,
+    &quot;Güneş parlıyor.&quot;,
+    &quot;Çikolatayı seviyorum.&quot;,
+    &quot;Dondurma lezzetlidir.&quot;,
+    &quot;Güller kırmızıdır.&quot;,
+    &quot;Menekşeler mavidir.&quot;
+]
+</code></pre>
+<p>OpenAI istemcisi ve model seçimi:</p>
+<pre><code class="language-python">from openai import OpenAI
+client = OpenAI()
+
+model = &quot;text-embedding-3-small&quot;
+</code></pre>
+<p>OpenAI'da embedding için birkaç model var; küçük olan <code>text-embedding-3-small</code> seçildi. Bir de daha büyük boyutlu vektör üreten <code>large</code> sürümü var. Bu örnek için small yeterli.</p>
+<p>Embedding üreten fonksiyon:</p>
+<pre><code class="language-python">def get_embedding(text):
+    response = client.embeddings.create(
+        input=text,
+        model=model
+    )
+
+    return response.data[0].embedding
+</code></pre>
+<p>Deneme:</p>
+<pre><code class="language-python">embedding = get_embedding(&quot;Gökyüzü mavidir.&quot;)
+embedding[:10]
+len(embedding)
+</code></pre>
+<p>"Gökyüzü mavidir." gibi iki kelimelik bir cümle bile <strong>1536 boyutlu</strong> bir vektöre çevrildi. (Transkriptte "156" gibi duyuluyor; kaynak dosyadaki çıktı <code>(1536,)</code>.)</p>
+<p>Tüm chunk'ların embedding'e çevrilmesi:</p>
+<pre><code class="language-python">import numpy as np
+
+document_embeddings = np.array(
+    [get_embedding(text) for text in text_chunks]
+)
+</code></pre>
+<p>Veri tipi kontrolü ve dönüştürme:</p>
+<pre><code class="language-python">document_embeddings[0][1]
+document_embeddings = document_embeddings.astype(&quot;float32&quot;)
+document_embeddings[0][1]
+</code></pre>
+<p>Varsayılan tip <code>float64</code>; <strong>FAISS <code>float32</code> ile çalıştığı için</strong> <code>astype("float32")</code> ile dönüştürülür.</p>
+<p>FAISS indeksinin oluşturulması:</p>
+<pre><code class="language-python">import faiss
+
+index = faiss.IndexFlatL2(
+    document_embeddings.shape[1]
+)
+</code></pre>
+<ul>
+<li>Vektör aramasında <strong>L2</strong> ölçüsü kullanılıyor: iki vektör arasındaki düz çizgi mesafesi (Öklid; Pisagor'daki gibi). Kosinüs benzerliği gibi başka ölçüler de var. L2 burada "iki vektör arasındaki en kısa mesafeyi bul ve döndür" anlamına geliyor.</li>
+<li>İndeksin boyutu embedding boyutuna (<code>shape[1]</code>, yani 1536) eşittir.</li>
+</ul>
+<p>Verilerin indekse eklenmesi:</p>
+<pre><code class="language-python">index.add(document_embeddings)
+print(index.ntotal)
+</code></pre>
+<p>Çıktı: 6 → altı chunk vektör veri tabanına eklendi.</p>
+<p>Sorgu:</p>
+<pre><code class="language-python">query = &quot;Menekşeler ne renktir?&quot;
+query_embedding = np.array(
+    get_embedding(query)
+).astype(&quot;float32&quot;)
+</code></pre>
+<p>Hem kayıtlar hem sorgu embedding'e çevrilmelidir; sorgu da <code>float32</code> yapılır.</p>
+<p>Arama:</p>
+<pre><code class="language-python">k = 5
+
+distances, indices = index.search(
+    query_embedding.reshape(1, -1),
+    k
+)
+</code></pre>
+<ul>
+<li><code>k</code>, kaç benzer sonuç getirileceğidir (toplam 6 kayıt olduğu için 2, 3, 4… da seçilebilir).</li>
+<li>Sorgu vektörünün şekli <code>(1536,)</code> yani tek boyutludur. FAISS <strong>iki boyutlu</strong> girdi bekler: "1 adet sorgu, her biri 1536 uzunlukta" → <code>reshape(1, -1)</code> ile <code>(1, 1536)</code> yapılır.</li>
+<li><code>search</code> mesafeleri ve indisleri döndürür.</li>
+</ul>
+<p>Sonuçların okunması:</p>
+<pre><code class="language-python">retrieved_documents = [
+    text_chunks[i]
+    for i in indices[0]
+]
+
+for distance, idx in zip(distances[0], indices[0]):
+    print(&quot;Uzaklık:&quot;, distance)
+    print(&quot;Metin:&quot;, text_chunks[idx])
+    print()
+</code></pre>
+<p>Sonuç sırası ("Menekşeler ne renktir?" için): <strong>Menekşeler mavidir</strong> (en küçük mesafe, ≈0,59 [belirsiz]) → Gökyüzü mavidir → Dondurma lezzetlidir → Güneş parlıyor → Güller kırmızıdır. L2 bir <strong>mesafe</strong> ölçüsü olduğu için burada <strong>küçük değer = daha yakın</strong>.</p>
+<p><strong>Derste yaşanan hata:</strong> Bazı öğrenciler indeks/arama hücresinde hata aldı. Neden: hücreler birden fazla kez çalıştırılmıştı (ör. <code>index.add</code> iki kez → kayıtlar iki kez eklenmiş). Veri tabanı bellekte (in-memory) olduğu için çözüm: <strong>Restart → Run All</strong> (kernel'i yeniden başlatıp tüm hücreleri sırayla çalıştırmak). Hoca: "FAISS'i burada bellek içi kullanıyoruz; Chroma gibi diske kaydetmiyoruz, kernel yeniden başlayınca her şey silinir." Bir öğrencinin OpenAI kredisi bittiği için hata aldı.</p>
+<h3>13. Kapanış ve sonraki ders (≈03:12–03:14)</h3>
+<ul>
+<li>Öğrenci önerisi: Kernel seçimi, ortam kurulumu gibi sorunlar ders zamanını yediği için bir sonraki dersin klasörü (ör. <code>D5</code>) ve ortamı derse en az 30 dakika önce hazırlanıp bir "Merhaba Dünya" ile test edilsin. Hoca bunu destekledi.</li>
+<li>Dersin özeti: İlk hafta genel olarak LLM'ler, ardından bağlam ve prompt mühendisliği (context &amp; prompt engineering), bu hafta embedding'ler ve vektör veri tabanları görüldü.</li>
+<li><strong>Sonraki ders: RAG.</strong> RAG'de embedding'ler, bağlam ve promptlar ile vektör veri tabanı birlikte kullanılarak uygulamaya geçilecek.</li>
+</ul>

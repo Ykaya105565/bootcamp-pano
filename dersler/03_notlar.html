@@ -1,0 +1,243 @@
+<h2>03 · Çalışma Ortamı Kurulumu</h2>
+<p><strong>Bu derste ne var:</strong> LangChain ile kod yazmaya başlamadan önce proje klasörü, VS Code, Anaconda/conda ile izole bir sanal ortam, <code>requirements.txt</code> ile sürümü sabitlenmiş kütüphane kurulumu ve OpenAI API anahtarının <code>.env</code> + <code>python-dotenv</code> ile güvenli şekilde yüklenmesi adım adım kuruluyor. Ders kayıtlı ve kısa (~13 dk); kod dosyası yok, komutlar anlatımdan çıkarıldı.</p>
+<blockquote>
+<p>Not: Videodaki sürümler (langchain 0.1.6 vb.) eski LangChain 0.1.x dönemine aittir. Bugün kurulum yaparken PyPI'daki güncel sürümleri kullanın; bootcamp'in kendi <code>requirements.txt</code> dosyası varsa onu esas alın.</p>
+</blockquote>
+<hr>
+<h3>Ana kavramlar</h3>
+<ul>
+<li><strong>Sanal ortam (virtual environment)</strong> — Projeye özel, izole bir Python + kütüphane alanı. <em>Neden önemli:</em> Farklı projelerin farklı sürümler istemesinden doğan çakışmaları önler; hoca her proje için ayrı ortamı "şiddetle" tavsiye ediyor.</li>
+<li><strong>Anaconda / conda</strong> — Veri bilimi odaklı platform ve onun paket/ortam yöneticisi. <em>Neden önemli:</em> <code>conda create / activate / deactivate</code> ile ortam yönetimi tek komuttur.</li>
+<li><strong>pip</strong> — Python'un paket yöneticisi; Anaconda ile birlikte gelir. <em>Neden önemli:</em> <code>pip install -r requirements.txt</code> ile tüm bağımlılıklar tek seferde kurulur.</li>
+<li><strong>requirements.txt</strong> — Kullanılan kütüphaneler ve sürümlerinin <code>paket==sürüm</code> listesi. <em>Neden önemli:</em> Ortamın başka bir makinede birebir yeniden kurulabilmesini (tekrarlanabilirlik, reproducibility) sağlar.</li>
+<li><strong>PyPI (pypi.org)</strong> — Python paketlerinin resmi deposu. <em>Neden önemli:</em> Paketlerin son sürümü ve yayın tarihi buradan kontrol edilir.</li>
+<li><strong>langchain / langchain-core / langchain-openai / langchain-community</strong> — LangChain'in ana paketi, çekirdek soyutlamalar, OpenAI entegrasyonu ve topluluk entegrasyonları. <em>Neden önemli:</em> LangChain modüler paketlere bölünmüştür; sağlayıcı entegrasyonu (OpenAI) ayrı bir paket olarak kurulur. <code>langchain</code> kurulunca <code>langchain-community</code> otomatik geldi.</li>
+<li><strong>Ortam değişkeni (environment variable) ve <code>.env</code></strong> — Gizli bilgilerin (API anahtarı) koda yazılmadan, işletim sistemi değişkeni olarak taşınması. <em>Neden önemli:</em> Anahtar kodda görünmez, repoya sızmaz.</li>
+<li><strong>python-dotenv / <code>load_dotenv()</code></strong> — <code>.env</code> dosyasını okuyup içindeki değişkenleri ortama yükler. <em>Neden önemli:</em> En pratik ve hocanın tercih ettiği yöntem.</li>
+<li><strong>.gitignore</strong> — Git'in takip etmeyeceği dosyaların listesi. <em>Neden önemli:</em> <code>.env</code> buraya yazılarak API anahtarının GitHub'a gitmesi engellenir.</li>
+<li><strong>Interpreter / Kernel seçimi</strong> — VS Code'un hangi Python'u kullanacağı (scriptler için interpreter, notebook için kernel). <em>Neden önemli:</em> Yanlış seçilirse kurduğunuz kütüphaneler "bulunamadı" hatası verir.</li>
+</ul>
+<hr>
+<h3>Akış / mimari</h3>
+<pre><code>Proje klasörü (mkdir, cd)
+   → VS Code (code .)
+   → Sanal ortam (conda create -n langchain → conda activate langchain)
+   → requirements.txt (sürümler PyPI'dan)
+   → pip install -r requirements.txt
+   → VS Code: Select Interpreter = langchain ortamı
+   → .env (OPENAI_API_KEY=...)  +  .gitignore (.env)
+   → langchain.ipynb  → Select Kernel = langchain ortamı
+   → load_dotenv()  → True  → os.getenv(&quot;OPENAI_API_KEY&quot;) ile kontrol
+</code></pre>
+<p>Anahtarın yolu:</p>
+<pre><code>OpenAI platform → API keys → Create secret key
+   → .env dosyası → load_dotenv() → ortam değişkeni OPENAI_API_KEY
+   → langchain-openai / openai bu değişkeni otomatik okur
+</code></pre>
+<hr>
+<h3>Adım adım kurulum kontrol listesi</h3>
+<blockquote>
+<p>Komutlar transkriptte anlatılanlardan çıkarıldı. Klasör ve ortam adları videodakine yakın tutuldu ama tam yazımları belirsiz; kendi tercihinizi kullanabilirsiniz.</p>
+</blockquote>
+<p><strong>A. Hazırlık</strong>
+- [ ] Anaconda kurulu mu? Değilse anaconda.com → Free Download → indir → Next, Next ile kur.
+- [ ] VS Code kurulu (veya PyCharm vb. bir editör).
+- [ ] VS Code'da Python ve Jupyter eklentileri kurulu. <em>(Not: transkriptte açıkça geçmiyor, notebook için gereklidir.)</em>
+- [ ] OpenAI platform hesabı açık.</p>
+<p><strong>B. Proje klasörü ve editör</strong>
+- [ ] <code>mkdir langchain-for-genai</code>
+- [ ] <code>cd langchain-for-genai</code>
+- [ ] <code>code .</code> (veya VS Code → File → Open Folder)</p>
+<p><strong>C. Sanal ortam</strong>
+- [ ] VS Code'da yeni terminal aç, tür olarak Command Prompt seç (Windows).
+- [ ] <code>conda create -n langchain</code> → <code>y</code> ile onayla. <em>(Not: <code>python=3.11</code> gibi bir sürüm eklemek önerilir; videoda geçmiyor.)</em>
+- [ ] <code>conda activate langchain</code>
+- [ ] Satır başında <code>(langchain)</code> görünüyor mu? Kontrol et.</p>
+<p><strong>D. Kütüphaneler</strong>
+- [ ] Proje köküne <code>requirements.txt</code> oluştur.
+- [ ] PyPI'dan sürümlere bakıp yaz (videodaki hali):
+  <code>text
+  langchain==0.1.6
+  langchain-core==0.1.2
+  langchain-openai==0.0.1
+  python-dotenv==1.0.1</code>
+- [ ] <code>pip install -r requirements.txt</code>
+- [ ] <code>pip list</code> ile sürümleri doğrula (langchain-community'nin de geldiğini gör).
+- [ ] VS Code → Command Palette (Ctrl+Shift+P) → <strong>Python: Select Interpreter</strong> → <code>langchain</code> ortamını seç.</p>
+<p><strong>E. API anahtarı ve güvenlik</strong>
+- [ ] OpenAI platform → API keys → <strong>Create secret key</strong> (isim ver) → kopyala → Done.
+- [ ] Anahtarı güvenli bir yere kaydet (bir kez gösterilir).
+- [ ] Proje köküne <code>.env</code> oluştur: <code>OPENAI_API_KEY=sk-...</code>
+- [ ] Proje köküne <code>.gitignore</code> oluştur, içine <code>.env</code> yaz.
+- [ ] Kredi durumunu kontrol et (gerekirse Settings → Billing → kart ekle, en az 5 $).</p>
+<p><strong>F. Notebook ve doğrulama</strong>
+- [ ] <code>langchain.ipynb</code> oluştur.
+- [ ] Sağ üst → <strong>Select Kernel</strong> → <code>langchain</code> ortamını seç.
+- [ ] İlk hücre: <code>from dotenv import load_dotenv</code> + <code>load_dotenv()</code> → çalıştır.
+- [ ] ipykernel kurulumu istenirse <strong>Install</strong> de.
+- [ ] Çıktı <code>True</code> mu? Kontrol et.
+- [ ] <code>import os; os.getenv("OPENAI_API_KEY")</code> ile anahtarın yüklendiğini doğrula — sonra bu çıktıyı sil, notebook'u anahtar görünür halde paylaşma/commit'leme.</p>
+<hr>
+<h3>Kod / uygulama</h3>
+<h4>1) Terminal komutları</h4>
+<pre><code class="language-bash">mkdir langchain-for-genai
+cd langchain-for-genai
+code .
+conda create -n langchain
+conda activate langchain
+pip install -r requirements.txt
+pip list
+</code></pre>
+<ul>
+<li><code>mkdir …</code> — proje klasörünü oluşturur.</li>
+<li><code>cd …</code> — klasörün içine girer; sonraki tüm dosyalar burada oluşur.</li>
+<li><code>code .</code> — VS Code'u <strong>bu dizinde</strong> açar (<code>.</code> = mevcut dizin).</li>
+<li><code>conda create -n langchain</code> — <code>-n</code> ile isim verilen yeni bir conda ortamı oluşturur (Anaconda'nın <code>envs</code> klasörüne).</li>
+<li><code>conda activate langchain</code> — ortamı etkinleştirir; bundan sonraki <code>pip install</code> bu ortama kurar. Her yeni terminalde tekrar gerekir.</li>
+<li><code>pip install -r requirements.txt</code> — <code>-r</code> ile dosyadaki tüm paketleri (bağımlılıklarıyla) kurar.</li>
+<li><code>pip list</code> — kurulu paketleri ve sürümlerini listeler (doğrulama).</li>
+</ul>
+<h4>2) requirements.txt</h4>
+<pre><code class="language-text">langchain==0.1.6
+langchain-core==0.1.2
+langchain-openai==0.0.1
+python-dotenv==1.0.1
+</code></pre>
+<ul>
+<li><code>==</code> — sürümü tam sabitler; ortam her yerde aynı kurulur.</li>
+<li><code>langchain-openai</code> — OpenAI modellerini LangChain'de kullanmak için ayrı entegrasyon paketi.</li>
+<li><code>python-dotenv</code> — <code>.env</code> okumak için. Paket adı <code>python-dotenv</code>, import adı <code>dotenv</code> (farklı olduğuna dikkat).</li>
+</ul>
+<h4>3) .env ve .gitignore</h4>
+<pre><code class="language-text"># .env
+OPENAI_API_KEY=sk-...
+</code></pre>
+<pre><code class="language-text"># .gitignore
+.env
+</code></pre>
+<ul>
+<li><code>.env</code> — anahtar burada durur, kodda değil. Değişken adı <code>OPENAI_API_KEY</code> olmalı ki OpenAI kütüphanesi otomatik tanısın.</li>
+<li><code>.gitignore</code> — <code>.env</code>'in repoya gitmesini engeller.</li>
+</ul>
+<h4>4) Notebook'ta anahtarı yükleme</h4>
+<pre><code class="language-python">from dotenv import load_dotenv
+load_dotenv()
+</code></pre>
+<ul>
+<li><code>from dotenv import load_dotenv</code> — fonksiyonu içe aktarır.</li>
+<li><code>load_dotenv()</code> — çalışma dizinindeki <code>.env</code>'i okur, değişkenleri <code>os.environ</code>'a ekler; başarılıysa <code>True</code> döner.</li>
+</ul>
+<pre><code class="language-python">import os
+os.getenv(&quot;OPENAI_API_KEY&quot;)
+</code></pre>
+<ul>
+<li><code>os.getenv(...)</code> — değişkenin yüklendiğini kontrol eder (gösterim amaçlı; anahtarı ekranda bırakmayın).</li>
+</ul>
+<h4>5) Alternatif: elle ayarlama</h4>
+<pre><code class="language-python">import os
+os.environ[&quot;OPENAI_API_KEY&quot;] = &quot;sk-...&quot;
+</code></pre>
+<ul>
+<li>Anahtarı doğrudan oturuma yazar. Hızlı ama anahtar kodun içinde kalır; hoca birinci yöntemi (dotenv) tavsiye ediyor.</li>
+</ul>
+<hr>
+<h3>Hocanın vurguları &amp; pratik kurallar</h3>
+<ul>
+<li><strong>Her proje için ayrı sanal ortam</strong> kullanın.</li>
+<li>Projede çalışırken her seferinde <strong>ortamı etkinleştirin</strong> (satır başındaki ortam adına bakın).</li>
+<li>Kütüphaneleri <strong>sürümleriyle</strong> <code>requirements.txt</code>'e yazın; son sürümleri PyPI'dan kontrol edin.</li>
+<li>VS Code'da <strong>interpreter</strong> (scriptler) ve <strong>kernel</strong> (notebook) olarak oluşturduğunuz ortamı seçmeyi unutmayın.</li>
+<li>API anahtarını <strong>kimseyle paylaşmayın</strong>; <code>.env</code>'de tutun, <code>.env</code>'i <code>.gitignore</code>'a ekleyin.</li>
+<li>OpenAI anahtarı <strong>yalnızca bir kez gösterilir</strong>; kaydedin. İhtiyaç kalmayınca silin (hoca videodan sonra sildi).</li>
+<li>Tercih edilen yöntem: <strong>python-dotenv + <code>.env</code></strong>; <code>os.environ</code> ile elle atama alternatiftir.</li>
+</ul>
+<hr>
+<h3>Sık hatalar / karşılaşılan sorunlar</h3>
+<ul>
+<li><strong>Notebook ilk çalıştırmada paket istiyor</strong> → VS Code ipykernel kurulmasını istedi; <strong>Install</strong> denince çözüldü (derste yaşandı).</li>
+<li><strong>"ModuleNotFoundError: No module named 'langchain'"</strong> → <em>(Not: derste yaşanmadı, olası durum.)</em> Genellikle yanlış interpreter/kernel seçili ya da paketler ortam etkinleştirilmeden kurulmuştur. Ortamı etkinleştirip tekrar kurun ve doğru kernel'i seçin.</li>
+<li><strong><code>load_dotenv()</code> <code>False</code> dönüyor</strong> → <em>(Not: olası durum.)</em> <code>.env</code> dosyası notebook'un çalıştığı dizinde değil ya da adı yanlış (<code>.env.txt</code> vb.).</li>
+<li><strong>Anahtar repoya sızdı</strong> → <code>.gitignore</code>'a <code>.env</code> eklenmemiş ya da <code>os.getenv</code> çıktısı notebook'ta kalmış. Anahtarı OpenAI panelinden hemen silip yenisini oluşturun.</li>
+</ul>
+<hr>
+<h3>Kendini test et</h3>
+<ol>
+<li>Sanal ortam kullanmanın temel faydası nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Proje kütüphanelerini izole eder; farklı projelerdeki kütüphane/sürüm çakışmalarını önler ve yönetimi kolaylaştırır.</p>
+</details>
+<ol start="2">
+<li><code>conda create -n langchain</code> komutundaki <code>-n</code> ne işe yarar?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Oluşturulacak sanal ortama isim verir (name).</p>
+</details>
+<ol start="3">
+<li>Bir conda ortamının etkin olduğunu terminalde nasıl anlarsınız?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Komut satırının başında parantez içinde ortamın adı görünür, örn. <code>(langchain)</code>.</p>
+</details>
+<ol start="4">
+<li><code>pip install -r requirements.txt</code> komutunda <code>-r</code> ne anlama gelir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Paketlerin belirtilen dosyadan (requirements file) okunup bağımlılıklarıyla birlikte kurulacağını belirtir.</p>
+</details>
+<ol start="5">
+<li><code>requirements.txt</code>'te <code>langchain==0.1.6</code> yazmanın amacı nedir? Sürümler nereden kontrol edilir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Sürümü sabitleyerek ortamın her makinede aynı kurulmasını sağlar. Sürümler PyPI'dan (pypi.org) kontrol edilir.</p>
+</details>
+<ol start="6">
+<li>VS Code'da kütüphaneler kurulu olduğu halde import hatası alıyorsanız ilk neyi kontrol edersiniz?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Command Palette → Select Interpreter (script için) veya Select Kernel (notebook için) kısmında doğru sanal ortamın seçili olup olmadığını.</p>
+</details>
+<ol start="7">
+<li><code>.env</code> dosyasını neden <code>.gitignore</code>'a eklersiniz?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>İçindeki API anahtarının GitHub'a gönderilip başkaları tarafından görülmesini engellemek için.</p>
+</details>
+<ol start="8">
+<li><code>load_dotenv()</code> başarılı çalıştığında ne döndürür ve ne yapmış olur?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>True</code> döner; <code>.env</code> içindeki değişkenleri (örn. <code>OPENAI_API_KEY</code>) ortam değişkeni olarak oturuma yükler. OpenAI kütüphanesi bu değişkeni otomatik tanır.</p>
+</details>
+<ol start="9">
+<li>API anahtarını <code>.env</code> kullanmadan oturuma nasıl eklersiniz? Hoca hangisini öneriyor?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>os.environ["OPENAI_API_KEY"] = "..."</code> ile elle. Hoca python-dotenv + <code>.env</code> yöntemini öneriyor.</p>
+</details>
+<ol start="10">
+<li>Paket adı ile import adı farklı olan kütüphaneye bu dersten bir örnek verin.</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>python-dotenv</code> paketi kurulur, kodda <code>from dotenv import load_dotenv</code> diye içe aktarılır.</p>
+</details>
+<hr>
+<h3>Hocaya sorulacaklar / belirsiz kalanlar</h3>
+<ul>
+<li><strong>Klasör ve ortam adları:</strong> Transkriptte "len chain for cen EA" ve "lcen / L chain / lch" geçiyor; <code>langchain-for-genai</code> ve <code>langchain</code> olarak yorumlandı, tam yazımı belirsiz.</li>
+<li><strong>Sürümler:</strong> <code>langchain-core==0.1.2</code> ve <code>langchain-openai==0.0.1</code> transkriptte böyle geçiyor; o dönem için düşük görünüyor, altyazı hatası olabilir (ör. 0.1.2x / 0.0.x). Bootcamp'te güncel <code>requirements.txt</code> hangi sürümleri kullanıyor? GitHub'daki dosyanın linki?</li>
+<li><strong>Python sürümü:</strong> <code>conda create</code> sırasında Python sürümü belirtilmiş mi? Bootcamp için önerilen Python sürümü nedir?</li>
+<li><strong>"K list" komutu:</strong> <code>pip list</code> mi <code>conda list</code> mi kullanıldı — belirsiz.</li>
+<li><strong>Editör listesi:</strong> PyCharm dışında anılan editör ("klep") anlaşılamadı.</li>
+<li><strong>Güncellik:</strong> OpenAI'ın yeni hesaplara 5 $ kredi vermesi video tarihine ait bir bilgi; bugün geçerli olmayabilir. Ayrıca bootcamp'te conda yerine <code>uv</code> mu kullanılıyor? (Diğer derslerin transkriptlerinde <code>uv</code> geçiyor olabilir; kontrol edin.)</li>
+</ul>

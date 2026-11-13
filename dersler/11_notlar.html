@@ -1,0 +1,387 @@
+<h2>11 · Day07-RAG Query &amp; AI Agentlara Giriş</h2>
+<p><strong>Bu derste ne var:</strong> Gerçek kullanıcı sorguları "kirli" olduğunda (eksik, genel, gürültülü, çok konulu) klasik RAG'in neden yanlış bağlam getirdiği gösterildi ve dört sorgu iyileştirme tekniği (Rewrite-Retrieve-Read, Multi-Query Retrieval, RAG Fusion, HyDE) LangChain + PGVector üzerinde kodlandı. Dersin son bölümünde AI agent kavramına giriş yapıldı: LLM → araç destekli LLM → AI asistan → AI agent seviyeleri ve agent'ların production'da kullanımı tartışıldı.</p>
+<hr>
+<h3>Ana kavramlar</h3>
+<ul>
+<li><strong>Klasik (naive) RAG:</strong> Soru → embedding → vektör DB'den en yakın k chunk → context + soru → LLM → cevap.
+  <em>Neden önemli:</em> Tüm teknikler bu temelin üstüne bir "sorgu ön işleme" ya da "sonuç sonrası işleme" katmanı ekliyor.</li>
+<li><strong>Garbage in, garbage out:</strong> Bağlam (context) ne kadar temizse cevap o kadar iyi. Kötü sorgu → yanlış chunk → yanlış/sapkın cevap.
+  <em>Neden önemli:</em> Production'da kullanıcı sorguları hiçbir zaman demodaki gibi temiz değildir.</li>
+<li><strong>Kirli sorgu türleri:</strong> eksik soru, çok genel soru, yazım hatası, tek soruda birden fazla konu, gereksiz detay ("ocakta yemek unuttum" örneği).</li>
+<li><strong>Rewrite-Retrieve-Read (sorguyu yeniden yazma):</strong> LLM'e "vektör araması için daha iyi bir sorgu üret, alakasız detayları at" dedirtip yeni sorguyla arama yapmak. Cevap üretilirken <strong>orijinal soru</strong> prompt'a konuyor.
+  <em>Neden önemli:</em> Gürültülü sorgularda alakasız chunk'ların gelmesini ve modelin gereksiz detaylara tepki vermesini engeller.</li>
+<li><strong>Multi-Query Retrieval (çoklu sorgu):</strong> Aynı sorunun N farklı versiyonunu ürettirip her biriyle arama yapmak, sonuçları birleştirip tekrarları atmak (unique union).
+  <em>Neden önemli:</em> Her soru embedding uzayında farklı bir noktaya düşer; mesafe tabanlı benzerlik aramasının "tek noktaya bakma" sınırını aşar, bağlamı zenginleştirir.</li>
+<li><strong>RAG Fusion:</strong> Çoklu sorgu + sonuçların <strong>Reciprocal Rank Fusion (RRF)</strong> ile puanlanıp sıralanması. Birden çok listede (ve üst sıralarda) çıkan doküman en üste gelir.
+  <em>Neden önemli:</em> Model bağlamda üstte olana daha çok dikkat eder; en alakalı chunk'ı en başa koymak cevap kalitesini artırır.</li>
+<li><strong>HyDE (Hypothetical Document Embeddings):</strong> Soruya önce LLM'e kısa, varsayımsal bir cevap/pasaj yazdırıp <strong>o pasajın embedding'i</strong> ile arama yapmak.
+  <em>Neden önemli:</em> Kısa, belirsiz ya da dokümanla farklı dilde/ifadeyle sorulan sorularda soru ile cevap arasındaki "anlamsal mesafeyi" kapatır.</li>
+<li><strong><code>@chain</code> dekoratörü:</strong> Normal bir Python fonksiyonunu LangChain Runnable'a çevirir (<code>.invoke()</code>, pipe'a bağlanabilir).</li>
+<li><strong>LCEL pipe (<code>|</code>):</strong> Bir adımın çıktısını sonrakine girdi verir: <code>prompt | llm | parser</code>.</li>
+<li><strong><code>retriever.batch</code>:</strong> Retriever'ı bir sorgu listesi üzerinde toplu çalıştırır → liste-listesi (her sorgu için doküman listesi) döner.</li>
+<li><strong>Metadata / kaynak (source):</strong> <code>Document</code> nesnesindeki metadata sayesinde her chunk'ın kaynağı gösterilebilir. Kullanıcıya cevapla birlikte kaynak göstermek beklenen bir özellik.</li>
+<li><strong>AI agent:</strong> Kendi kendine hareket eden otonom sistem: görevi alır, düşünür, plan yapar, araç kullanır, sonucu değerlendirir, gerekirse planı değiştirir.</li>
+<li><strong>Araç (tool):</strong> LLM'i dış dünyaya açan "el" (API, web araması, kod çalıştırma, DB sorgusu…).</li>
+<li><strong>AI asistan vs. AI agent:</strong> Asistan önemli kararlarda kullanıcıdan onay ister (kontrol kullanıcıda); agent kendi karar verip ilerler.</li>
+</ul>
+<hr>
+<h3>Akış / mimari</h3>
+<p><strong>Klasik RAG</strong></p>
+<pre><code>Soru → embed → Vektör DB (k en yakın) → [chunk'lar + soru] → Prompt → LLM → Cevap
+</code></pre>
+<p><strong>Rewrite-Retrieve-Read</strong></p>
+<pre><code>Soru → LLM (rewrite) → temiz sorgu → retriever → chunk'lar
+                                   ↓
+          [chunk'lar + ORİJİNAL soru] → Prompt → LLM → Cevap
+</code></pre>
+<p><strong>Multi-Query Retrieval</strong></p>
+<pre><code>Soru → LLM → {S1, S2, S3, S4, S5} → retriever.batch → [[d..],[d..],...] → get_unique_union → context → LLM → Cevap
+</code></pre>
+<p><strong>RAG Fusion</strong></p>
+<pre><code>Soru → LLM → {S1..S4} → retriever.batch → [[d..],...] → reciprocal_rank_fusion (puanla + sırala) → context → LLM → Cevap
+</code></pre>
+<p><strong>HyDE</strong></p>
+<pre><code>Soru → LLM (&quot;passage yaz&quot;) → varsayımsal pasaj → retriever (pasajın embedding'i ile) → chunk'lar → [chunk'lar + soru] → LLM → Cevap
+</code></pre>
+<p><strong>AI agent seviyeleri</strong></p>
+<pre><code>1. Doğrudan LLM        → zeki ama pasif beyin; bilgisi donuk (bugünkü hava durumunu bilemez)
+2. Araç destekli LLM   → Soru → Model ⇄ API/araç → Cevap
+3. AI Asistan          → araç kullanır + önemli kararlarda onay ister (Copilot Chat, doküman/araştırma asistanları)
+4. AI Agent            → görevi alt görevlere böler → alt agent'lar (backend, frontend, QA tester, technical writer)
+                         → geri bildirim → planı güncelle → nihai cevap
+</code></pre>
+<p><strong>Çizimden (derste anlatılmadı / kayıtta yok) — agent nasıl düşünür?</strong></p>
+<pre><code>Algıla → Planla → Harekete geç (tools) → Öğren &amp; Değerlendir → (yetersizse tekrar)
+</code></pre>
+<ul>
+<li><em>Algıla:</em> Kullanıcı isteği + bağlam (sistem talimatları, önceki konuşmalar, dosyalar, araçlardan gelen bilgiler = context). Ör. "AI Engineering için 30 günlük çalışma planı hazırla" → hedef ne, konu ne, süre ne, seviye biliniyor mu?</li>
+<li><em>Planla:</em> Hedefi alt görevlere böler (seviyeyi belirle, konuları listele, haftalara böl, tablo sun). Kullanıcı bu adımları yazmadı; agent kendisi üretti. <strong>Planlama, agent'ı chatbot'tan ayıran en önemli özelliklerden biri.</strong></li>
+<li><em>Harekete geç:</em> Araç kullanır (web araması, dosya okuma, DB sorgulama, Python çalıştırma). Seyahat agent'ı örneği: <code>search_flights</code>, <code>search_hotels</code>, <code>weather_search</code>.</li>
+<li><em>Öğren ve değerlendir:</em> Araç doğru sonuç verdi mi, görev tamamlandı mı, sonraki adıma geçilebilir mi, plan değişmeli mi, başka araç mı gerekli, kullanıcıdan ek bilgi mi istenmeli?</li>
+<li>Örnek: "1000 doların altında AI geliştirmeye uygun dizüstü bul" → Algıla (ürün, bütçe, amaç, RAM/GPU/işlemci/depolama) → Plan (ara, özellikleri çıkar, fiyatları kontrol et, en iyileri sun) → Tools (web arama) → Değerlendir (bütçe, GPU yeterli mi, RAM yükseltilebilir mi, fiyat güncel mi) → yetersizse tekrar ara.</li>
+<li><strong>ReAct (Reasoning + Acting):</strong> <code>Düşün → Eylem (Tools) → Gözlemle → (tekrar et) → Cevap</code>.</li>
+<li><strong>LangChain vs LangGraph:</strong> LangChain ile basit, ileri doğru düz akan agent'lar (<code>Kullanıcı → LLM → Cevap</code>); karmaşık agent'lar için LangGraph: <code>START → Agent (karar verir) ⇄ Tools (araç gerekliyse; sonuç döner) → iş bittiyse END</code>. Düğümler (node) ortak bir <strong>State</strong>'i okur/yazar; kritik karar öncesi durabilir, durumu kaydeder, <strong>insan onayı</strong> isteyebilir. Her adım <strong>checkpoint</strong> olarak kaydedilir → 10 adımlık görevde 7. adımda çökme olursa normal program baştan başlar, LangGraph <strong>kaldığı yerden devam</strong> eder.</li>
+</ul>
+<hr>
+<h3>Kod / uygulama</h3>
+<p>Kaynak: <code>3_rag_queries.ipynb</code>. Veri: <code>docs/antik-yunan-gunluk-yasam.txt</code> (docs.zip içinde). Vektör DB: Docker'da çalışan PostgreSQL + pgvector.</p>
+<h4>1) Indeksleme (geçen dersin tekrarı)</h4>
+<pre><code class="language-python">text = file_path.read_text(encoding=&quot;utf-8&quot;)
+raw_documents = [Document(page_content=text, metadata={&quot;source&quot;: str(file_path)})]
+
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=80)
+documents = text_splitter.split_documents(raw_documents)
+
+embeddings_model = OpenAIEmbeddings(model=&quot;text-embedding-3-small&quot;)
+
+db = PGVector.from_documents(
+    documents=documents,
+    embedding=embeddings_model,
+    connection=&quot;postgresql+psycopg://ai:ai@localhost:6024/ai_db&quot;,
+    collection_name=&quot;rag-antik-yunan-2-cohort-demo-01&quot;,
+    use_jsonb=True,
+    pre_delete_collection=False
+)
+retriever = db.as_retriever(search_kwargs={&quot;k&quot;: 2})
+</code></pre>
+<ul>
+<li><code>Document(..., metadata={"source": ...})</code> → her chunk kaynağını taşır; cevapta kaynak göstermek için.</li>
+<li><code>chunk_size=600, chunk_overlap=80</code> → küçük metin için hocanın önerdiği değerler; overlap chunk'lar arası bağlantıyı korur.</li>
+<li><code>text-embedding-3-small</code> → ucuz/küçük embedding modeli (~1536 boyut).</li>
+<li><code>connection</code> → Docker'daki Postgres; port 6024. Docker kapalıysa bu hücre <strong>asılı kalır</strong>.</li>
+<li><code>collection_name</code> → aynı koleksiyona ikinci kez yüklersen aynı chunk'lar çoğalır; hoca bu yüzden adı değiştirdi.</li>
+<li><code>pre_delete_collection=False</code> → var olan koleksiyonu silmez (True olsaydı önce silip yeniden yazardı). <em>Not: hocanın açıklaması değil, parametrenin anlamı.</em></li>
+<li><code>k=2</code> → en yakın 2 chunk.</li>
+</ul>
+<h4>2) Temel QA zinciri</h4>
+<pre><code class="language-python">SYSTEM_PROMPT = (&quot;&quot;&quot;Answer the question based only on the following context:\n{context}&quot;&quot;&quot;)
+prompt = ChatPromptTemplate([(&quot;system&quot;, SYSTEM_PROMPT), (&quot;human&quot;, &quot;{question}&quot;),])
+llm = ChatOpenAI(model_name=&quot;gpt-5.6-luna&quot;,)
+
+@chain
+def qa(input):
+    docs = retriever.invoke(input)
+    formatted = prompt.invoke({&quot;context&quot;: docs, &quot;question&quot;: input})
+    answer = llm.invoke(formatted)
+    return answer
+</code></pre>
+<ul>
+<li><code>based only on the following context</code> → modeli bağlama bağlar (halüsinasyonu azaltır). Geliştirme: "bilmiyorsan bilmiyorum de", rol tanımı.</li>
+<li><code>@chain</code> → fonksiyonu Runnable yapar, <code>qa.invoke(query)</code> ile çağrılır.</li>
+<li><code>result.content</code> → AIMessage'ın metin kısmı.</li>
+</ul>
+<h4>3) Rewrite-Retrieve-Read</h4>
+<pre><code class="language-python">rewrite_prompt = ChatPromptTemplate.from_template(&quot;&quot;&quot;
+    Provide a better search query for vector search to answer the given question.
+    Remove irrelevant details.
+    Return only the improved search query.
+
+    Question: {x}
+
+    Improved search query:&quot;&quot;&quot;)
+
+def parse_rewriter_output(message):
+    return message.content.strip('&quot;').strip(&quot;**&quot;).strip()
+
+rewriter = rewrite_prompt | llm | parse_rewriter_output
+
+@chain
+def qa_rrr(input):
+    new_query = rewriter.invoke(input)
+    print(&quot;Rewritten query:&quot;, new_query)
+    docs = retriever.invoke(new_query)
+    formatted = prompt.invoke({&quot;context&quot;: docs, &quot;question&quot;: input})
+    answer = llm.invoke(formatted)
+    return answer
+</code></pre>
+<ul>
+<li><code>{x}</code> → şablonda tek değişken olduğu için <code>rewriter.invoke(query)</code> düz string ile çağrılabiliyor.</li>
+<li><code>Return only the improved search query</code> → modelin açıklama eklemesini engeller.</li>
+<li><code>parse_rewriter_output</code> → tırnak, <code>**</code> ve boşlukları atar; gereksiz token göndermemek için.</li>
+<li><code>retriever.invoke(new_query)</code> → <strong>arama yeni sorguyla</strong>,</li>
+<li><code>"question": input</code> → <strong>cevap orijinal soruyla</strong> üretilir (kullanıcının asıl niyeti korunur).</li>
+</ul>
+<h4>4) Multi-Query Retrieval</h4>
+<pre><code class="language-python">retriever = db.as_retriever(search_kwargs={&quot;k&quot;: 5})
+
+perspectives_prompt = ChatPromptTemplate.from_template(&quot;&quot;&quot;
+    ... generate five different versions of the given user question ...
+    Provide these alternative questions separated by newlines.
+    Original question: {question}
+&quot;&quot;&quot;)
+
+def parse_queries_output(message):
+    return message.content.split(&quot;\n&quot;)
+
+query_gen = perspectives_prompt | llm | parse_queries_output
+
+def get_unique_union(document_lists):
+    deduped_docs = {
+        doc.page_content: doc
+        for sublist in document_lists
+        for doc in sublist
+    }
+    return list(deduped_docs.values())
+
+retrieval_chain = query_gen | retriever.batch | get_unique_union
+
+@chain
+def multi_query_qa(input):
+    docs = retrieval_chain.invoke(input)
+    formatted = prompt.invoke({&quot;context&quot;: docs, &quot;question&quot;: input})
+    answer = llm.invoke(formatted)
+    return answer
+</code></pre>
+<ul>
+<li><code>k=5</code> → her alt sorgu için 5 chunk (varsayılan 4).</li>
+<li><code>separated by newlines</code> + <code>split("\n")</code> → sorguları listeye çevirmek için anlaşma.</li>
+<li><code>get_unique_union</code> → dict comprehension iki işi birden yapar: iç içe listeyi <strong>düzleştirir</strong> ve <code>page_content</code> anahtarı sayesinde <strong>tekrarları atar</strong> (aynı metin → aynı anahtar).</li>
+<li><code>retriever.batch</code> → sorgu listesindeki her sorgu için retriever'ı çalıştırır, liste-listesi döner.</li>
+<li>Derste: 45 chunk → tekrarlar atılınca 13 benzersiz chunk.</li>
+</ul>
+<h4>5) RAG Fusion — Reciprocal Rank Fusion</h4>
+<pre><code class="language-python">def reciprocal_rank_fusion(results, k=60):
+    scores = {}
+    documents = {}
+    for doc_list in results:
+        for rank, doc in enumerate(doc_list):
+            content = doc.page_content
+            if content not in documents:
+                documents[content] = doc
+            point = 1 / (k + rank + 1)
+            scores[content] = scores.get(content, 0) + point
+    sorted_contents = sorted(scores, key=scores.get, reverse=True)
+    ranked_docs = []
+    for content in sorted_contents:
+        ranked_docs.append(documents[content])
+    return ranked_docs
+
+retrieval_chain = query_gen | retriever.batch | reciprocal_rank_fusion
+</code></pre>
+<ul>
+<li><code>results</code> → her sorgunun sıralı doküman listesi.</li>
+<li><code>enumerate(doc_list)</code> → <code>rank</code> 0'dan başlar (0 = en yakın).</li>
+<li><code>point = 1 / (k + rank + 1)</code> → üst sıradaki doküman daha çok puan alır; aynı doküman birden çok listede çıkarsa puanları <strong>toplanır</strong>.</li>
+<li><code>k=60</code> → yumuşatma sabiti; tek bir listedeki 1. sıranın aşırı baskın olmasını engeller. <em>Not: 60, RRF'de literatürde yaygın kullanılan değerdir; derste ayrıca açıklanmadı.</em></li>
+<li><code>sorted(..., reverse=True)</code> → toplam puana göre büyükten küçüğe; en alakalı en üstte.</li>
+<li>Multi-Query'den farkı: Multi-Query sadece tekrarları atar (sırasız birleşim), RAG Fusion <strong>puanlar ve sıralar</strong>.</li>
+</ul>
+<h4>6) HyDE</h4>
+<pre><code class="language-python">prompt_hyde = ChatPromptTemplate.from_template(&quot;&quot;&quot;
+    Please write a passage to answer the question.
+    Question: {question}
+    Passage:
+&quot;&quot;&quot;)
+
+llm = ChatOpenAI(temperature=0)
+generate_doc = prompt_hyde | llm | StrOutputParser()
+retrieval_chain = generate_doc | retriever
+</code></pre>
+<ul>
+<li><code>Please write a passage</code> → modelden soru değil, <strong>cevap gibi görünen bir pasaj</strong> istenir.</li>
+<li><code>temperature=0</code> → varsayımsal pasaj tutarlı/deterministik olsun.</li>
+<li><code>StrOutputParser()</code> → AIMessage'ı düz string'e çevirir; retriever string bekler.</li>
+<li><code>generate_doc | retriever</code> → arama sorunun değil <strong>pasajın</strong> embedding'iyle yapılır. Cevap üretilirken yine orijinal soru kullanılır.</li>
+</ul>
+<hr>
+<h3>Hocanın vurguları &amp; pratik kurallar</h3>
+<ul>
+<li><strong>Bağlam her şeydir:</strong> "Konteksimiz ne kadar iyi olursa cevap o kadar iyi olur."</li>
+<li>Gereksiz chunk/token = hem <strong>maliyet</strong> hem <strong>modelin kafasının karışması</strong>. Sadece ilgili kısımları ver.</li>
+<li>Küçük metinlerde <strong>chunk_size ≈ 600, overlap ≈ 80</strong> iyi bir başlangıç.</li>
+<li>Aynı koleksiyona aynı veriyi iki kez yükleme → tekrar eden chunk'lar gelir; yeni deneme için koleksiyon adını değiştir.</li>
+<li>Cevapla birlikte <strong>kaynakları</strong> göster.</li>
+<li>Model çıktısındaki <code>"</code>, <code>**</code> gibi süsleri bir sonraki adıma göndermeden temizle (token tasarrufu).</li>
+<li>Prompt'larla modeli yönlendirmek "çok kolay": ne istediğini ve <strong>sadece ne döndürmesi gerektiğini</strong> açıkça yaz.</li>
+<li>Tekniklerin hepsini birden kullanmak çok token harcar; hangisinin işe yaradığını <strong>değerlendirme (evaluation)</strong> ile ölç (son hafta).</li>
+<li>HyDE özellikle <strong>kısa, belirsiz</strong> veya <strong>dokümandan farklı ifade edilmiş</strong> sorularda.</li>
+<li><code>for</code> döngüsü gibi kodları ezberlemene gerek yok; yapay zekâ yazıyor. <strong>Ne yaptığını anlaman</strong> yeterli.</li>
+<li>Proje yap, GitHub'a koy, paylaş; günde 2–3 saat pratik.</li>
+<li>Konular zincir gibi: RAG → Agentic RAG → agent'lar → MCP → ileri agent projeleri.</li>
+<li>Agent'lar: tek agent'a güvenme; birden fazla agent birbirini kontrol etsin (ileride <strong>Reflection</strong> mimarisi). Agent bir görevi yapar, işi yöneten/kontrol eden insan gerekir.</li>
+<li><strong>Alan bilgisi + agent geliştirme becerisi</strong> = en güçlü profil. "Angarya işi yapay zekâ yapar, siz karar veren olursunuz."</li>
+<li>Agent geliştirmede ileride ağırlıklı olarak <strong>LangGraph</strong> kullanılacak.</li>
+<li>Sektör görüşü (öğrenciden, hoca onayladı): Rutin, kuralla çözülebilen işleri kodla yap; yapay zekâyı gerçekten gereken yerde kullan (maliyet + güvenlik). Agent'a verilecek <strong>yetki</strong> ciddi bir tasarım kararı.</li>
+</ul>
+<hr>
+<h3>Sık hatalar / karşılaşılan sorunlar</h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Sorun</th>
+<th>Sebep</th>
+<th>Çözüm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Streamlit uygulaması / notebook "PostgreSQL'e bağlanamadı"</td>
+<td>Docker açık değil, pgvector container çalışmıyor</td>
+<td>Docker Desktop'ı aç, container'ı başlat</td>
+</tr>
+<tr>
+<td>PGVector hücresi sonsuza kadar çalışıyor, sonraki hücreler hata veriyor</td>
+<td>Postgres'e bağlanamadığı için bekliyor; tablo oluşmuyor</td>
+<td>Docker'ı kontrol et; kernel'i restart edip sırayla çalıştır</td>
+</tr>
+<tr>
+<td><code>ChatPromptTemplate</code> tanımlı değil hatası</td>
+<td>Import hücresi çalıştırılmamış</td>
+<td>Import hücresini çalıştır; hücreleri sırayla çalıştır</td>
+</tr>
+<tr>
+<td>Kopyala-yapıştırdan sonra garip hatalar</td>
+<td>Python girintisi (indentation) bozulmuş</td>
+<td>Girintiyi kontrol et</td>
+</tr>
+<tr>
+<td>Yeni hücre en üste ekleniyor</td>
+<td>Yanlış "+" butonu</td>
+<td>Hücrenin altındaki "+ Code" ile ekle</td>
+</tr>
+<tr>
+<td>Hocanın notebook'unda çıktılar görünüyor ama bende çalışmıyor</td>
+<td>O çıktılar hocanın çalıştırmasından kalma</td>
+<td>Kendi ortamında Docker + <code>.env</code> hazır mı kontrol et</td>
+</tr>
+<tr>
+<td>Windows'ta Docker kalkmıyor</td>
+<td>Sanallaştırma / WSL kapalı</td>
+<td>BIOS/Windows özelliklerinden sanallaştırma ve WSL'i aç</td>
+</tr>
+<tr>
+<td><code>docs/...txt</code> bulunamıyor</td>
+<td><code>docs</code> klasörü indirilmemiş</td>
+<td><code>docs.zip</code>'i proje klasörüne aç</td>
+</tr>
+<tr>
+<td>Basit RAG cevabında "ocağı kontrol edin" uyarısı</td>
+<td>Gürültülü sorgu modele aynen gitti</td>
+<td>Rewrite-Retrieve-Read ile sorguyu temizle</td>
+</tr>
+</tbody>
+</table></div>
+<p><em>Not (kendi gözlemim):</em> <code>split("\n")</code> boş satırları da sorgu olarak döndürebilir; 5 sorgu × k=5 = 25 beklenirken derste 45 chunk sayılması, listede boş/başlık satırları gibi fazladan "sorgular" olduğuna işaret ediyor olabilir. Pratikte <code>[q.strip() for q in ... if q.strip()]</code> ile filtrelemek iyi olur.</p>
+<hr>
+<h3>Kendini test et</h3>
+<ol>
+<li>Production'da klasik RAG'in yanlış cevap üretmesine yol açan dört "kirli sorgu" türü nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Eksik soru, çok genel soru, yazım hatası içeren soru ve tek soruda birden fazla konu (ayrıca gereksiz detay/gürültü). Bunlar retriever'ın yanlış chunk getirmesine, dolayısıyla LLM'in yanlış cevap üretmesine yol açar.</p>
+</details>
+<ol start="2">
+<li>Rewrite-Retrieve-Read'de arama hangi sorguyla, cevap hangi soruyla üretilir? Neden?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Arama LLM'in yeniden yazdığı temiz sorguyla yapılır (<code>retriever.invoke(new_query)</code>); cevap ise orijinal soruyla üretilir (<code>"question": input</code>). Böylece arama gürültüden arınır ama kullanıcının asıl niyeti kaybolmaz.</p>
+</details>
+<ol start="3">
+<li>Multi-Query Retrieval neden işe yarar? "Embedding uzayı" ile açıkla.</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Her sorgu versiyonu embedding uzayında farklı bir noktaya düşer; her biri kendi yakınındaki chunk'ları getirir. Tek sorgunun kaçırabileceği ilgili chunk'lar da yakalanır, bağlam zenginleşir (mesafe tabanlı benzerlik aramasının sınırını aşar).</p>
+</details>
+<ol start="4">
+<li><code>get_unique_union</code> fonksiyonu tekrar eden dokümanları nasıl temizler?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Dict comprehension ile iç içe listeyi düzleştirir ve her dokümanı <code>page_content</code> anahtarıyla sözlüğe koyar. Aynı metinli doküman aynı anahtarı ezer, böylece her içerikten tek kopya kalır; <code>list(deduped_docs.values())</code> ile listeye çevrilir.</p>
+</details>
+<ol start="5">
+<li>Multi-Query ile RAG Fusion arasındaki temel fark nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Multi-Query sonuçları birleştirip sadece tekrarları atar (sıralama yok). RAG Fusion ise Reciprocal Rank Fusion ile her dokümanı listelerdeki sırasına göre puanlar, puanları toplar ve sıralar; en çok/üst sırada tekrar eden doküman en üste gelir ve model ona öncelik verir.</p>
+</details>
+<ol start="6">
+<li>RRF'de bir doküman iki listede 1. sırada (rank=0) çıkıyor, k=60. Toplam puanı nedir? Tek listede 1. sırada çıkan dokümanla karşılaştır.</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Her liste için 1/(60+0+1) = 1/61 ≈ 0,0164; toplam ≈ 0,0328. Tek listede 1. sıradaki doküman ≈ 0,0164 alır. Birden fazla listede çıkmak puanı belirgin biçimde artırır.</p>
+</details>
+<ol start="7">
+<li>HyDE'de retriever neyin embedding'iyle arama yapar ve hangi durumlarda tercih edilir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>LLM'in soruya yazdığı kısa varsayımsal pasajın (cevabın) embedding'iyle. Soru çok kısa, belirsiz ya da dokümandan farklı bir ifadeyle sorulmuşsa tercih edilir; pasaj daha fazla anahtar kelime içerdiği için daha zengin bağlam getirir.</p>
+</details>
+<ol start="8">
+<li>HyDE kodunda <code>StrOutputParser()</code> neden kullanılıyor?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>LLM bir AIMessage döndürür; <code>StrOutputParser</code> bunu düz metne (string) çevirir. Zincirin sonraki adımı olan retriever bir string sorgu beklediği için gerekli.</p>
+</details>
+<ol start="9">
+<li><code>@chain</code> dekoratörü ne işe yarar?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Sıradan bir Python fonksiyonuna LangChain Runnable (zincir) özelliği kazandırır: <code>.invoke()</code> ile çağrılabilir ve diğer Runnable'larla pipe'lanabilir hale gelir.</p>
+</details>
+<ol start="10">
+<li>AI agent'ın 4 seviyesini sırala; AI asistan ile AI agent arasındaki fark nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>1) Doğrudan LLM (zeki ama pasif, bilgisi donuk), 2) Araç destekli LLM (API/araçlarla dış dünyaya açılır), 3) AI asistan (araç kullanır, önemli kararlarda kullanıcıdan onay ister; ör. GitHub Copilot Chat), 4) AI agent (görevi alt görevlere böler, alt agent'lar/araçlar kullanır, geri bildirime göre planı değiştirir, kendisi karar verip nihai cevabı üretir). Fark: asistanda kontrol kullanıcıda, agent otonom ilerler.</p>
+</details>
+<hr>
+<h3>Hocaya sorulacaklar / belirsiz kalanlar</h3>
+<ul>
+<li><strong>RAG Fusion ve HyDE canlı çalıştırılmadı;</strong> sadece notebook üzerinden anlatıldı ve ödev olarak bırakıldı. Kendi ortamında çalıştırıp çıktıları karşılaştır; sorun çıkarsa hocaya sor.</li>
+<li>RAG Fusion anlatımının başı kayıtta yok (≈01:43–01:45 ses kaybı). RRF formülündeki <code>k=60</code> sabitinin neden seçildiği derste açıklanmadı.</li>
+<li>Multi-Query'de 5 sorgu × k=5 = 25 beklenirken 45 chunk sayıldı — <code>split("\n")</code> boş satırları da sorgu sayıyor olabilir mi? Boş sorguları filtrelemek gerekir mi?</li>
+<li>HyDE kodunda <code>ChatOpenAI(temperature=0)</code> model adı vermiyor (varsayılan model kullanılıyor); notebook'ta RAG Fusion için <code>gpt-6-luna</code>, diğerlerinde <code>gpt-5.6-luna</code> var — bilinçli bir tercih mi?</li>
+<li>AI agent girişinin başı (chatbot vs agent) ve çizimdeki <strong>Algıla–Planla–Harekete geç–Öğren</strong>, <strong>ReAct</strong>, <strong>LangChain vs LangGraph / State / checkpoint</strong> bölümleri bu kayıtta anlatılmadı (≈01:58–02:35 kayıt yok, ders sonunda uygulama yapılmadı). Bir sonraki derste mi işlenecek?</li>
+<li>Hocanın sözünü ettiği değerlendirme tekniği transkriptte "model diye, çok eze elelem" diye geçiyor; <strong>LLM-as-a-judge</strong> olduğu tahmin ediliyor [belirsiz]. Son haftadaki evaluation dersinde netleştir.</li>
+<li>Planlanan "LangChain ile AI agent uygulaması" bu derste yapılmadı.</li>
+</ul>

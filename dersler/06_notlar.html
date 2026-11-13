@@ -1,0 +1,268 @@
+<h2>06 · Uygulama</h2>
+<p><strong>Bu derste ne var:</strong> Önceki dersin <code>ChatPromptTemplate</code> + pipe (<code>|</code>) örneği ve "bağlam mühendisliği" vurgusu kısaca tekrarlandı. Ardından <code>uv</code> ile sıfırdan bir proje ortamı kuruldu ve Streamlit + OpenAI Responses API kullanılarak tek dosyalık ilk yapay zekâ uygulaması (<code>my-first-app.py</code>) yazılıp çalıştırıldı. Son kısımda öğrencilerin kurulum hataları çözüldü ve Streamlit uygulamasının ücretsiz yayınlanması (deploy) anlatıldı.</p>
+<hr>
+<h3>Ana kavramlar</h3>
+<ul>
+<li><strong>Sanal ortam (virtual environment)</strong> — Projeye özel, izole Python + kütüphane kurulumu. <em>Neden önemli:</em> Projeler arasında kütüphane/versiyon çakışmasını (version conflict) önler; hoca her proje için ayrı ortam öneriyor.</li>
+<li><strong>uv</strong> — Python proje ve paket yöneticisi (<code>uv init</code>, <code>uv add</code>, <code>uv run</code>). <em>Neden önemli:</em> Hocanın tercihi; conda'ya göre hafif, yapay zekâ projelerinde standartlaşıyor.</li>
+<li><strong><code>pyproject.toml</code></strong> — Projenin bağımlılıklarını ve versiyonlarını tutan dosya. <em>Neden:</em> <code>uv add</code> ile eklenen her kütüphane buraya yazılır; proje başka makinede aynı şekilde kurulabilir.</li>
+<li><strong><code>.gitignore</code></strong> — Git'e/GitHub'a gönderilmeyecek dosyaların listesi. <em>Neden:</em> <code>.env</code> gibi API anahtarı içeren dosyaların yanlışlıkla paylaşılmasını engeller.</li>
+<li><strong><code>.env</code> + python-dotenv</strong> — Gizli anahtarların dosyada tutulup <code>load_dotenv()</code> ile ortama yüklenmesi. <em>Neden:</em> Anahtar kodun içine yazılmaz; projelerde yaygın yöntem.</li>
+<li><strong><code>override=True</code></strong> — <code>.env</code> değerinin mevcut ortam değişkeninin üzerine yazılması. <em>Neden:</em> Terminalde başka bir anahtar tanımlıysa "Incorrect API key" hatasını önler.</li>
+<li><strong>Import → örnek (instance) al</strong> — Önce sınıfı import et, sonra ondan nesne oluştur (<code>client = OpenAI()</code>). <em>Neden:</em> Sadece kullanılanı import etmek belleği gereksiz doldurmaz.</li>
+<li><strong>Streamlit</strong> — Python ile hızlı web arayüzü kütüphanesi (<code>st.title</code>, <code>st.text_input</code>, <code>st.button</code>, <code>st.spinner</code>, <code>st.write</code>, <code>st.warning</code>). <em>Neden:</em> Yapay zekâ / ML / veri bilimi prototiplerini dakikalar içinde arayüze dökmek ve ücretsiz yayınlamak.</li>
+<li><strong>Responses API (<code>client.responses.create</code>)</strong> — OpenAI'ye istek atıp cevap alma. <code>response.output_text</code> sadece cevap metnini verir. <em>Neden:</em> <code>response</code> içinde token sayıları gibi meta veriler de var; ekrana yalnızca metin basılmak isteniyor.</li>
+<li><strong>Pipe operatörü (<code>|</code>) / chain</strong> — LangChain'de bir bileşenin çıktısını diğerine girdi yapar (<code>template | model</code>). <em>Neden:</em> İşlemleri zincir gibi bağlamak; "LangChain" adı buradan.</li>
+<li><strong>Bağlam mühendisliği (context engineering)</strong> — Modele doğru zamanda, doğru miktarda bilgi vermek. <em>Neden:</em> Az bağlam → model anlamaz; fazla bağlam → bağlam kirliliği, yüksek token maliyeti, yavaş ve karışık cevap.</li>
+</ul>
+<hr>
+<h3>Akış / mimari</h3>
+<p><strong>Proje kurulumu:</strong></p>
+<pre><code>Masaüstünde klasör aç → VS Code'da aç (File → Open Folder) → Terminal (Ctrl + `)
+→ uv init --python 3.12 → uv add openai streamlit python-dotenv
+→ .env (OPENAI_API_KEY=...) → my-first-app.py yaz → kaydet
+→ uv run streamlit run my-first-app.py → tarayıcıda localhost
+</code></pre>
+<p><strong>Uygulamanın çalışma akışı:</strong></p>
+<pre><code>Kullanıcı soru yazar (st.text_input)
+→ &quot;Cevapla&quot; butonu (st.button)
+→ soru.strip() boş mu?
+    ├─ boş   → st.warning(&quot;Önce bir soru yaz.&quot;)
+    └─ dolu  → st.spinner(&quot;Cevap hazırlanıyor...&quot;)
+               → client.responses.create(model, input=soru)
+               → st.write(response.output_text)
+</code></pre>
+<p><strong>Yayınlama (deploy):</strong></p>
+<pre><code>Streamlit hesabı → GitHub hesabı → yeni repository (ör. my-first-app)
+→ dosyaları yükle → Streamlit Community Cloud repoyu görür → public link
+</code></pre>
+<p><strong>Önceki ders (tekrar) — LangChain zinciri:</strong></p>
+<pre><code>ChatPromptTemplate (system + user; {context}, {question})
+→ | model → context_chain.invoke({...}) → cevap
+</code></pre>
+<hr>
+<h3>Kod / uygulama</h3>
+<h4>1) Ortam kurulumu (terminal)</h4>
+<pre><code class="language-bash">uv init --python 3.12
+uv add openai streamlit python-dotenv
+</code></pre>
+<ul>
+<li><code>uv init</code> → bulunduğun dizinde proje başlatır; <code>.python-version</code>, <code>pyproject.toml</code>, <code>README.md</code>, <code>.gitignore</code> dosyalarını oluşturur.</li>
+<li><code>--python 3.12</code> → projenin Python sürümünü sabitler.</li>
+<li><code>uv add ...</code> → üç kütüphaneyi sanal ortama kurar ve <code>pyproject.toml</code>'a yazar. Her yeni proje klasöründe tekrar yapılmalı.</li>
+</ul>
+<h4>2) <code>.env</code></h4>
+<pre><code class="language-text">OPENAI_API_KEY=sk-...
+</code></pre>
+<ul>
+<li>Değişken adı büyük harfle, <code>=</code> ile; dosya <strong>proje kök dizininde</strong> olmalı (alt klasördeyse bulunamaz).</li>
+</ul>
+<h4>3) <code>my-first-app.py</code> (ders kaynağındaki adı <code>1_my-first-app.py</code>)</h4>
+<pre><code class="language-python">from dotenv import load_dotenv
+from openai import OpenAI
+import streamlit as st
+
+load_dotenv(override=True)
+client = OpenAI()
+
+st.title(&quot;İlk AI Uygulamam&quot;)
+soru = st.text_input(&quot;Ne sormak istersin?&quot;)
+
+if st.button(&quot;Cevapla&quot;):
+    if soru.strip():
+        with st.spinner(&quot;Cevap hazırlanıyor...&quot;):
+            response = client.responses.create(
+                model = &quot;gpt-5.6-luna&quot;,
+                input = soru
+            )
+        st.write(response.output_text)
+    else: 
+        st.warning(&quot;Önce bir soru yaz.&quot;)
+</code></pre>
+<p>Satır satır:
+- <code>from dotenv import load_dotenv</code> → <code>.env</code> dosyasını okuyacak fonksiyon.
+- <code>from openai import OpenAI</code> → OpenAI istemci sınıfı.
+- <code>import streamlit as st</code> → her seferinde <code>streamlit</code> yazmamak için <code>st</code> kısaltması.
+- <code>load_dotenv(override=True)</code> → <code>.env</code>'deki anahtarı ortama yükler; <code>override=True</code> terminalde tanımlı eski bir anahtarın önüne geçer.
+- <code>client = OpenAI()</code> → sınıftan bir örnek; anahtarı ortamdan (<code>OPENAI_API_KEY</code>) kendisi okur.
+- <code>st.title(...)</code> → sayfa başlığı.
+- <code>soru = st.text_input(...)</code> → metin kutusu; içindeki metin kutunun etiketi, kullanıcının yazdığı değer <code>soru</code>'ya gelir.
+- <code>if st.button("Cevapla"):</code> → buton oluşturur; basıldığı anda <code>True</code> döner ve blok çalışır.
+- <code>if soru.strip():</code> → baş/son boşlukları atar; geriye bir şey kalmışsa (boş değilse) devam eder. Sadece boşluk girilmesini de engeller.
+- <code>with st.spinner(...)</code> → model cevabı gelene kadar bekleme mesajı gösterir.
+- <code>client.responses.create(model=..., input=soru)</code> → modele isteği gönderir; sonuç <code>response</code>'ta.
+- <code>st.write(response.output_text)</code> → meta verileri değil, yalnızca cevap metnini ekrana yazar. (Girintiye dikkat: <code>with</code> bloğunun dışında, <code>if soru.strip()</code> bloğunun içinde.)
+- <code>else: st.warning(...)</code> → boş soruyla butona basılırsa uyarı.</p>
+<h4>4) Çalıştırma</h4>
+<pre><code class="language-bash">uv run streamlit run my-first-app.py
+</code></pre>
+<ul>
+<li><code>uv run</code> → komutu projenin sanal ortamında çalıştırır; <code>streamlit run</code> → dosyayı web uygulaması olarak başlatır ve <code>localhost</code> adresi verir.</li>
+</ul>
+<hr>
+<h3>Hocanın vurguları &amp; pratik kurallar</h3>
+<ul>
+<li><strong>Her proje = ayrı sanal ortam.</strong> Kütüphane/versiyon çakışmalarını önlemek için.</li>
+<li><strong>conda yerine uv'ye alışın.</strong> Anaconda kullanışlı ama büyük; uv yapay zekâ projeleri için "gerçekten harika".</li>
+<li><strong>Önce import, sonra örnek al.</strong> Sadece kullanacağını import et.</li>
+<li><strong>API anahtarı <code>.env</code>'de</strong>, <code>.env</code> <code>.gitignore</code>'da; GitHub'a asla gönderilmez. Anahtar kaybolursa silip yenisini al.</li>
+<li><strong>Python girintiye ve büyük/küçük harfe duyarlıdır.</strong> Girinti tutarlı olmalı (hep 4 ya da hep 2 boşluk).</li>
+<li><strong>Kodu birlikte yazın</strong> — kopyala-yapıştır yerine yazarak daha iyi öğrenilir; ilk derslerden sonra kurulum adımları hızlı geçilecek, el pratiği kazanın.</li>
+<li><strong>Bağlam: doğru zamanda doğru bilgi.</strong> Gereksiz bağlam, gereksiz tool ve MCP bağlantısı = daha fazla token, daha yavaş ve karışık cevap.</li>
+<li><strong>Prompt engineering ölmedi ama önemi azaldı;</strong> modeller kısa prompt'ları kendileri genişletiyor, bağlam mühendisliği öne çıktı.</li>
+<li><strong>Streamlit:</strong> prototip/demo için ideal, ücretsiz deploy edilebilir; tasarımda Next.js/React seviyesinde değil ama işini görür.</li>
+<li><strong>Uygulayarak öğrenin ve paylaşın.</strong> Temelden sonra chatbot, PDF yükleyip soru sorma gibi özellikler eklenecek.</li>
+<li>Terminal temizleme: Windows <code>cls</code>, macOS/Linux <code>clear</code>. Terminal kısayolu: <strong>Ctrl + `</strong>.</li>
+</ul>
+<hr>
+<h3>Sık hatalar / karşılaşılan sorunlar</h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Sorun</th>
+<th>Sebep</th>
+<th>Çözüm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Jupyter'de LangChain import edilemiyor gibi</td>
+<td>Yanlış kernel seçili</td>
+<td>Not defterinde projenin ortamını kernel olarak seç</td>
+</tr>
+<tr>
+<td>Import satırlarının altı kırmızı/sarı</td>
+<td>VS Code yanlış yorumlayıcıyı kullanıyor</td>
+<td>Ctrl + Shift + P → <em>Python: Select Interpreter</em> → <code>.venv</code></td>
+</tr>
+<tr>
+<td>PowerShell'de dizin bilgisi garip görünüyor (Windows 11)</td>
+<td>Terminal farkı</td>
+<td>Terminal "+" menüsünden <strong>Command Prompt</strong> aç</td>
+</tr>
+<tr>
+<td>Komut çalışmıyor</td>
+<td>Komut yanlış yazılmış</td>
+<td>Paylaşılan komutu birebir kopyala</td>
+</tr>
+<tr>
+<td>macOS'ta dosya yolu hatası</td>
+<td>Windows'taki <code>\</code> ayracı</td>
+<td>macOS/Linux'ta <code>/</code>; aynı dizindeysen yol öneki koyma</td>
+</tr>
+<tr>
+<td>Streamlit ilk açılışta e-posta istiyor (macOS)</td>
+<td>İlk çalıştırma karşılama sorusu</td>
+<td>Boş bırakıp Enter</td>
+</tr>
+<tr>
+<td>Uygulama açılıyor ama ekran boş</td>
+<td>Dosya <strong>kaydedilmemiş</strong></td>
+<td>Kaydet / VS Code'da Auto Save'i aç; gerekirse localhost'u başka tarayıcıda dene</td>
+</tr>
+<tr>
+<td><code>Incorrect API key provided</code></td>
+<td>Terminal ortam değişkeni ile <code>.env</code> anahtarı çakışıyor (ya da anahtar yanlış yazılmış)</td>
+<td><code>load_dotenv(override=True)</code>; anahtarı kontrol et</td>
+</tr>
+<tr>
+<td><code>.env</code> okunmuyor</td>
+<td><code>.env</code> alt klasörde / yanlış yerde</td>
+<td><code>.env</code>'yi proje kök dizinine taşı</td>
+</tr>
+<tr>
+<td>Büyük harfle yazınca hata</td>
+<td>Python case-sensitive</td>
+<td>Değişken/fonksiyon adlarını birebir aynı yaz</td>
+</tr>
+</tbody>
+</table></div>
+<hr>
+<h3>Kendini test et</h3>
+<ol>
+<li>Her proje için ayrı bir sanal ortam kurmak neden önerilir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Projeler farklı kütüphaneler ve versiyonlar kullanır; tek ortamda kütüphaneler/versiyonlar çakışabilir. Ayrı ortam izolasyon sağlar.</p>
+</details>
+<ol start="2">
+<li><code>uv init --python 3.12</code> hangi dosyaları oluşturur ve bunlardan hangisi <code>.env</code>'yi korur?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>.python-version</code>, <code>pyproject.toml</code>, <code>README.md</code>, <code>.gitignore</code> (ve örnek bir Python dosyası olabilir). <code>.gitignore</code>, <code>.env</code> gibi gizli dosyaların GitHub'a gönderilmesini engeller.</p>
+</details>
+<ol start="3">
+<li><code>uv add openai streamlit python-dotenv</code> komutundaki üç kütüphane ne işe yarar?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>openai: OpenAI modeline bağlanmak; streamlit: web arayüzü; python-dotenv: API anahtarını <code>.env</code>'den ortama yüklemek.</p>
+</details>
+<ol start="4">
+<li><code>load_dotenv(override=True)</code> içindeki <code>override=True</code> hangi hatayı önler?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Terminalde/sistemde zaten tanımlı farklı bir <code>OPENAI_API_KEY</code> varsa, <code>.env</code>'deki değer onun üzerine yazılır; iki anahtarın çakışmasından kaynaklanan "Incorrect API key provided" hatası önlenir.</p>
+</details>
+<ol start="5">
+<li><code>soru.strip()</code> neden <code>if</code> koşulunda kullanılıyor?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Baş ve sondaki boşlukları temizler; geriye boş metin kalırsa koşul <code>False</code> olur ve <code>st.warning</code> çalışır. Böylece boş ya da sadece boşluktan oluşan soru modele gönderilmez.</p>
+</details>
+<ol start="6">
+<li><code>st.spinner</code> ne işe yarar, neden <code>with</code> bloğu içinde?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Modelden cevap gelene kadar "Cevap hazırlanıyor..." mesajı gösterir; <code>with</code> bloğu bitince (istek tamamlanınca) mesaj kaybolur.</p>
+</details>
+<ol start="7">
+<li>Ekrana neden <code>response</code> değil de <code>response.output_text</code> yazdırılıyor?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>response</code> nesnesi token sayıları gibi meta veriler de içerir; <code>output_text</code> yalnızca modelin ürettiği cevap metnidir.</p>
+</details>
+<ol start="8">
+<li>Streamlit uygulaması açılıyor ama sayfa boş geliyor. İlk neyi kontrol edersin?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Dosyanın kaydedilip kaydedilmediğini (Auto Save). Derste sorunun sebebi buydu. Ardından localhost adresini başka tarayıcıda deneyebilirsin.</p>
+</details>
+<ol start="9">
+<li>LangChain'de <code>template | model</code> ifadesindeki <code>|</code> ne yapar?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Pipe operatörüdür: şablonun ürettiği prompt'u modele girdi olarak aktarır ve bir zincir (chain) oluşturur; <code>invoke</code> ile yer tutucu değerleri verilerek çalıştırılır.</p>
+</details>
+<ol start="10">
+<li>"Çok bağlam = daha iyi cevap" doğru mu?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Hayır. Gereksiz bağlam, tool ya da MCP bağlantısı token maliyetini artırır, cevabı yavaşlatır ve modelin kafasını karıştırır (bağlam kirliliği). Az bağlam da kötüdür; ilke: doğru zamanda doğru bilgi.</p>
+</details>
+<ol start="11">
+<li>Streamlit uygulamasını ücretsiz yayınlamak için hangi adımlar gerekir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Streamlit hesabı açmak, GitHub hesabına bağlanmak, GitHub'da yeni bir repository açıp dosyaları yüklemek; Streamlit (Community Cloud) repoyu görür ve public bir link ile yayınlar. İstenirse bir alan adına bağlanabilir.</p>
+</details>
+<hr>
+<h3>Hocaya sorulacaklar / belirsiz kalanlar</h3>
+<ul>
+<li><strong>Model adı:</strong> Kaynak kodda <code>gpt-5.6-luna</code> yazıyor; transkriptte de "GPT 5.6 … luna" olarak geçiyor. Bu modelin genel adı/sürüm ailesi ve fiyatlandırması netleştirilebilir.</li>
+<li><strong>Deploy'da API anahtarı:</strong> <code>.env</code> GitHub'a gönderilmediğine göre, Streamlit Community Cloud'a yayınlanan uygulamada <code>OPENAI_API_KEY</code> nereye girilecek? (Derste değinilmedi. Not: Streamlit Cloud'da bunun için "Secrets" ayarı bulunur; hocaya teyit ettirilebilir.)</li>
+<li><strong>Deploy için bağımlılık dosyası:</strong> uv projesinde <code>pyproject.toml</code> yeterli mi, yoksa <code>requirements.txt</code> gerekir mi? Derste konuşulmadı.</li>
+<li><strong>conda örneğindeki ortam adı</strong> transkriptte net değil ("dem/demo" gibi) — önemsiz, <code>conda create -n &lt;ad&gt;</code> kalıbı yeterli.</li>
+<li><strong>"Prompt engineering öldü" diyen uzman</strong> ve <strong>ders sonu sohbetindeki "karar modeli"nin adı</strong> ("Jev" gibi duyuluyor) transkriptten çıkarılamadı.</li>
+<li><strong>Önceki dersteki şablona geçmiş (history) ekleme</strong> sadece sözlü anlatıldı; kodu bu dersin kaynağında yok.</li>
+</ul>

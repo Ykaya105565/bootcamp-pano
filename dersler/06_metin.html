@@ -1,0 +1,198 @@
+<h2>06 · Uygulama — Ders Metni (ayıklanmış)</h2>
+<blockquote>
+<p>Hafta 1 uygulama dersi. Önceki dersin LangChain prompt şablonu (prompt template) örneğinin kısa tekrarı, ardından sıfırdan bir çalışma ortamı kurulup <code>my-first-app.py</code> ile Streamlit üzerinde ilk yapay zekâ uygulaması geliştiriliyor.
+Videonun ilk ~6 dakikası selamlaşma/tanışma sohbeti olduğu için atlandı.</p>
+</blockquote>
+<hr>
+<h3>Bootcamp'in yol haritası (≈00:03–00:04)</h3>
+<p>Hoca, bootcamp'in katman katman ilerleyeceğini anlattı: ilk iki derste temeller, ardından büyük dil modelleri (LLM) ile çalışma, sonra vektör veritabanları, RAG, ajanlar (agents), MCP ve en sonda dağıtım (deployment). Her konu bir öncekinin üzerine eklenecek. Bootcamp sonunda herkesin bir proje yapması bekleniyor.</p>
+<hr>
+<h3>Önceki dersin tekrarı: ChatPromptTemplate, pipe ve bağlam (≈00:06–00:13)</h3>
+<p>Bir öğrencinin sorusu üzerine önceki dersteki LangChain not defteri (notebook) yeniden gözden geçirildi:</p>
+<ol>
+<li><code>load_dotenv</code> ile <code>.env</code> dosyasındaki API anahtarı ortama alınıyor.</li>
+<li>Model sınıfından bir örnek (instance) oluşturuluyor.</li>
+<li><code>ChatPromptTemplate</code> ile bir şablon kuruluyor: önce <strong>sistem mesajı</strong>, sonra <strong>kullanıcı mesajı</strong>; şablonun içinde <code>context</code> (bağlam) ve <code>question</code> (soru) için yer tutucular var.</li>
+<li><code>context_chain = context_template | model</code> satırıyla şablon, <strong>pipe operatörü (<code>|</code>)</strong> kullanılarak modele bağlanıyor ve bir zincir (chain) elde ediliyor.</li>
+<li>Zincirin <code>invoke</code> metodu çağrılırken yer tutuculara gelecek değerler (bağlam ve soru) veriliyor.</li>
+</ol>
+<p><strong>Pipe ne işe yarar?</strong> İki işi ayrı ayrı yapmak yerine tek adımda birleştirir; birinin çıktısını diğerine girdi olarak aktarır. Hocanın ve bir öğrencinin benzetmesi: Excel'de önce verileri girip sonra sıralamak yerine "verileri ver ve sırala" komutunu tek seferde vermek gibi. Bu şekilde ara işlemler art arda eklenerek zincir halinde çalıştırılabilir; <strong>LangChain</strong> adındaki "chain" de buradan gelir — modeller ve işlemler birbirine zincir gibi bağlanır.</p>
+<p><strong>Bağlamın (context) önemi.</strong> Hoca geçen dersteki vurgusunu tekrarladı: büyük dil modelleri genel veriyle eğitildiği için genel bilgide çok iyidir ama özel sorulara cevap veremez; bu yüzden onlara bağlam verilmelidir. Kendi deneyiminden örnek verdi: ders hazırlarken modele düz bir soru sorduğunda çok genel cevaplar alıyor, ama bir plan ya da dokümantasyon verdiğinde çok daha iyi içerik üretiyor.</p>
+<p>Not defterindeki örnekte:
+- Bootcamp'le ilgili bilgiler bağlam olarak verildi ve "Eğitim ücreti hakkında bilgi var mı?" diye soruldu. Sistem mesajında "bağlamda yoksa <em>hayır</em> de" denildiği için model "hayır" cevabını verdi (bu, önceki derste bir öğrencinin "cevap bağlamda yoksa ne olur?" sorusu üzerine denenmişti).
+- Ardından yeni bir bağlam oluşturulup erişim süresi 120 gün yerine 180 gün yazıldı; model bu kez 180 gün üzerinden cevap verdi.</p>
+<p><strong>Neden şablon (template)?</strong> Esnek prompt'lar yazmayı sağlar; bağlamdaki bir değeri (ör. 120 → 180 gün) kolayca değiştirip aynı yapıyı tekrar kullanabiliriz.</p>
+<p><strong>Doküman nesneleri ve RAG'e köprü.</strong> İleride bağlam olarak farklı formatlarda dokümanlar (PDF'ler, web sayfaları vb.) verilecek; bunların LangChain'de doküman nesnelerine (Document) çevrilmesi gerekiyor. Örnekte doküman elle seçildi; RAG'de ise ilgili doküman <strong>embedding benzerliği</strong>, özellikle <strong>kosinüs benzerliği (cosine similarity)</strong> ile otomatik seçilecek. Hoca "kosinüs benzerliğinden korkmayın, bunların hesabını framework kendisi yapıyor; ben teorisini kulak dolgunluğu olsun diye anlatıyorum" dedi.</p>
+<p><strong>Geçmiş (history).</strong> Şablona mesaj geçmişi de eklenebiliyor. Bu çok önemli: geçmiş verilmezse model önceki konuşmayı hatırlayamaz. Uygulamalarımızda geçmişi de modele aktarabiliyoruz.</p>
+<p><strong>Soru:</strong> Not defterinde kodlar çalışmıyor, LangChain'i import edemiyor gibi görünüyor.
+<strong>Cevap:</strong> Sorun LangChain değil, Jupyter'de doğru çekirdeğin (kernel) seçilmemesi. Doğru kernel seçildiğinde çalışıyor. Hoca bu tür hatalar yüzünden ortamı bu derste sıfırdan bir kez daha kuracağını söyledi.</p>
+<hr>
+<h3>Prompt engineering öldü mü? Context engineering (≈00:10, 00:14–00:16)</h3>
+<p>Hoca, son bir yılda <strong>bağlam mühendisliğinin (context engineering)</strong> öne çıktığını, hatta "prompt engineering öldü" denmeye başlandığını aktardı (bir uzmanın videosuna atıfla — kişinin adı transkriptte [belirsiz]). İlk dönemde prompt mühendisliği yeni bir meslek olarak görülüyordu.</p>
+<p><strong>Soru:</strong> Prompt engineering'in yerini context engineering mi aldı, bu ajanlardan mı kaynaklanıyor?
+<strong>Cevap:</strong> Tamamen öldü diyemeyiz ama eski önemini yitirdi. Çünkü modeller artık yazdığımız şeyi çok daha iyi anlıyor, geçmiş konuşmaları dikkate alabiliyor; hatta kısa bir prompt'u arka planda kendileri uzatıp iyileştirerek modele gönderiyorlar. "Öldü" söylemi biraz da dikkat çekmek için olabilir.</p>
+<p><strong>Bağlamın dengesi (trade-off).</strong> Bir öğrencinin "çok bağlam verince yavaş cevap veriyor" gözlemi üzerine hoca şunu vurguladı: bağlam her şey demek değil. Gereksiz bağlam, gereksiz araçlar (tools) ve gereksiz MCP bağlantıları eklenirse:
+- token tüketimi artar,
+- cevaplar yavaşlar,
+- modelin "kafası karışır" ve istenen cevabı vermez.</p>
+<p>Hiç ya da çok az bilgi vermek de kötü; model anlayamaz. Çok bilgi vermek ise <strong>bağlam kirliliği (context pollution)</strong> yaratır. Kural: <strong>doğru zamanda doğru bilgiyi vermek.</strong></p>
+<hr>
+<h3>Duyuru: ajan prompt'ları ve smolagents canlı yayını (≈00:16–00:18)</h3>
+<p>Hoca ertesi gün YouTube'da canlı bir yayın yapacağını duyurdu: ajan prompt'larının nasıl yazıldığı, akıl yürütme (reasoning) teknikleri ve yaklaşımları, ardından <strong>smolagents</strong> framework'üyle ajan geliştirme. Bootcamp'in önceki bir dersinde framework kullanmadan ajan geliştirilmişti; bu yayında framework ile işin nasıl kolaylaştığı gösterilecek. Hoca, altı haftalık ve haftada 6 saatlik süre içinde her şeyi anlatamayacağı için bu ek yayınların tamamlayıcı olduğunu söyledi.</p>
+<hr>
+<h3>Çalışma ortamı seçenekleri: Anaconda / conda / pip / uv (≈00:18–00:22)</h3>
+<p>Sanal ortam (virtual environment) oluşturmak için birkaç araç var:
+- <strong>uv</strong> — son dönemde çok popüler; hocanın tercihi.
+- <strong>conda (Anaconda)</strong> — veri biliminden gelenlerin alışık olduğu araç; içinde hazır kütüphaneler var, kullanışlı ama boyutu büyük. Kurulum: Anaconda sitesinden indir, "Sign up" ile kayıt ol, kur. Ortam oluşturmak için terminalde <code>conda create -n &lt;ortam_adı&gt;</code> (örnekte ortam adı [belirsiz], "dem/demo" gibi).
+- <strong>pip</strong> ile doğrudan Python sanal ortamı.</p>
+<p><strong>Her proje için ayrı bir çalışma ortamı</strong> kurulmalı. Neden: projeler farklı kütüphaneler kullanır ve kütüphaneler/versiyonlar birbiriyle çakışabilir (version conflict).</p>
+<p>Hoca conda'yı önermediğini, <strong>uv'ye yönelmeyi ve ona alışmayı</strong> tavsiye ettiğini söyledi: "Yapay zekâ projeleri için gerçekten harika bir araç."</p>
+<hr>
+<h3>Proje klasörü, VS Code ve terminal (≈00:20–00:26)</h3>
+<p>Adımlar:
+1. Masaüstünde yeni bir klasör oluşturuldu (hocanınki <code>my-app</code> benzeri bir isim; siz istediğinizi verebilirsiniz).
+2. Klasör VS Code ile açıldı. Alternatif: VS Code'da <strong>File → Open Folder</strong> ile klasörü seçmek. "Birkaç yöntem var, hangisi kolayınıza geliyorsa."
+3. Terminal açıldı: üç nokta menüsünden <strong>Terminal → New Terminal</strong> ya da kısayol <strong>Ctrl + `</strong>.</p>
+<p><strong>Klasöre dosya ekleme (öğrenci sorusu).</strong> Bir öğrenci VS Code'u açınca eski dosyaların göründüğünü sordu. Hoca: VS Code'da açtığınız klasöre hangi dosyayı (not defteri, PDF vb.) koyarsanız o görünür; görmek istemediklerinizi klasörden silersiniz.</p>
+<p><strong>PowerShell mi, Komut İstemi (Command Prompt) mi?</strong> Bir öğrenci Windows 11'de PowerShell'de "hangi dizindeyim" bilgisinin garip göründüğünü, terminal yanındaki "+" oku üzerinden <strong>Command Prompt</strong> seçince sorunun çözüldüğünü paylaştı. Hoca: PowerShell biraz daha karmaşık, Command Prompt daha basit bir terminal; ikisi de aynı işi görür, istediğinizi kullanabilirsiniz. Birden fazla terminal de açılabilir; sağ tarafta hepsi listelenir.</p>
+<hr>
+<h3><code>uv init</code> ile proje oluşturma ve oluşan dosyalar (≈00:22, 00:26–00:28)</h3>
+<pre><code class="language-bash">uv init --python 3.12
+</code></pre>
+<p><code>uv init</code> bulunduğunuz dizinde yeni bir proje başlatır; <code>--python</code> ile Python sürümü de belirtilebilir. Oluşan dosyalar:
+- <strong><code>.python-version</code></strong> — Python sürümü (3.12).
+- <strong><code>pyproject.toml</code></strong> — yükleyeceğimiz kütüphaneler ve versiyonları burada tutulur.
+- <strong><code>README.md</code></strong> — projeyi açıklamak için.
+- <strong><code>.gitignore</code></strong> — GitHub'a gönderilmeyecek dosyalar. Örneğin API anahtarlarımızın bulunduğu <code>.env</code> dosyasını göndermek istemeyiz.</p>
+<p><strong>GitHub</strong> projelerin yüklendiği, yönetildiği ve takip edildiği bir site; şu an ayrıntısını bilmek gerekmiyor ama ileride kullanılacak.</p>
+<hr>
+<h3>Kütüphanelerin yüklenmesi: <code>uv add</code> (≈00:28–00:30)</h3>
+<pre><code class="language-bash">uv add openai streamlit python-dotenv
+</code></pre>
+<ul>
+<li><strong>openai</strong> — OpenAI modeline bağlanmak için.</li>
+<li><strong>streamlit</strong> — uygulamayı (arayüzü) geliştirmek için.</li>
+<li><strong>python-dotenv</strong> — API anahtarlarını <code>.env</code> dosyasından ayarlamak için.</li>
+</ul>
+<p>Bunlar önceki derste de yüklenmişti; ama her yeni klasörde/projede bu işlemlerin tekrar yapılması gerekir. Komut çalıştırıldığında kütüphaneler otomatik yüklenir.</p>
+<hr>
+<h3><code>.env</code> dosyası ve API anahtarı (≈00:30–00:34)</h3>
+<ol>
+<li>VS Code'da <strong>New File</strong> ile <code>my-first-app.py</code> dosyası oluşturuldu (ders kaynağında dosya adı <code>1_my-first-app.py</code>).</li>
+<li>Yine yeni dosya olarak <strong><code>.env</code></strong> oluşturuldu ve içine anahtar yazıldı:</li>
+</ol>
+<pre><code class="language-text">OPENAI_API_KEY=sk-...
+</code></pre>
+<p>Değişken adı büyük harfle yazılıyor. API anahtarı daha önce terminalden de (ortam değişkeni olarak) ayarlanmıştı; ancak projelerde genelde <code>.env</code> yöntemi kullanıldığı için, görünce şaşırmayasınız diye bu yöntem gösterildi.</p>
+<p><strong>Soru:</strong> API anahtarını bir yerde kaydetmek sorun olur mu?
+<strong>Cevap:</strong> Kaydetmekte sorun yok. Kaybederseniz eskisini silip yenisini alırsınız (nasıl alınacağı önceki derste gösterildi).</p>
+<p><strong>Soru:</strong> Kaydı izlerken dosyayı başka bir klasörün altına kaydettim, çalışmadı. Sebebi ne olabilir?
+<strong>Cevap:</strong> Muhtemelen <code>.env</code> alt klasörde olduğu için bulunamadı. Çalışma dizininiz neresiyse <code>.env</code> orada olmalı.</p>
+<p><strong>Neden API anahtarı?</strong> Şu an ücretli bir model (OpenAI) kullanıyoruz; ona bağlanmak için anahtarı çalışma ortamına almamız gerekiyor. İleride ücretsiz modeller ve yerel (local) modeller de kullanılacak.</p>
+<hr>
+<h3>Import mantığı ve nesne oluşturma (≈00:34–00:35)</h3>
+<p>Hocanın genel kuralı: <strong>önce sınıfı ya da metodu import et, sonra kullan.</strong> Import edilmeyen şey kullanılamaz. Bir kütüphanenin her şeyini birden import etmek bellekte gereksiz yer kaplar; sadece kullanılacak olanlar import edilir.</p>
+<pre><code class="language-python">from dotenv import load_dotenv
+from openai import OpenAI
+import streamlit as st
+
+load_dotenv(override=True)
+client = OpenAI()
+</code></pre>
+<ul>
+<li><code>load_dotenv</code> → <code>.env</code> içindeki anahtarı ortama yükler.</li>
+<li><code>OpenAI</code> sınıfı import edilip <strong>bir örnek (nesne) alınır</strong>: <code>client = OpenAI()</code>. Bu nesne tabanlı programlamanın bir özelliği; ayrıntısını bilmek gerekmiyor, "önce sınıfı import et, sonra ondan bir örnek al" yeterli.</li>
+</ul>
+<hr>
+<h3>Streamlit ile arayüz: başlık ve metin kutusu (≈00:35–00:38)</h3>
+<p><strong>Streamlit</strong> hem yapay zekâ hem makine öğrenmesi/veri bilimi uygulamaları geliştirmek için çok pratik bir kütüphane; hoca kesinlikle tavsiye ediyor.</p>
+<p><code>import streamlit as st</code> — her seferinde <code>streamlit</code> yazmak uzun olacağı için kısaltma (<code>st</code>) ile import ediliyor.</p>
+<pre><code class="language-python">st.title(&quot;İlk AI Uygulamam&quot;)
+soru = st.text_input(&quot;Ne sormak istersin?&quot;)
+</code></pre>
+<ul>
+<li><code>st.title</code> → sayfa başlığı.</li>
+<li><code>st.text_input</code> → kullanıcının soru yazacağı metin kutusu; içine verilen metin kutunun üstünde görünen yönlendirme yazısı. Kullanıcının yazdığı değer <code>soru</code> değişkenine atanır.</li>
+</ul>
+<p>Hoca kodları birlikte yazmayı önerdi: "Yazarak daha iyi öğrenilir."</p>
+<p><strong>Terminali temizleme:</strong> Windows'ta (PowerShell / Command Prompt) <code>cls</code>, macOS/Linux'ta <code>clear</code>.</p>
+<p><strong>Soru:</strong> Kodun altı neden (sarı/kırmızı) işaretli görünüyor?
+<strong>Cevap:</strong> Muhtemelen çalıştırınca düzelir (devamı "Sık sorunlar" bölümünde: doğru yorumlayıcı seçimi).</p>
+<hr>
+<h3>Uygulamayı çalıştırma ve kurulum sorunlarının giderilmesi (≈00:38–00:50)</h3>
+<p>Uygulama terminalden şu komutla çalıştırılıyor:</p>
+<pre><code class="language-bash">uv run streamlit run my-first-app.py
+</code></pre>
+<p>Hocanın uygulaması tarayıcıda açıldı. Derste öğrencilerin karşılaştığı sorunlar ve çözümleri:</p>
+<ul>
+<li><strong>Komut yazım hatası:</strong> Bir öğrencide komut yanlış yazılmıştı. Hocanın paylaştığı komutu kopyalayıp çalıştırınca düzeldi.</li>
+<li><strong>Import satırlarının altı kırmızı/sarı çizili:</strong> VS Code'da <strong>Ctrl + Shift + P → "Python: Select Interpreter"</strong> ile listeden projenin <strong><code>.venv</code></strong> ortamı seçilmeli; uyarılar kaybolur. (Sanal ortam aslında aktif olsa bile editör yanlış yorumlayıcıyı gösteriyor olabilir.)</li>
+<li><strong>macOS'ta yol ayracı:</strong> Hoca Windows'ta dosya yolunu ters eğik çizgiyle (<code>\</code>) yazmıştı; macOS/Linux'ta düz eğik çizgi (<code>/</code>) kullanılır. Zaten dosya ile aynı dizinde olunduğu için yol önekine hiç gerek yok; hoca bundan sonra bu öneki koymayacağını söyledi.</li>
+<li><strong>Streamlit'in ilk çalıştırmada e-posta istemesi:</strong> macOS'ta ilk çalıştırmada e-posta soruyor; boş bırakıp <strong>Enter</strong>'a basarak geçilebilir.</li>
+<li><strong>Uygulama açılıyor ama ekran boş:</strong> Önce terminalde verilen <code>localhost</code> adresini başka bir tarayıcıda açmak denendi. Sonradan öğrencinin kendisi sorunu buldu: <strong>dosya kaydedilmemişti.</strong> VS Code'da otomatik kaydetme (Auto Save) açılırsa bu sorun yaşanmaz.</li>
+</ul>
+<hr>
+<h3>Buton, <code>strip</code>, <code>spinner</code> ve modelden cevap alma (≈00:50–00:56)</h3>
+<p>Uygulamaya, basıldığında soruyu modele gönderen bir buton eklendi. Tam kod (ders kaynağından):</p>
+<pre><code class="language-python">from dotenv import load_dotenv
+from openai import OpenAI
+import streamlit as st
+
+load_dotenv(override=True)
+client = OpenAI()
+
+st.title(&quot;İlk AI Uygulamam&quot;)
+soru = st.text_input(&quot;Ne sormak istersin?&quot;)
+
+if st.button(&quot;Cevapla&quot;):
+    if soru.strip():
+        with st.spinner(&quot;Cevap hazırlanıyor...&quot;):
+            response = client.responses.create(
+                model = &quot;gpt-5.6-luna&quot;,
+                input = soru
+            )
+        st.write(response.output_text)
+    else: 
+        st.warning(&quot;Önce bir soru yaz.&quot;)
+</code></pre>
+<p>Hocanın adım adım açıklaması:
+- <code>if st.button("Cevapla"):</code> → "Cevapla" adında bir buton oluşturur; butona basıldığında <code>if</code> bloğunun içindeki kod çalışır.
+- <strong>Girinti (indentation):</strong> Python'da çok önemli; yanlış girinti hata verir. Dört boşluk kullanıyorsanız her yerde dört, iki boşluk kullanıyorsanız her yerde iki. Editör bunu çoğunlukla kendisi ayarlar.
+- <code>soru.strip()</code> → kullanıcının yazdığı metnin başındaki ve sonundaki boşlukları temizler. Boş olmayan bir soru varsa devam edilir.
+- <code>with st.spinner("Cevap hazırlanıyor..."):</code> → modelden cevap bazen hızlı, bazen yavaş gelir; bu sırada kullanıcıya bekleme mesajı gösterilir.
+- <code>client.responses.create(...)</code> → önceki derste olduğu gibi <strong>Responses API</strong> ile istek atılır. <code>model</code> olarak önceki derste kullanılan model, <code>input</code> olarak kullanıcıdan alınan soru verilir. Cevap <code>response</code> değişkenine alınır.
+- <code>st.write(response.output_text)</code> → <code>response</code> içinde token sayıları gibi meta veriler de var (önceki derste görülmüştü); biz sadece modelin cevap metnini istediğimiz için <code>output_text</code> özelliği kullanılır.
+- <code>else: st.warning(...)</code> → soru yazılmadan butona basılırsa kullanıcıya uyarı gösterilir.</p>
+<p>Deneme: "Kısa bir şaka yaz" yazılıp <strong>Cevapla</strong>'ya basıldı; "Cevap hazırlanıyor" mesajından sonra cevap geldi. Uygulama ayakta ve çalışıyor. Bir öğrenci de doktor şakası yazdırarak denedi.</p>
+<hr>
+<h3>Derste karşılaşılan diğer hatalar (≈00:57–01:01, 01:04–01:06)</h3>
+<p><strong>Soru:</strong> Büyük harfle yazdığım bir yerde hata aldım; Python büyük/küçük harfe duyarlı mı?
+<strong>Cevap:</strong> Evet, Python büyük/küçük harfe duyarlıdır (case-sensitive). Buna dikkat etmek gerekir.</p>
+<p><strong>Soru:</strong> "Incorrect API key provided" hatası alıyorum; anahtarı kendim aldım, neden?
+<strong>Cevap:</strong> Hocada da oluyor: terminalde (ortam değişkeni olarak) ayarlanmış API anahtarı ile <code>.env</code> dosyasındaki anahtar farklı olunca çakışma oluyor. Çözüm: <code>load_dotenv(override=True)</code>. <code>override=True</code>, <code>.env</code> dosyasındaki değerin mevcut ortam değişkeninin üzerine yazılmasını sağlar.</p>
+<p><strong><code>.env</code> dosyasının yanlış yerde olması:</strong> Bir öğrencinin uygulaması, <code>.env</code> dosyası (ve ilgili dosyalar) farklı bir alt klasöre düştüğü için çalışmadı; dosyalar proje kök dizinine taşınınca sorun çözüldü.</p>
+<hr>
+<h3>Streamlit uygulamasını yayınlama (deploy) (≈00:58–01:04)</h3>
+<p><strong>Soru:</strong> Streamlit gerçek uygulamalarda kullanılıyor mu?
+<strong>Cevap:</strong> Streamlit'in güzel tarafı, uygulamanın <strong>ücretsiz olarak deploy</strong> edilebilmesi. Deploy edince bir link veriliyor; uygulama bu link üzerinden internette paylaşılabiliyor; istenirse bir alan adına (domain) da bağlanabiliyor. Özellikle prototip geliştirip müşteriye ya da arkadaşlara göstermek için çok kullanılıyor. Kendi alan adı olunca uygulama daha profesyonel görünüyor; ücretsiz link ise o kadar "değerli" durmayabiliyor.</p>
+<p><strong>Soru:</strong> Tasarım tarafı ne kadar güçlü?
+<strong>Cevap:</strong> Hızlı ve pratik arayüz için iyi; Next.js ya da React gibi kütüphanelerle yapılabilecek tasarım düzeyinde değil ama işini görecek kadar yeterli.</p>
+<p><strong>Deploy adımları (hocanın anlattığı kadarıyla):</strong>
+1. Streamlit arayüzündeki <strong>Deploy</strong> seçeneği → kişisel/öğrenme projeleri için ücretsiz seçenek (Community Cloud). Uygulama public olarak yayınlanıyor.
+2. Önce bir Streamlit hesabı oluşturup giriş yapmak gerekiyor.
+3. Uygulamanın bir yerde barındırılması gerekiyor: <strong>GitHub</strong> hesabına bağlanılıyor.
+4. GitHub'da yeni bir <strong>repository</strong> oluşturulup isim veriliyor (ör. <code>my-first-app</code>), dosyalar oraya yükleniyor.
+5. Streamlit bu repoyu otomatik görüyor ve yayınlanabiliyor.</p>
+<p>Bir öğrenci, daha önce Claude ile yaptığı bir web uygulamasını da link olarak paylaşabildiğini söyledi; hoca Streamlit'te de aynı şekilde paylaşım mümkün olduğunu onayladı.</p>
+<hr>
+<h3>Uygulayarak öğrenme ve sonraki adımlar (≈01:09, 01:15–01:16)</h3>
+<p>Bir öğrencinin, öğrendiklerini uygulamaya dökmenin heyecan yarattığını ve akılda kalıcı olduğunu söylemesi üzerine hoca, yapılan çalışmaların paylaşılmasını teşvik etti: "Paylaşırsan arkadaşların da görmüş, faydalanmış olur." Uygulama yapmadan öğrenme olmuyor.</p>
+<p><strong>Soru:</strong> Bu kodla bir web sitesi gibi bir şey çıkıyor; bunu nasıl geliştirebiliriz?
+<strong>Cevap:</strong> Önce temeli öğreniyoruz; sonra üzerine ek özellikler eklenecek. Örneğin chatbot yapılabilir, PDF yükleyip ona göre cevap verdirilebilir. Bundan sonra herkes kendi hayaline ve işine göre bir Streamlit uygulaması geliştirebilir. Derslerde de benzer uygulamalar yapılmaya devam edilecek.</p>
+<hr>
+<h3>Ders sonrası sohbet: "karar modeli" (≈01:10–01:15)</h3>
+<blockquote>
+<p>Bu kısım ders müfredatı dışında bir sohbet; kısaca aktarıldı. Modelin adı transkriptte "Jev" gibi geçiyor — <strong>[belirsiz]</strong>.</p>
+</blockquote>
+<p>Bir öğrenci, hocanın paylaştığı ve çok izlenen bir gönderideki yeni modeli sordu. Hoca bunu yeni geliştirilmiş bir <strong>karar modeli</strong> olarak anlattı: ChatGPT ya da Claude gibi bir sohbet modeli değil; klasik LLM'ler girdiyi alıp akıl yürütür (reasoning) ve token token metin üretirken, bu model kullanıcıya metin çıktısı vermeden <strong>doğrudan aksiyona/karara</strong> geçiyor — durumu alıyor, seçenekleri değerlendirip önceliklendiriyor ve karar veriyor. Özellikle finans uygulamaları için geliştirildiği ve hızın kritik olduğu yerlerde kullanılacağı belirtildi.</p>
+<p>Sohbette bir öğrenci, iş hayatında kullandıkları <strong>karar tablolarına (decision table / rule framework)</strong> benzettiğini; başka bir öğrenci de modelin düşünme aşamasını tamamen atlamadığını, akıl yürütmeyi klasik modellerden farklı ve optimize bir şekilde içeride yaptığını (bir yapay zekâ asistanına sorarak) aktardı. Kahneman'ın <em>Hızlı ve Yavaş Düşünme</em> (Thinking, Fast and Slow) kitabındaki "düşünmeden hızlı karar verme / karmaşık durumda yavaş düşünme" ayrımı da benzetme olarak anıldı. Hoca konuyu kendisinin de tam incelemediğini, daha detaylı bakmak gerektiğini söyledi.</p>

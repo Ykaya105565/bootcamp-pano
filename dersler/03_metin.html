@@ -1,0 +1,88 @@
+<h2>03 · Çalışma Ortamı Kurulumu — Ders Metni (ayıklanmış)</h2>
+<blockquote>
+<p>Kaynak: Hocanın YouTube'daki "LangChain: Çalışma Ortamının Kurulumu" videosu (~13 dk, kayıtlı anlatım). Transkript YouTube otomatik altyazısıdır; bu derse ait kod dosyası ve konu çizimi yoktur. Komutlar, transkriptte anlatılanlardan yeniden kurulmuştur.
+Not: Kütüphane sürümleri videonun çekildiği tarihe aittir (LangChain 0.1.x dönemi). Bugün kurulum yaparken PyPI'daki güncel sürümlere bakmak gerekir.</p>
+</blockquote>
+<h3>Giriş ve proje klasörü (≈00:00–00:01)</h3>
+<p>Önceki derste LangChain'e giriş yapılmış ve framework'ün bileşenleri tanıtılmıştı. Bu derste kod yazmak için çalışma ortamı kuruluyor.</p>
+<p>İlk adım bir proje klasörü oluşturmak. Windows komut satırında <code>mkdir</code> komutu ve ardından klasör adı yazılır. Hoca klasör adını "langchain for GenAI" benzeri bir isim olarak veriyor (tam yazımı [belirsiz]; aşağıda <code>langchain-for-genai</code> olarak kullanıldı). İstenirse klasör, Windows Gezgini'nde sağ tıklayarak da oluşturulabilir. Ardından <code>cd</code> ile klasörün içine girilir.</p>
+<pre><code class="language-bash">mkdir langchain-for-genai
+cd langchain-for-genai
+</code></pre>
+<h3>Editörü açmak: VS Code (≈00:01)</h3>
+<p>Hoca editör olarak VS Code kullanıyor; isteyen PyCharm gibi başka bir editör de kullanabilir (transkriptte bir editör adı daha geçiyor, "klep" — [belirsiz]). Terminalden, bulunulan dizinde VS Code'u açmak için <code>code</code> komutundan sonra nokta (<code>.</code>) yazılır; nokta "bu dizin" anlamına gelir. Alternatif olarak VS Code içinden <strong>File → Open Folder</strong> ile de klasör açılabilir.</p>
+<pre><code class="language-bash">code .
+</code></pre>
+<h3>Sanal ortam neden gerekli ve Anaconda (≈00:01–00:02)</h3>
+<p>Sanal ortam (virtual environment), proje kütüphanelerini daha kolay yönetmeyi sağlar ve farklı projelerdeki kütüphanelerin birbiriyle çakışmasını önler. Hoca <strong>her proje için ayrı bir sanal ortam</strong> kullanılmasını şiddetle tavsiye ediyor.</p>
+<p>Sanal ortam birçok yolla kurulabilir; bu derste <strong>Anaconda</strong> kullanılıyor. Anaconda özellikle veri bilimi projeleri için geliştirilmiş bir platformdur; paket yöneticisi <strong>conda</strong> ile paket yüklenir ve yönetilir. Bilgisayarda Anaconda yoksa Anaconda'nın sitesinde "Free Download" kısmından indirme sayfasına gidilir, indirilir ve klasik "Next, Next" adımlarıyla kurulur.</p>
+<h3>Conda ile sanal ortam oluşturma ve etkinleştirme (≈00:02–00:03)</h3>
+<p>VS Code'a dönülüp yeni bir terminal açılır; terminal türü olarak Command Prompt (komut satırı) seçilir. Ortam <code>conda create</code> ile oluşturulur, isim <code>-n</code> bayrağıyla verilir. Hoca ortam adını "langchain" olarak veriyor (transkriptte "L chain / lch" olarak geçiyor; tam ad [belirsiz]). Conda, ortamın Anaconda kurulum klasöründeki <code>envs</code> altına kurulacağını söyler; onay için <code>y</code> (Yes) denip Enter'a basılır.</p>
+<pre><code class="language-bash">conda create -n langchain
+</code></pre>
+<p>Kurulum bitince conda, ortamı etkinleştirmek için <code>conda activate</code>, devre dışı bırakmak için <code>conda deactivate</code> komutlarını kullanmayı söyler. Ortam etkinleştirilir:</p>
+<pre><code class="language-bash">conda activate langchain
+# çıkmak için:
+conda deactivate
+</code></pre>
+<p>Ortamın etkin olduğu, satırın başında parantez içinde ortam adının görünmesinden anlaşılır. Projede çalışırken her seferinde ortamın bu şekilde etkinleştirilmesi gerekir.</p>
+<blockquote>
+<p>Not: Transkriptte <code>conda create</code> komutunda Python sürümü belirtildiğine dair bir şey geçmiyor. Pratikte <code>conda create -n langchain python=3.11</code> gibi bir sürüm belirtmek, ortamın içine Python ve pip'in kurulmasını garanti eder.</p>
+</blockquote>
+<h3>requirements.txt dosyası ve sürümlerin PyPI'dan bulunması (≈00:03–00:06)</h3>
+<p>Kullanılacak kütüphaneler için bir <code>requirements.txt</code> dosyası oluşturulur (VS Code'un sol panelinde <strong>New File</strong> → <code>requirements.txt</code>). Bu dosyaya kütüphaneler ve sürümleri <code>paket==sürüm</code> biçiminde yazılır. Kütüphanelerin son sürümleri <strong>PyPI</strong> (pypi.org) sitesinden bulunur. Hoca bu dosyayı GitHub reposuna yükleyeceğini, öğrencilerin oradan indirip kullanabileceğini söylüyor.</p>
+<p>PyPI'da tek tek bakılan kütüphaneler ve videodaki sürümler:</p>
+<ul>
+<li><strong>langchain</strong> — son sürüm 0.1.6 (video çekildiğinde 17 saat önce yayınlanmış).</li>
+<li><strong>langchain-core</strong> — son sürüm 0.1.2 (18 saat önce yayınlanmış). (Sürüm transkriptte böyle geçiyor; bkz. "Ders Notları" belirsizlikler kısmı.)</li>
+<li><strong>langchain-openai</strong> — OpenAI'ın LangChain entegrasyonu; sürüm 0.0.1 olarak okunuyor.</li>
+<li><strong>python-dotenv</strong> — ortam değişkenlerini çalışma ortamına aktarmak için; sürüm 1.0.1.</li>
+</ul>
+<pre><code class="language-text">langchain==0.1.6
+langchain-core==0.1.2
+langchain-openai==0.0.1
+python-dotenv==1.0.1
+</code></pre>
+<h3>Kütüphaneleri pip ile kurmak (≈00:06–00:07)</h3>
+<p>pip, Python'un paket yöneticisidir; Anaconda kurulunca pip de otomatik gelir. Dosyadaki kütüphaneler (ve bağımlılıkları) <code>-r</code> bayrağıyla kurulur:</p>
+<pre><code class="language-bash">pip install -r requirements.txt
+</code></pre>
+<p>Kurulum sırasında <code>langchain</code> ile birlikte <strong>langchain-community</strong> kütüphanesinin de otomatik yüklendiği görülüyor. Kurulan tüm kütüphaneleri görmek için bir "list" komutu kullanılıyor (transkriptte "K list"; büyük olasılıkla <code>pip list</code> ya da <code>conda list</code> — [belirsiz]):</p>
+<pre><code class="language-bash">pip list
+</code></pre>
+<p>Listede langchain 0.1.6, langchain-core 0.1.2 ve langchain-openai 0.0.1 sürümleriyle görünüyor.</p>
+<p>Hocanın uyarısı: Kütüphaneleri VS Code içinden kurarken/kullanırken <strong>Command Palette → Python: Select Interpreter</strong> (yorumlayıcı seç) kısmından oluşturulan sanal ortamı seçmeyi unutmayın.</p>
+<h3>API anahtarı ve .env dosyası (≈00:07–00:09)</h3>
+<p>OpenAI veya Hugging Face gibi üçüncü parti servislerle çalışırken API anahtarı (API key) gerekir ve bu anahtarın çalışma ortamına alınması lazım. Bunun birkaç yolu var; en pratiklerinden biri <strong>python-dotenv</strong> kütüphanesidir. Bunun için proje dizininde bir <code>.env</code> dosyası oluşturulur (New File → <code>.env</code>) ve içine OpenAI anahtarı yazılır:</p>
+<pre><code class="language-text">OPENAI_API_KEY=sk-...
+</code></pre>
+<p>Anahtarı almak için OpenAI platform sitesine gidilip <strong>API keys</strong> kısmına girilir. Burada daha önce oluşturulan anahtarlar görülür; yenisi oluşturulabilir. Hoca bir isim veriyor ("langchain" benzeri), <strong>Create secret key</strong> butonuna basıyor, anahtarı kopyalıyor ve <strong>Done</strong> diyor.</p>
+<p>Hocanın vurguları:
+- API anahtarı <strong>yalnızca bir kez</strong> gösterilir; bir yere kaydetmek gerekir. Anahtar istenildiği zaman bu sayfadan silinebilir.
+- Siteye ilk kez kayıt olunduğunda OpenAI (video tarihinde) 5 dolarlık kredi veriyordu; bu kredi eğitimdeki uygulamalar için yeterli. Kredi biterse <strong>Settings → Billing</strong> kısmından ödeme kartı eklenip en az 5 dolarlık kredi alınabilir.
+- Hoca, eğitimden/video yayınından sonra gösterdiği anahtarı sileceğini söylüyor.</p>
+<h3>.gitignore ile anahtarı korumak (≈00:09–00:10)</h3>
+<p>Proje GitHub'a gönderilirken <code>.env</code> dosyasının gitmemesi için bir <code>.gitignore</code> dosyası oluşturulur (VS Code bu dosyayı adından otomatik tanır). İçine GitHub'a gönderilmek istenmeyen dosyalar yazılır; burada <code>.env</code>. Böylece API anahtarını kimse görmez, anahtar güvende kalır.</p>
+<pre><code class="language-text">.env
+</code></pre>
+<h3>Notebook oluşturma ve kernel seçimi (≈00:10–00:11)</h3>
+<p>Hoca derslerde VS Code içinde notebook kullanacak. Yeni bir dosya <code>langchain.ipynb</code> adıyla oluşturulur; <code>.ipynb</code> uzantısını gören VS Code dosyayı otomatik olarak notebook olarak açar. Sağ üst köşeden <strong>Select Kernel</strong> ile kernel olarak az önce oluşturulan <code>langchain</code> sanal ortamı seçilir. Böylece sanal ortam notebook içinde de ayarlanmış olur.</p>
+<h3>Ortam değişkenlerini yükleme: load_dotenv (≈00:11–00:12)</h3>
+<p><code>.env</code> içindeki değişkenler <code>dotenv</code> modülündeki <code>load_dotenv</code> fonksiyonuyla yüklenir:</p>
+<pre><code class="language-python">from dotenv import load_dotenv
+load_dotenv()
+</code></pre>
+<p>Hücre ilk çalıştırıldığında VS Code, notebook için bazı paketlerin (ipykernel) kurulması gerektiğini söylüyor; <strong>Install</strong> denip kuruluyor. Ardından hücre çalışıyor ve <code>True</code> döndürüyor. Bu, <code>.env</code> içindeki OpenAI anahtarının ortam değişkeni olarak notebook'a aktarıldığı anlamına gelir. OpenAI kütüphanesi bu anahtarı (<code>OPENAI_API_KEY</code> adıyla) otomatik tanır.</p>
+<p>İsterseniz anahtarın yüklendiğini <code>os</code> modülüyle kontrol edebilirsiniz:</p>
+<pre><code class="language-python">import os
+os.getenv(&quot;OPENAI_API_KEY&quot;)
+</code></pre>
+<p>Hücre çalışınca anahtar ekrana yazılıyor. Hoca bunu yalnızca gösterim amaçlı yaptığını, <strong>API anahtarının kesinlikle kimseyle paylaşılmaması</strong> gerektiğini vurguluyor.</p>
+<h3>Alternatif: anahtarı elle ayarlamak (≈00:12–00:13)</h3>
+<p>Anahtar elle yüklenmek istenirse <code>os.environ</code> kullanılabilir:</p>
+<pre><code class="language-python">import os
+os.environ[&quot;OPENAI_API_KEY&quot;] = &quot;sk-...&quot;
+</code></pre>
+<p>Kontrol için yine <code>os.getenv("OPENAI_API_KEY")</code> kullanılabilir. Hoca çalışmalarında genellikle birinci yöntemi (python-dotenv ile <code>.env</code>) kullanacağını ve öğrencilere de bunu tavsiye ettiğini söylüyor.</p>
+<h3>Kapanış (≈00:13)</h3>
+<p>Bu derste çalışma ortamı ayarlandı, kütüphaneler kuruldu ve OpenAI API anahtarı ortam değişkeni olarak yüklendi. LangChain ile çalışmak için her şey hazır; bir sonraki derste LangChain'in "mutfağına" girilip kod yazılmaya başlanacak.</p>

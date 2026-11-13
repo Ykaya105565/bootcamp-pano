@@ -1,0 +1,315 @@
+<h2>07 · Day03-Embedding</h2>
+<p><strong>Bu derste ne var:</strong> Embedding'in ne olduğu (verileri sayısal temsillere, anlamı sayılara çevirme), keyword search ile semantic search farkı ve embedding'lerin RAG, vektör veritabanları ve LLM uygulamalarındaki yeri. Bag of Words/TF-IDF'ten Word2Vec'e (ve GloVe/FastText'e) geçiş, <code>gensim</code> ile hazır Word2Vec modeli üzerinde benzerlik ve analoji. Statik embedding'in "bank" problemi, Transformer/BERT ile bağlamsal embedding (context embedding) ve son olarak doküman düzeyinde Doc2Vec.</p>
+<hr>
+<h3>Ana kavramlar</h3>
+<ul>
+<li><strong>Embedding (gömme)</strong> — Veriyi (metin, resim, ses) sabit uzunlukta bir sayı vektörüne çevirme; "anlamı sayılara çevirme yöntemi". <em>Neden önemli:</em> Modeller metinden/görüntüden değil sayılardan anlar; hocaya göre "modern yapay zekanın temeli".</li>
+<li><strong>Anlam uzayı (semantic space)</strong> — Benzer veriler uzayda yakın konumlanır (köpek–kedi yakın, pizza–salata–sosis yakın). <em>Neden önemli:</em> Benzerlik = vektörler arası yakınlık; arama ve RAG bu yakınlığı kullanır.</li>
+<li><strong>Keyword search (anahtar kelime araması)</strong> — Kelime eşleşmesi: "kangal" → "kangal". <em>Neden önemli:</em> Birebir terim aramada güçlü ama eş anlamlıları kaçırır.</li>
+<li><strong>Semantic search (anlamsal arama)</strong> — Anlam eşleşmesi: "kangal" → köpek, kurt, Sivas. <em>Neden önemli:</em> RAG'de "anlamca en yakın dokümanı" bulmanın yolu.</li>
+<li><strong>Vektör veritabanı</strong> — Sayısal temsilleri (embedding'leri) sakladığımız ve benzer içerikleri hızlıca bulduğumuz yer. <em>Neden önemli:</em> Sonraki dersin konusu; RAG'in hafızası.</li>
+<li><strong>Öznitelik (feature)</strong> — Verinin bir özelliği (ev fiyatında metrekare gibi). Görüntüde pikseller, metinde kelimeler/token'lar. <em>Neden önemli:</em> Metinde öznitelik sayısı devasa (sözlük büyüklüğü), NLP'yi geciktiren de buydu.</li>
+<li><strong>Token</strong> — Modelin işlediği metin parçası; bir kelime, kelimenin bir parçası, harf ya da noktalama olabilir. Her modelin kendi tokenizer'ı var.</li>
+<li><strong>Bag of Words / TF-IDF</strong> — Word2Vec öncesi klasik teknikler; kelimeyi sözlük boyutunda (çoğu 0 olan) vektöre çevirir. <em>Sorun:</em> çok büyük ve seyrek veri + anlam yakalanamaz.</li>
+<li><strong>Word2Vec (Google, 2013)</strong> — Kelimenin anlamını çevresindeki kelimelerden öğrenir; yoğun (dense), düşük boyutlu vektörler (örn. 300) üretir. <em>Neden önemli:</em> NLP'deki ilk büyük sıçrama; <code>king − man + woman ≈ queen</code> gibi vektör aritmetiğine izin verir.</li>
+<li><strong>GloVe (Stanford, 2014) / FastText (Facebook AI Research, 2016)</strong> — Word2Vec'ten sonra gelen diğer statik kelime embedding yöntemleri (derste çizimde yer aldı; ayrıntısı transkriptte yok).</li>
+<li><strong>Corpus (derlem)</strong> — Modelin üzerinde çalıştığı metinlerin bütünü / sözlüğün kaynağı. Büyüdükçe kalite artar ama hesaplama maliyeti de artar (trade-off).</li>
+<li><strong>Statik embedding</strong> — Her kelimenin tek ve sabit bir vektörü var (Word2Vec, GloVe, FastText). <em>Sorun:</em> "bank" (banka) ile "bank" (nehir kıyısı) aynı vektör.</li>
+<li><strong>Context embedding (bağlamsal embedding)</strong> — Kelimenin vektörü cümledeki anlamına göre değişir; Transformer mimarisiyle (BERT, GPT) üretilir. <em>Neden önemli:</em> Çok anlamlılığı çözer (Apple şirketi ≠ apple meyve); günümüz LLM'lerinin temeli.</li>
+<li><strong>Hugging Face / <code>transformers</code></strong> — Açık kaynak modellerin (3 milyon+) bulunduğu platform ve bu modelleri kullanmaya yarayan kütüphane; PyTorch üzerine kurulu.</li>
+<li><strong><code>[CLS]</code> (101) / <code>[SEP]</code> (102)</strong> — BERT'in her girdinin başına ve sonuna eklediği özel token'lar.</li>
+<li><strong><code>last_hidden_state</code></strong> — Modelin son katmanından çıkan token temsilleri = context embedding'ler; shape <code>[batch, token_sayısı, 768]</code> (BERT-base).</li>
+<li><strong>CUDA / MPS / CPU</strong> — CUDA: NVIDIA GPU'da paralel, hızlı hesap; MPS: Apple Silicon GPU'su; CPU: yavaş ama her yerde çalışır.</li>
+<li><strong>Doc2Vec</strong> — Kelime yerine tüm dokümanı (cümle, paragraf, makale, ürün açıklaması) tek vektöre çevirir. <em>Kullanım:</em> öneri sistemleri, intihal tespiti, semantik arama, haber sınıflandırma.</li>
+</ul>
+<hr>
+<h3>Akış / mimari</h3>
+<p><strong>Embedding'in RAG'deki yeri:</strong></p>
+<pre><code>Kullanıcı sorusu → embedding'e çevir → vektör DB'de en yakın vektörleri bul (semantic search) → ilgili dokümanları getir (retrieve) → LLM'e context olarak ver
+</code></pre>
+<p><strong>Görüntüden vektöre (MNIST):</strong></p>
+<pre><code>28×28 gri resim → piksel değerleri (0–255) → düzleştir (flatten) → 784 elemanlı vektör [0, 0, 12, 85, 240, 255, …]
+</code></pre>
+<p><strong>Bag of Words (one-hot) → Word2Vec:</strong></p>
+<pre><code>Sözlük 30.000 kelime → her cümle 30.000 uzunlukta, çoğu 0 vektör (seyrek, anlamsız)
+                     → Word2Vec: her kelime ~300 boyutlu yoğun vektör (küçük, anlamlı)
+</code></pre>
+<p><strong>Metin işleme hattı (çizim):</strong></p>
+<pre><code>&quot;The dog sat on the couch.&quot;
+ → Standardization  → &quot;the dog sat on the couch&quot;
+ → Tokenization     → &quot;the&quot;,&quot;dog&quot;,&quot;sat&quot;,&quot;on&quot;,&quot;the&quot;,&quot;couch&quot;
+ → Indexing         → 4, 22, 63, 7, 4, 143
+ → One-hot / Embedding → vektörler
+</code></pre>
+<p><strong>Statik vs. bağlamsal:</strong></p>
+<pre><code>Statik  : Metin → Token → ID → sabit vektör (tablodan bakılır)                → &quot;bank&quot; hep aynı
+Bağlamsal: Metin → Token → ID → giriş vektörü → Transformer katmanları → last_hidden_state → &quot;bank&quot; cümleye göre farklı
+</code></pre>
+<p><strong>Hugging Face ile pratik akış (Uygulama 02):</strong></p>
+<pre><code>AutoTokenizer.from_pretrained → tokenizer(text, return_tensors=&quot;pt&quot;) → AutoModel.from_pretrained
+ → with torch.no_grad(): model(**inputs) → outputs.last_hidden_state[0][index]
+</code></pre>
+<hr>
+<h3>Kod / uygulama</h3>
+<h4>Ortam (her iki uygulama için)</h4>
+<pre><code class="language-bash">uv init --python 3.12          # projeyi başlat, Python sürümünü sabitle (varsayılan 3.14 gelebiliyor)
+uv add gensim numpy jupyter    # Uygulama 01 kütüphaneleri
+uv add transformers            # Uygulama 02
+nvidia-smi                     # ekran kartı + CUDA sürümünü gör (torch seçimi için)
+uv pip install torch ...       # pytorch.org'daki komut; &quot;pip3&quot; → &quot;pip&quot; yap, başına &quot;uv&quot; ekle
+</code></pre>
+<ul>
+<li><code>--python 3.12</code>: Bağımlılıkların (özellikle torch) yeni Python sürümlerinde sorun çıkarmaması için sürümü sabitliyor.</li>
+<li>VS Code'da notebook açıldıktan sonra <strong>Select Kernel → Python Environments → .venv</strong> seçiliyor.</li>
+</ul>
+<h4>Uygulama 01 — Word2Vec (<code>01-word2vec.ipynb</code>)</h4>
+<pre><code class="language-python">import gensim.downloader as api
+word2vec_model = api.load(&quot;word2vec-google-news-300&quot;)
+</code></pre>
+<ul>
+<li><code>gensim.downloader</code>: Hazır eğitilmiş modelleri indirip yükleyen modül; <code>api</code> kısa adıyla kullanılıyor.</li>
+<li><code>"word2vec-google-news-300"</code>: Google News üzerinde eğitilmiş, her kelimeyi 300 boyutlu vektörle temsil eden model (≈1.6 GB; ilk seferde indirme uzun sürer, sonra önbellekten gelir).</li>
+</ul>
+<pre><code class="language-python">vector = word2vec_model[&quot;king&quot;]
+print(type(vector))   # numpy.ndarray
+print(vector.shape)   # (300,)
+print(vector[:10])    # ilk 10 boyut
+</code></pre>
+<ul>
+<li>Model sözlük gibi indekslenir: kelime → vektör. Tip NumPy dizisi, boyut 300.</li>
+<li>İlk 10 değeri yazdırmak tek tek boyutların ondalıklı sayılar olduğunu görmek için.</li>
+</ul>
+<pre><code class="language-python">word2vec_model.most_similar(&quot;king&quot;, topn=10)
+</code></pre>
+<ul>
+<li>Vektör uzayında "king"e en yakın (kosinüs benzerliği en yüksek) 10 kelimeyi skorlarıyla döndürür — semantic search'ün en küçük hali.</li>
+</ul>
+<pre><code class="language-python">analogy_vector = word2vec_model[&quot;king&quot;] - word2vec_model[&quot;man&quot;] + word2vec_model[&quot;woman&quot;]
+result = word2vec_model.similar_by_vector(analogy_vector, topn=10)
+for word, score in result:
+    print(f&quot;{word}: {score:.4f}&quot;)
+</code></pre>
+<ul>
+<li>Vektörler üzerinde toplama/çıkarma: "king"den "erkeklik" yönünü çıkarıp "kadınlık" yönünü ekliyoruz.</li>
+<li><code>similar_by_vector</code>: Hazır bir kelime değil, hesaplanmış bir vektöre en yakın kelimeleri bulur. Beklenen: "queen" üst sıralarda.</li>
+<li>Not: Sonuç listesinde girdi kelimeleri (ör. "king") de çıkabilir; <code>most_similar(positive=["king","woman"], negative=["man"])</code> bunları otomatik dışarıda bırakır.</li>
+</ul>
+<pre><code class="language-python">analogy_vector2 = word2vec_model[&quot;Paris&quot;] + word2vec_model[&quot;Germany&quot;] - word2vec_model[&quot;France&quot;]
+</code></pre>
+<ul>
+<li>Başkent ilişkisi: Paris − France + Germany → beklenen "Berlin". Model büyük/küçük harfe duyarlı ("Paris", "Germany" büyük harfle).</li>
+</ul>
+<h4>Uygulama 02 — Context embedding (<code>02-context-embedding.ipynb</code>)</h4>
+<pre><code class="language-python">from transformers import AutoTokenizer
+model_name = &quot;bert-base-multilingual-cased&quot;
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+</code></pre>
+<ul>
+<li><code>AutoTokenizer</code>: Model adına göre o modelin doğru tokenizer'ını otomatik indirir.</li>
+<li><code>bert-base-multilingual-cased</code>: Türkçe dahil çok dilli, büyük/küçük harf duyarlı BERT; Türkçe cümleyi de işleyebilmek için seçildi.</li>
+</ul>
+<pre><code class="language-python">tokens = tokenizer.tokenize(&quot;Yapay zeka çok hızlı gelişiyor.&quot;)
+input_ids = tokenizer.convert_tokens_to_ids(tokens)
+</code></pre>
+<ul>
+<li><code>tokenize</code>: Metni alt kelime (subword) parçalarına böler; <code>##</code> ile başlayan parça önceki token'ın devamıdır.</li>
+<li><code>convert_tokens_to_ids</code>: Her token'ı sözlükteki sayısal ID'sine çevirir (model sayılardan anlar).</li>
+</ul>
+<pre><code class="language-python">import torch
+print(torch.__version__, torch.cuda.is_available(), torch.version.cuda)
+</code></pre>
+<ul>
+<li>PyTorch kurulumunu ve GPU (CUDA) erişimini doğrulamak için. <code>False</code> ise CPU'da (veya Mac'te MPS ile) çalışılır.</li>
+</ul>
+<pre><code class="language-python">from transformers import AutoModel
+model = AutoModel.from_pretrained(model_name)
+inputs = tokenizer(text, return_tensors=&quot;pt&quot;)
+</code></pre>
+<ul>
+<li><code>AutoModel</code>: Sınıflandırma başlığı olmayan "çıplak" BERT; çıktısı gizli durumlar (embedding'ler).</li>
+<li><code>tokenizer(...)</code> doğrudan çağrıldığında tokenize + ID + özel token'lar (<code>[CLS]</code>=101, <code>[SEP]</code>=102) + <code>attention_mask</code> hepsini birlikte üretir.</li>
+<li><code>return_tensors="pt"</code>: Çıktıyı PyTorch tensörü yapar (modelin beklediği tip).</li>
+</ul>
+<pre><code class="language-python">with torch.no_grad():
+    outputs = model(**inputs)
+token_embeddings = outputs.last_hidden_state
+print(token_embeddings.shape)   # [1, token_sayısı, 768]
+</code></pre>
+<ul>
+<li><code>torch.no_grad()</code>: Gradyan hesaplamayı kapatır; eğitim yapmıyoruz, sadece çıkarım (inference) → daha hızlı, daha az bellek.</li>
+<li><code>model(**inputs)</code>: <code>input_ids</code>, <code>attention_mask</code> vb. anahtarları argüman olarak açar.</li>
+<li><code>last_hidden_state</code>: Son katmandaki her token'ın bağlamsal vektörü.</li>
+</ul>
+<pre><code class="language-python">tokens = tokenizer.convert_ids_to_tokens(inputs[&quot;input_ids&quot;][0])
+for token, embedding in zip(tokens, token_embeddings[0]):
+    print(f&quot;{token:15} -&gt; {embedding.shape}&quot;)
+</code></pre>
+<ul>
+<li><code>[0]</code>: Batch'teki ilk (tek) cümle. Token'larla vektörleri yan yana eşleştirip her birinin 768 boyutlu olduğunu gösterir.</li>
+</ul>
+<pre><code class="language-python">bank_index = tokens.index(&quot;bank&quot;)
+bank_embedding = outputs.last_hidden_state[0][bank_index]
+</code></pre>
+<ul>
+<li>Her iki cümlede "bank" token'ının konumunu bulup yalnızca onun bağlamsal vektörünü alıyoruz.</li>
+<li>İki cümlenin <code>bank_embedding[:10]</code> değerleri farklı çıkıyor → bağlamsal embedding kanıtı.</li>
+<li>Not (kendi eklemem): Farkı sayıyla görmek için <code>torch.nn.functional.cosine_similarity(bank_embeddings[0], bank_embeddings[1], dim=0)</code> hesaplanabilir; 1'den belirgin şekilde küçük çıkması beklenir. Word2Vec'te aynı kelime için bu değer tam 1'dir.</li>
+</ul>
+<hr>
+<h3>Hocanın vurguları &amp; pratik kurallar</h3>
+<ul>
+<li><strong>Embedding'i bilmeden</strong> RAG ya da ajan uygulaması geliştirilemez; konular yapboz gibi birleşecek.</li>
+<li>Yapay zeka mühendisliğinde ağırlık <strong>RAG</strong> tarafında; görsel arama gibi işler daha çok computer vision alanı.</li>
+<li><strong>Hugging Face ile çalışma sırası</strong> sabit: metin → tokenlaştırma → vektör/embedding → model. Fine-tuning'de de aynı.</li>
+<li>Statik/bağlamsal embedding, tokenizer gibi teorik konular <strong>mülakatlarda soruluyor</strong>.</li>
+<li>Bu adımları her zaman elle yapmayacağız; framework'ler yapıyor. Amaç "kaputun altını" anlamak.</li>
+<li><strong>Her proje için ayrı ortam</strong> kurun; <code>uv init --python 3.12</code> ile sürümü sabitleyin.</li>
+<li>pytorch.org komutunda <code>pip3</code> → <code>pip</code>, başına <code>uv</code>. CUDA sürümünü <code>nvidia-smi</code> ile kontrol edip ona göre seçin.</li>
+<li>Yeni kütüphane yükledikten sonra <strong>kernel'i restart</strong> edin.</li>
+<li>GPU yoksa CPU ile devam edilebilir; Mac'te MPS.</li>
+<li>Corpus/model büyüklüğü: büyüdükçe kalite artar, hesaplama maliyeti de artar → <strong>trade-off</strong> bulun.</li>
+<li>Her konu başlı başına bir kitap/bootcamp konusu; derinleşmek için proje, kitap ve makale.</li>
+<li>Sonraki ders öncesi: <strong>Docker</strong> kurun; Windows'ta önce <strong>WSL</strong> (Ubuntu). Daha önce kurulmuş Docker kullanılabilir.</li>
+</ul>
+<hr>
+<h3>Sık hatalar / karşılaşılan sorunlar</h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Sorun</th>
+<th>Sebep</th>
+<th>Çözüm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VS Code'da kernel listesinde <code>.venv</code> yok</td>
+<td>Terminalde conda <code>base</code> aktif / VS Code ortamı görmemiş</td>
+<td><code>conda deactivate</code>, VS Code'u kapat-aç, Select Kernel'de Refresh; olmazsa Anaconda 3 ortamını seçip conda ile devam</td>
+</tr>
+<tr>
+<td><code>No module named 'gensim'</code></td>
+<td><code>uv add gensim</code> atlanmış ya da import hücresi çalıştırılmamış</td>
+<td>Kütüphaneyi ekle; ilk (import) hücreyi önce çalıştır</td>
+</tr>
+<tr>
+<td>WhatsApp'tan kopyalanan kod hata veriyor</td>
+<td>Satırlar tek satıra yapışmış</td>
+<td>Satırları Enter ile ayır</td>
+</tr>
+<tr>
+<td>Model/kütüphane indirmesi çok yavaş, uv takılıyor</td>
+<td>Ağ / uv tarafında anlık sorun</td>
+<td><code>pip install gensim</code> ile dene; başka zaman tekrar dene</td>
+</tr>
+<tr>
+<td><code>pip3</code> ile torch kurulumu hata</td>
+<td>pytorch.org komutu <code>pip3</code> veriyor</td>
+<td><code>pip3</code> → <code>pip</code>, başına <code>uv</code> (<code>uv pip install …</code>)</td>
+</tr>
+<tr>
+<td>Torch yüklü ama notebook görmüyor</td>
+<td>Kernel eski oturumda</td>
+<td>Kernel <strong>Restart</strong></td>
+</tr>
+<tr>
+<td><code>torch.cuda.is_available()</code> → <code>False</code> (Mac)</td>
+<td>Mac'te NVIDIA GPU yok</td>
+<td>MPS kullan ya da CPU ile devam</td>
+</tr>
+<tr>
+<td>Conda'da GPU'suz torch geliyor</td>
+<td>CUDA sürümü belirtilmemiş</td>
+<td>Conda komutunda CUDA sürümünü belirt</td>
+</tr>
+<tr>
+<td>Hugging Face uyarısı</td>
+<td>Hesap/token ile ilgili uyarı</td>
+<td>Önemli değil, devam</td>
+</tr>
+</tbody>
+</table></div>
+<hr>
+<h3>Kendini test et</h3>
+<ol>
+<li>Embedding nedir ve neden "modern yapay zekanın temeli" deniyor?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Verileri (metin, resim, ses) sayısal vektörlere çevirme, yani anlamı sayılara çevirme yöntemidir. Modeller ham metin veya görüntüden değil sayılardan anlar; benzer anlamlar uzayda yakın konumlanınca arama, RAG, öneri gibi her şey bu yakınlık üzerinden çalışır.</p>
+</details>
+<ol start="2">
+<li>Keyword search ile semantic search arasındaki fark nedir? "Kangal" örneğiyle açıklayın.</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Keyword search kelime eşleşmesidir: "kangal" yalnızca "kangal" geçen sonuçları getirir. Semantic search anlam eşleşmesidir: embedding yakınlığına göre köpek, kurt, Sivas gibi ilişkili sonuçları da getirir. RAG'de anlamca en yakın dokümanı bulmak için semantic search kullanılır.</p>
+</details>
+<ol start="3">
+<li>2010'lardan sonra computer vision hızla ilerlerken NLP neden geride kaldı?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Resimler sınırlı sayıda pikselden oluşur (MNIST 28×28 = 784 değer) ve kolayca vektöre çevrilir. Metinde her kelime/token bir öznitelik olduğundan sözlük boyutunda (ör. 30.000) devasa ve seyrek vektörler çıkıyordu ve anlam yakalanamıyordu. Word2Vec bu sorunu çözen ilk büyük gelişme oldu.</p>
+</details>
+<ol start="4">
+<li>30.000 kelimelik sözlükte Bag of Words ile 3 kelimelik bir cümlenin vektörü nasıl görünür? Bu yaklaşımın iki temel sorunu nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>30.000 uzunlukta, 3 tane 1 ve 29.997 tane 0 içeren bir vektör. Sorunlar: (1) çok büyük ve seyrek veri, (2) kelimeler arası anlam ilişkisi yakalanamaz (örneğin "dog" ile "puppy" arasında hiçbir benzerlik görünmez).</p>
+</details>
+<ol start="5">
+<li>Word2Vec'in temel varsayımı nedir? Hangi iki kazanımı sağladı?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Bir kelimenin anlamı çevresindeki kelimelerden öğrenilebilir; aynı bağlamda geçen kelimeler (çay–kahve–fincan–demlik) benzer anlamlıdır ve uzayda yakın konumlanır. Kazanımlar: vektör boyutunu küçültme (ör. 300) ve anlamı yakalama (vektör aritmetiği dahil).</p>
+</details>
+<ol start="6">
+<li><code>word2vec_model.most_similar("king")</code> ile <code>similar_by_vector(king - man + woman)</code> arasındaki fark nedir? İkincisinden ne beklenir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>most_similar</code> sözlükteki bir kelimeye en yakın kelimeleri bulur; <code>similar_by_vector</code> hesaplanmış herhangi bir vektöre en yakın kelimeleri bulur. <code>king − man + woman</code> vektörüne en yakın kelimelerin başında "queen" beklenir.</p>
+</details>
+<ol start="7">
+<li>"I deposited money in the bank." ve "I sat near the river bank." cümlelerinde Word2Vec ile BERT'in "bank" için verdiği vektörler nasıl karşılaştırılır?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Word2Vec statik olduğu için iki "bank" tamamen aynı vektörü alır. BERT bağlamsal embedding üretir; Transformer katmanları çevredeki kelimelere bakarak her "bank" için farklı bir vektör üretir (derste ilk 10 değerin farklı çıktığı gösterildi).</p>
+</details>
+<ol start="8">
+<li><code>outputs.last_hidden_state.shape</code> için <code>[1, N, 768]</code> çıktısındaki üç sayı neyi ifade eder?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>1: batch boyutu (tek cümle), N: <code>[CLS]</code> ve <code>[SEP]</code> dahil token sayısı, 768: BERT-base'in her token için ürettiği vektör boyutu (gizli katman boyutu).</p>
+</details>
+<ol start="9">
+<li><code>torch.no_grad()</code> neden kullanılıyor? <code>return_tensors="pt"</code> ne işe yarıyor?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>no_grad</code>, gradyan hesaplamasını kapatır: model eğitilmiyor, sadece çıkarım yapılıyor; böylece daha hızlı çalışır ve daha az bellek kullanır. <code>return_tensors="pt"</code> ise tokenizer çıktısını PyTorch tensörü olarak döndürür; model girdiyi bu tipte bekler.</p>
+</details>
+<ol start="10">
+<li>Word2Vec ile Doc2Vec arasındaki fark nedir? Doc2Vec'in iki kullanım alanını sayın.</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Word2Vec her kelimeyi vektöre çevirir ve kelimeler arası ilişkiyi öğrenir. Doc2Vec ise tüm dokümanı (cümle, paragraf, makale) tek vektöre çevirir ve dokümanlar arası ilişkiyi öğrenir. Kullanım alanları: öneri sistemleri, intihal tespiti, semantik arama, haber konusu sınıflandırma (ekonomi/spor/teknoloji).</p>
+</details>
+<hr>
+<h3>Hocaya sorulacaklar / belirsiz kalanlar</h3>
+<ul>
+<li><strong>GloVe ve FastText</strong> (≈01:10–01:22) transkriptte yok. GloVe'un eş-geçiş (co-occurrence) yaklaşımı ve FastText'in alt kelime (subword) yaklaşımı Word2Vec'ten nasıl ayrılıyor? Videodan izlenmeli.</li>
+<li><strong>Analoji demosu</strong> (<code>king − man + woman</code>, <code>Paris − France + Germany</code>) (≈01:58–02:17) transkriptte yok. Derste gerçekten "queen" ve "Berlin" ilk sırada mı çıktı?</li>
+<li>"Corpus büyüdükçe vektör boyutları uzuyor" ifadesi: Embedding boyutu (300) hiperparametre değil mi? Büyüyen şey sözlük (vocabulary) mu?</li>
+<li>Hoca <code>inputs</code> çıktısındaki sıfırları padding olarak yorumladı. Tek cümlede bunlar <code>token_type_ids</code> olmalı; padding yalnızca batch + <code>padding=True</code> ile oluşur. Teyit edilmeli.</li>
+<li>Bağlamsal hatta ilk adımın "Word2Vec ile" yapıldığı söylendi. BERT'in kendi öğrenilmiş giriş embedding tablosu kullandığı netleştirilmeli.</li>
+<li>Ders adında geçen <strong>sentence-transformers</strong> bu derste işlenmedi; cümle embedding'i yalnızca Doc2Vec ile teorik olarak anlatıldı. Sentence-transformers sonraki derste mi gelecek?</li>
+<li>Doc2Vec için kod/uygulama yapılmadı (süre yetmedi). <code>gensim.models.Doc2Vec</code> ile örnek yapılacak mı?</li>
+<li><code>"Yapay zeka çok hızlı gelişiyor."</code> cümlesinin token sayısı ve ID'leri transkriptte net okunamadı [belirsiz].</li>
+</ul>

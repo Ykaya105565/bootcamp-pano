@@ -1,0 +1,263 @@
+<h2>14 · Day11 – Açık Kaynaklı Modeller</h2>
+<p><strong>Bu derste ne var:</strong> Açık kaynaklı (open-weight) LLM'lerin ne olduğu, lisansları, kapalı modellere göre artı/eksileri ve hangisinin ne zaman seçileceği. Model boyutu–VRAM ilişkisi, kuantizasyon (Q4, Q4_K_M), Dense vs. MoE mimarisi. Uygulamada Ollama ile model indirme/çalıştırma, sohbet içi komutlar, Modelfile ile model türetme ve Claude Code'u lokal modelle başlatma.</p>
+<hr>
+<h3>Ana kavramlar</h3>
+<ul>
+<li><strong>Parametre / ağırlık (weight) / katsayı</strong> — Sinir ağında nöronlar arasındaki bağlantıların sayısal değeri (ondalıklı sayı). "27B model" = 27 milyar parametre. <em>Neden önemli:</em> Modelin hem kalitesini hem bellek ihtiyacını belirler.</li>
+<li><strong>Açık kaynaklı / açık ağırlıklı model (open-weight LLM)</strong> — Ağırlıkları herkese açık yayınlanan model; indirip lokalde çalıştırabilir, üzerine uygulama (AI app, RAG, AI agent) kurabilirsiniz. Mimari açıklanır, ağırlıklar yayınlanır; <strong>eğitim kodu ve eğitim verisi genelde açıklanmaz</strong>. <em>Neden önemli:</em> Maliyet ve veri gizliliği.</li>
+<li><strong>Kapalı kaynaklı model</strong> — Ağırlıklar sağlayıcıda kalır (Claude, OpenAI, Gemini); sadece API veya arayüz üzerinden kullanılır.</li>
+<li><strong>Lisans</strong> — Açık ağırlık ≠ "istediğimi yaparım". MIT (ör. DeepSeek-R1) ve Apache 2.0 (ör. Qwen3) ticari kullanıma esnek; <strong>Llama 4 Community License</strong> 700 milyon kullanıcı üzerinde ayrı lisans ister. <em>Neden önemli:</em> Ticari üründe hukuki risk.</li>
+<li><strong>Harness</strong> — Modelin etrafındaki ekosistem (araçlar, terminal erişimi, arayüz). Araba benzetmesi: motor = model, gerisi harness. Claude Code, Hermes Agent, Codex, OpenClaw birer harness. <em>Neden önemli:</em> Aynı açık modeli farklı harness'lere bağlayıp ajan olarak kullanabilirsiniz.</li>
+<li><strong>VRAM</strong> — Ekran kartı belleği; model ağırlıkları buraya yüklenir. Mac'lerde <strong>bütünleşik (unified) bellek</strong> hem CPU hem GPU tarafından kullanılır.</li>
+<li><strong>CUDA OOM (Out Of Memory)</strong> — VRAM'i ağzına kadar doldurunca alınan hata.</li>
+<li><strong>Kuantizasyon (quantization)</strong> — Ağırlıkların sayısal hassasiyetini düşürerek (FP32 → 4-bit) modeli küçültmek. Az kalite kaybı, büyük bellek kazancı, üstelik daha hızlı.</li>
+<li><strong>K-Quant (akıllı kuantizasyon)</strong> — Hassas parametreleri yüksek, diğerlerini düşük bit ile temsil eder. <code>Q4_K_M</code> = 4-bit, K-quant, Medium şiddet.</li>
+<li><strong>Dense model</strong> — Her soruda tüm katmanlar/ağırlıklar aktif.</li>
+<li><strong>Mixture of Experts (MoE, sparse)</strong> — Router/gating soruyu yalnızca ilgili birkaç "uzmana" (expert) yönlendirir; diğerleri yüklü ama pasif. Daha az hesaplama.</li>
+<li><strong>Efektif parametre (E2B, E4B)</strong> — Gemma 4'te modelin toplam parametresi daha fazla ama çalışırken yalnızca 2B/4B'si aktif; telefon, robot gibi <strong>edge</strong> cihazlar için.</li>
+<li><strong>Thinking (düşünen) model</strong> — Cevaptan önce akıl yürütme adımı üreten model; Ollama'da açılıp kapatılabilir ya da gizlenebilir.</li>
+<li><strong>LoRA</strong> — Fine-tuning'de yeni parametre eklemeden mevcut parametrelerin bir kısmını güncelleyen teknik; adaptör ~30–40 MB, sonra ana modelle birleştirilir.</li>
+<li><strong>Modelfile</strong> — Ollama'da mevcut bir modelden (FROM) sistem mesajı ve parametrelerle yeni model türetmeye yarayan uzantısız dosya.</li>
+<li><strong>Guardrails</strong> — Modelin zararlı isteklere (silah, kendine zarar) cevap vermemesini sağlayan güvenlik bariyerleri.</li>
+</ul>
+<h3>Akış / mimari</h3>
+<p><strong>Basit sinir ağı:</strong></p>
+<pre><code>Input → Girdi katmanı → Gizli katman(lar) → Çıktı katmanı → Output
+                 (aradaki her bağlantı = 1 parametre)
+</code></pre>
+<p><strong>Hangi LLM?</strong></p>
+<pre><code>Veri gizliliği önemli      → Açık kaynaklı
+Yüksek hacim + ücret önemli → Açık kaynaklı
+Fine-tuning                → Açık kaynaklı
+Bilgisayar güçsüz          → Küçük açık model  VEYA  Kapalı model (API)
+</code></pre>
+<p><strong>Açık modellerle çalışma araçları:</strong></p>
+<pre><code>Ollama        → modelleri lokale indir + çalıştır
+Hugging Face  → uçtan uca ML: Transformers · Datasets · Diffusers · Gradio
+</code></pre>
+<p><strong>Ollama iş akışı:</strong></p>
+<pre><code>ollama pull &lt;model&gt; → ollama run &lt;model&gt; → (sohbet: /set, /show, /bye)
+   → ollama ps (çalışanlar) → ollama stop &lt;model&gt;
+Modelfile → ollama create &lt;yeni_ad&gt; -f Modelfile → ollama run &lt;yeni_ad&gt;
+ollama (menü) → Launch Claude Code → lokal model seç
+</code></pre>
+<p><strong>Dense vs MoE:</strong></p>
+<pre><code>Dense:  soru → katman1 → katman2 → … → katman8 (8/8 aktif)
+MoE:    soru → router/gating (skor + top-k) → uzman1 + uzman5 (2/8 aktif) → sonuçlar birleştirilir
+</code></pre>
+<h3>Kod / uygulama</h3>
+<blockquote>
+<p>Bu dersin kaynak kod dosyası yok; komutlar ders anlatımından derlendi.</p>
+</blockquote>
+<h4>1) Model indirme, listeleme, çalıştırma</h4>
+<pre><code class="language-bash">ollama list
+ollama pull qwen3.5:9b
+ollama run qwen3.5:9b
+</code></pre>
+<ul>
+<li><code>list</code> → Bilgisayardaki modelleri gösterir; ilk kurulumda boş gelir.</li>
+<li><code>pull</code> → Modeli katman katman indirir; daha önce inen katmanlar tekrar inmez. <code>:9b</code> etiketi boyutu seçer, etiket yoksa <code>latest</code> iner.</li>
+<li><code>run</code> → Modeli belleğe (GPU'ya) yükler ve sohbet açar; model yoksa önce indirir.</li>
+</ul>
+<h4>2) Düşünme modunu yönetme</h4>
+<pre><code class="language-bash">ollama run gemma4:12b --think=false     # düşünmeden cevap
+ollama run gemma4:12b --think           # düşünerek cevap
+ollama run gemma4:12b --hidethinking    # düşünür ama düşünmeyi göstermez
+</code></pre>
+<ul>
+<li><code>--think=false</code> → Hızlı, basit sorular için.</li>
+<li><code>--hidethinking</code> → Chatbot'larda kullanıcıya düşünme sürecini göstermemek için.</li>
+</ul>
+<h4>3) Sohbet içi komutlar</h4>
+<pre><code class="language-text">/set nothink | /set think        # düşünmeyi kapat/aç (sohbetten çıkmadan)
+&quot;&quot;&quot;çok satırlı
+mesaj&quot;&quot;&quot;                          # birden fazla satırlı girdi
+/show info                        # mimari, parametre, kuantizasyon
+/show license                     # lisans — kullanmadan önce bak!
+/set verbose                      # token sayısı, süreler, tok/s istatistikleri
+/set system &quot;…&quot;                   # sistem mesajı
+/show system                      # mevcut sistem mesajını gör
+/set parameter                    # ayarlanabilir parametreleri listele
+/set parameter num_ctx 10000      # bağlam penceresini 10 000 token yap
+/bye   (veya Ctrl+D)              # çık; Ctrl+C takılan üretimi keser
+</code></pre>
+<ul>
+<li><code>seed</code> → rastgeleliği sabitler (tekrarlanabilir sonuç). <code>temperature</code>, <code>top_k</code>, <code>top_p</code> → yaratıcılık/örnekleme. <code>num_ctx</code> → modelin aynı anda görebileceği token sayısı.</li>
+</ul>
+<h4>4) Modelfile ile model türetme</h4>
+<pre><code class="language-text">FROM gemma4:12b
+SYSTEM &quot;Sen bir Python uzmanısın. Türkçe cevap ver.&quot;
+PARAMETER temperature 0.?        # değer transkriptte anlaşılmıyor
+</code></pre>
+<pre><code class="language-bash">ollama create gemma4-12b-turkce -f Modelfile
+ollama run gemma4-12b-turkce
+</code></pre>
+<ul>
+<li>Dosya adı <code>Modelfile</code>, <strong>uzantısız</strong>.</li>
+<li><code>FROM</code> → Temel model. Katmanlar paylaşıldığı için yeni model saniyeler içinde oluşur; <code>ollama list</code> 8 GB gösterse de ek disk kullanımı küçüktür.</li>
+<li><code>SYSTEM</code> → Modele kalıcı rol verir; her <code>run</code>'da tekrar <code>/set system</code> yazmanız gerekmez.</li>
+<li><code>PARAMETER</code> → Varsayılan parametreleri sabitler.</li>
+</ul>
+<h4>5) Çalışanları izleme ve durdurma</h4>
+<pre><code class="language-bash">ollama ps                        # çalışan modeller, boyut, %GPU, context, süre
+ollama stop gemma4-12b-turkce    # modeli bellekten indir
+ollama serve                     # sunucuyu başlat (harness'ler için)
+ollama --help                    # tüm komutlar
+</code></pre>
+<ul>
+<li>Ollama sunucusu <code>http://localhost:11434</code> adresinde çalışır ("Ollama is running"). n8n, Hermes vb. bu adresle bağlanır.</li>
+<li><code>stop</code> yapılmazsa model VRAM'de kalmaya devam eder.</li>
+</ul>
+<h4>6) Claude Code'u lokal modelle başlatma</h4>
+<pre><code class="language-bash">claude --version     # Claude Code kurulu mu?
+ollama               # menü → &quot;Launch Claude Code&quot; → listeden lokal model (ör. gemma4:12b)
+</code></pre>
+<h3>Hocanın vurguları &amp; pratik kurallar</h3>
+<ul>
+<li><strong>Önce lisans, sonra kullanım.</strong> MIT/Apache 2.0 rahat; Llama 4 Community License'ta 700M kullanıcı sınırı var.</li>
+<li><strong>Bellek hesabı:</strong> <code>boyut ≈ parametre sayısı × parametre başına bayt</code></li>
+<li>FP32 = 4 B, FP16 = 2 B, INT8 = 1 B, 4-bit = 0,5 B → 10B model: 40 / 20 / 10 / 5 GB.</li>
+<li>Kaba kural (4-bit): <strong>gereken VRAM ≈ B sayısının yarısı + pay</strong>. 9B → ~6–7 GB, 27B → ~18 GB+.</li>
+<li><strong>VRAM'i doldurma:</strong> Ağırlıklara VRAM'in ~%65–80'ini ayır. 16 GB kart → ~13–15 GB'lık model değil, güvenli aralık 10–12 GB.</li>
+</ul>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>VRAM</th>
+<th>Model boyutu</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>8 GB</td>
+<td>~5–6 GB</td>
+</tr>
+<tr>
+<td>12 GB</td>
+<td>7–9 GB</td>
+</tr>
+<tr>
+<td>16 GB</td>
+<td>10–12 GB</td>
+</tr>
+<tr>
+<td>24 GB</td>
+<td>16–20 GB</td>
+</tr>
+<tr>
+<td>32 GB</td>
+<td>22–26 GB</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>Kart referansı (tahta):</strong> RTX 5090 = 32 GB, RTX 4090 = 24 GB, RTX 5080 = 16 GB, daha küçükler = 8 GB VRAM.</li>
+<li><strong>Rahat çalışmak için hedef:</strong> En az Qwen 27B'yi çalıştırabilen bir makine (≈24 GB VRAM sınıfı).</li>
+<li><strong>Kuantizasyon tercihi:</strong> Genelde 4-bit; şiddet olarak <strong>Medium (Q4_K_M)</strong> en dengelisi.</li>
+<li><strong>Küçük açık modeller akıl yürütme sorularında sık yanılır</strong> (oto yıkama sorusu). Kritik işler için büyük model veya kapalı model düşün.</li>
+<li><strong>Production'da düşünme turuna sınır koy</strong> (ör. 3–5); küçük modeller düşünürken takılabiliyor.</li>
+<li><strong>Mac kullanıcıları:</strong> Varsa <strong>MLX</strong> sürümünü indir.</li>
+<li><strong>Terminale erişen ajanlar:</strong> İzinleri dikkatli aç; mümkünse VPS'te veya kişisel veri olmayan ayrı bir makinede çalıştır.</li>
+<li><strong>Fiyat/performans:</strong> Ollama Cloud'daki büyük açık modeller (ücretsiz katman + ~20 $ plan) kapalı modellere ucuz bir alternatif olarak değerlendirilebilir.</li>
+<li><strong>Yapay zekâ ile emek:</strong> Her şeyi modele yaptırma; yazdığını modele değerlendirt, asistan gibi kullan.</li>
+</ul>
+<h3>Sık hatalar / karşılaşılan sorunlar</h3>
+<ul>
+<li><strong>Model düşünürken takılıyor / çok uzun yazıyor</strong> → Ctrl+C ile kes, <code>/bye</code> ile çık, tekrar <code>ollama run</code>. Gerekirse <code>--think=false</code>.</li>
+<li><strong>Bir öğrencide "merhaba"ya düşünme kısmı görünmedi</strong> → Tekrar denenince düşünme çıktısı geldi; geçici davranış.</li>
+<li><strong><code>ollama stop</code> modeli bulamadı</strong> → Model adı yanlış yazılmıştı; <code>ollama ps</code>'teki tam adı kullan.</li>
+<li><strong>Model kapatılmadığı için VRAM dolu kalıyor</strong> → <code>ollama ps</code> ile kontrol et, <code>ollama stop</code> ile kapat.</li>
+<li><strong><code>ollama</code> menüsü hemen gelmiyor</strong> → İlk açılışta karşılama ekranı çıkıyor; Enter'a bas.</li>
+<li><strong>Claude Code başlatılırken "Waiting for sign-in to complete"</strong> → Listeden bulut model yerine en alttaki lokal modeli seç.</li>
+<li><strong>"auto-update failed" uyarısı</strong> → Claude Code'u/npm'i güncellemek gerekebilir.</li>
+<li><strong>16 GB kartta 27B model çok yavaş</strong> → Model VRAM'e sığmayıp sistem RAM'ine taşıyor; daha küçük model veya daha agresif kuantizasyon seç.</li>
+<li><strong>Tahtadaki yazım hatası:</strong> "Float32 → 8 Byte, Float16 → 4 Byte" yazıyor; doğrusu <strong>FP32 = 4 bayt, FP16 = 2 bayt</strong> (hesaplar doğru değerlerle yapıldı).</li>
+</ul>
+<h3>Kendini test et</h3>
+<ol>
+<li>"Açık kaynaklı model" denince tam olarak ne açıktır, ne genelde açık değildir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Mimari açıklanır ve model ağırlıkları yayınlanır. Eğitim kodu ve eğitim verisi genelde açıklanmaz. Modeli çalıştırmak için ağırlıklar yeterlidir.</p>
+</details>
+<ol start="2">
+<li>Llama 4 Community License'ı MIT/Apache 2.0'dan ayıran nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Ticari kullanıma izin verir ama uygulama 700 milyon kullanıcıyı aşınca Meta'dan ayrı bir lisans alınması gerekir. MIT ve Apache 2.0'da böyle bir eşik yoktur.</p>
+</details>
+<ol start="3">
+<li>10 milyar parametreli bir model FP16 ve 4-bit'te kaç GB tutar?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>FP16: 10 × 2 B = 20 GB. 4-bit: 10 × 0,5 B = 5 GB.</p>
+</details>
+<ol start="4">
+<li>16 GB VRAM'li bir kartta neden 16 GB'lık bir model çalıştırılmamalı? Hangi aralık güvenli?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>VRAM'e yalnızca ağırlıklar değil, ayar dosyaları, çalışma belleği, CUDA/Ollama ve diğer programlar da yüklenir; VRAM dolarsa CUDA OOM hatası alınır. Güvenli model boyutu yaklaşık 10–12 GB.</p>
+</details>
+<ol start="5">
+<li><code>Q4_K_M</code> etiketindeki Q4, K ve M ne anlama gelir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Q4: 4-bit kuantizasyon. K: akıllı kuantizasyon (K-Quant), yani hassas parametreler daha yüksek bitle tutulur. M: Medium sıkıştırma şiddeti, yani hassas katmanlar Q6_K, diğerleri Q4_K.</p>
+</details>
+<ol start="6">
+<li>Dense ve MoE modeller arasındaki fark nedir? MoE'de router nasıl karar verir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Dense'te her soruda tüm katmanlar aktiftir. MoE'de router/gating her uzmana bir uygunluk skoru verir (softmax), en iyi top-k uzmanı seçer; yalnızca onlar hesaplama yapar, sonuçlar birleştirilir. Load balancing uzmanların dengeli eğitilmesini sağlar.</p>
+</details>
+<ol start="7">
+<li>Gemma 4 E4B'deki "E" ne demek, bu modeller nerede kullanılır?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Efektif parametre: model toplamda daha büyüktür ama çalışırken yalnızca ~4 milyar parametre aktiftir. Telefon, robot gibi edge cihazlarda kullanılır.</p>
+</details>
+<ol start="8">
+<li>Chatbot'ta modelin düşünmesini istiyor ama kullanıcıya göstermek istemiyorsunuz. Hangi seçeneği kullanırsınız?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>ollama run &lt;model&gt; --hidethinking</code></p>
+</details>
+<ol start="9">
+<li>Modelfile ile türetilen model neden saniyeler içinde oluşur ve neden 8 GB görünse de diskte o kadar yer kaplamaz?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Temel modelin mevcut katmanlarını yeniden kullanır; yalnızca sistem mesajı/parametre gibi birkaç küçük yeni katman ekler. Ağırlık katmanları ana modelle paylaşılır.</p>
+</details>
+<ol start="10">
+<li>Kapalı modellerin dört dezavantajını ve açık modellerin üç dezavantajını sayın.</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Kapalı: ücretli, kullanım limitleri, veriler sağlayıcıya gider, internet gerekir. Açık: kapalı modellerden bir tık geride, kurulum gerekir, güçlü bilgisayar gerekir.</p>
+</details>
+<ol start="11">
+<li>LoRA ile fine-tuning'de modele yeni parametre eklenir mi?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Hayır. Mevcut parametrelerin bir kısmı güncellenir; bu güncelleme (~30–40 MB) ayrı saklanıp ana modelle birleştirilir.</p>
+</details>
+<h3>Hocaya sorulacaklar / belirsiz kalanlar</h3>
+<ul>
+<li><strong>≈00:29–00:50 arası transkriptte yok</strong>: Ollama kurulum adımları, RTX/VRAM tablosu ve "Mac'lerde bütünleşik RAM" anlatımı videodan izlenmeli.</li>
+<li>Modelfile'daki <strong>temperature değeri</strong> anlaşılamadı ("sıfır nokta …").</li>
+<li>Ollama Cloud'da gösterilen ~753B'lik DeepSeek modelinin tam adı ve Hugging Face'te gösterilen DeepSeek modelinin parametre sayısı belirsiz.</li>
+<li>Claude Code'u Gemma 4 ile başlatırken bahsedilen context değeri ("iki yüz bin token"?) belirsiz.</li>
+<li>Hocanın "Hugging Face geçen ay Nvidia'ya satıldı" ifadesi doğrulanmalı.</li>
+<li>MoE router'ının nasıl eğitildiği/karar verdiği derste açık kaldı (hoca araştırılabileceğini söyledi).</li>
+<li>Hugging Face uygulaması (Transformers, Datasets, Gradio) bu derste yapılamadı; sonraki derste işlenecek mi?</li>
+</ul>

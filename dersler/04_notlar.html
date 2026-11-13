@@ -1,0 +1,256 @@
+<h2>04 · Day01 – LLM'lere Giriş</h2>
+<p><strong>Bu derste ne var:</strong> Bootcamp'in 6 haftalık yol haritası (LLM → embedding/vektör DB → RAG → agent → MCP/lokal LLM → deployment) ve neden hazır AI araçları yerine Python ile kendi araçlarımızı yazacağımız anlatıldı. Ardından yapay zekânın kısa tarihçesi; AI ⊃ ML ⊃ DL ⊃ GenAI ⊃ LLM şeması; perceptron, XOR problemi ve yapay sinir ağları; derin öğrenmenin yükselişi; token, one-hot ve embedding; Transformer (BERT ve GPT) işlendi. Ders, VS Code + uv ile çalışma ortamı kurulumuyla bitti.</p>
+<hr>
+<h3>Ana kavramlar</h3>
+<ul>
+<li><strong>Yapay zekâ (AI):</strong> İnsan zekâsı gerektiren görevlerin makineler tarafından yapılması. <em>Neden önemli:</em> Diğer tüm alanları kapsayan üst şemsiye.</li>
+<li><strong>Makine öğrenmesi (ML):</strong> Makinelerin verilerden otomatik öğrenmesi. Klasik programlamada <em>girdi + kural → çıktı</em>, ML'de ise <em>girdi + çıktı → kural (model öğrenir)</em>. Algoritmaları: regresyon, lojistik regresyon, SVM, yapay sinir ağları. <em>Neden önemli:</em> Küçük ve orta ölçekli verilerde LLM'den ucuz ve güvenilir; LLM'ler yüzünden terk edilmedi.</li>
+<li><strong>Derin öğrenme (DL):</strong> Birden fazla gizli katmanlı sinir ağları; büyük veriler için. <em>Neden önemli:</em> LLM'lerin arkasındaki mimari.</li>
+<li><strong>Üretken yapay zekâ (Generative AI):</strong> Öğrendiği veriden yeni içerik (metin, resim, kod, müzik, video) üretir. <em>Neden önemli:</em> Analizden üretime geçiş.</li>
+<li><strong>LLM (Large Language Model):</strong> Devasa veri ve güçlü donanımla eğitilen, Transformer tabanlı model; artık multimodal. <em>Neden önemli:</em> "GenAI projelerinin beyni."</li>
+<li><strong>AI mühendisi:</strong> Sıfırdan model eğitmez; hazır modelleri (OpenAI, Claude, Qwen…) kullanarak uygulama ve sistem geliştirir. Model eğitimi veri bilimcilerin ve ML mühendislerinin işi.</li>
+<li><strong>Perceptron:</strong> Tek yapay nöron. <code>z = Σ wᵢxᵢ + b</code>, ardından <code>y = f(z)</code>. <em>Neden önemli:</em> Sinir ağlarının yapı taşı.</li>
+<li><strong>Ağırlık (weight) = parametre = katsayı:</strong> Girdinin önemini belirler. "X milyar parametreli model" ifadesindeki parametreler bunlar.</li>
+<li><strong>Bias (b):</strong> Toplama eklenen sabit terim.</li>
+<li><strong>Aktivasyon fonksiyonu:</strong> Eşiğe göre nöronu aktif (1) ya da pasif (0) yapar; AlexNet ile ReLU yaygınlaştı.</li>
+<li><strong>Doğrusal ayrılabilirlik / XOR:</strong> AND ve OR tek bir doğruyla ayrılır, XOR ayrılamaz. Tek perceptron yetmez, çok katmanlı ağ gerekir. <em>Neden önemli:</em> Yapay sinir ağlarının doğuş gerekçesi.</li>
+<li><strong>Gizli katman / kara kutu:</strong> Girdi ile çıktı arasındaki katmanlar. İçeride ne olduğu tam açıklanamıyor ("black box"), bu yüzden tıp ve finansta temkinli kullanılıyor.</li>
+<li><strong>Forward / backward propagation, loss, optimizer, epoch:</strong> İleri geçişte tahmin üretilir, loss ile gerçek değerle karşılaştırılır, optimizer geri yayılımla ağırlıkları günceller. Döngü loss düzleşene kadar epoch'lar boyunca tekrar eder.</li>
+<li><strong>CNN → AlexNet → GAN → Diffusion:</strong> Görüntü işlemede gelişim çizgisi. GAN (Generator ve Discriminator yarışır) generative AI'ın önünü açtı. Diffusion modelleri adım adım gürültü temizler (DALL·E, Midjourney, Stable Diffusion).</li>
+<li><strong>Öznitelik (feature):</strong> Veri setindeki sütun. Görüntüde her piksel, NLP'de her token bir özniteliktir.</li>
+<li><strong>Token:</strong> Metnin en küçük parçası (kelime, harf, noktalama, sayı). Kaba oran: 1000 token ≈ 750 kelime.</li>
+<li><strong>One-hot encoding:</strong> Sözlük boyutunda, tek 1 ve geri kalanı 0 olan vektör. <em>Sorun:</em> devasa ve seyrek veri.</li>
+<li><strong>Embedding:</strong> Token'ın düşük boyutlu, yoğun sayısal vektörü. Her boyut bir özelliği temsil eder (cinsiyet, tekil-çoğul…). Anlamca yakın kelimeler uzayda yakın durur ve vektör aritmetiği mümkün olur (<code>king − man + woman ≈ queen</code>). <em>Neden önemli:</em> "Modern AI'ın temeli"; 2. haftanın ve RAG'in konusu.</li>
+<li><strong>Transformer:</strong> 2017, Google; çeviri için geliştirilmiş, diziden dizi (seq2seq) üreten mimari. Encoder girdiyi sayısal temsile çevirir, decoder kelime kelime otoregresif üretir.</li>
+<li><strong>BERT ve GPT:</strong> BERT yalnızca encoder kullanır (Google, 2018; sınıflandırma ve anlam çıkarma). GPT yalnızca decoder kullanır (OpenAI; metin üretme).</li>
+<li><strong>Context engineering:</strong> Modele verilen her şey (sistem promptu, tool çıktıları, bilgiler) context'i oluşturur. <em>Neden önemli:</em> Projeler çoğunlukla kötü context yüzünden başarısız olur.</li>
+<li><strong>Agentic AI:</strong> Düşünen, karar veren, araç kullanan, çevresiyle etkileşen ve verilen görevi tamamlayan sistemler. Chatbot'tan farkı <strong>eyleme geçebilmesi.</strong></li>
+<li><strong>uv:</strong> Rust ile yazılmış, pip'ten hızlı Python paket ve proje yöneticisi; Python sürümlerini de yönetir.</li>
+</ul>
+<hr>
+<h3>Akış / mimari</h3>
+<p><strong>Bootcamp yol haritası (piramit, alttan üste):</strong></p>
+<pre><code>LLMs + Context Eng. → Embedding + Vektör DB → RAG → AI Agent → MCP + Lokal LLM → Deploy
+                                                                  (bitirme: Agentic RAG)
+</code></pre>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Hafta</th>
+<th>1. gün</th>
+<th>2. gün</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>LLM'ler</td>
+<td>Prompt &amp; Context Engineering</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Embedding</td>
+<td>Vektör veritabanları</td>
+</tr>
+<tr>
+<td>3</td>
+<td>RAG</td>
+<td>RAG teknikleri (naive → modern)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>AI Agent'lar (tool, bellek)</td>
+<td>Agent mimarileri</td>
+</tr>
+<tr>
+<td>5</td>
+<td>MCP (kendi MCP'mizi yazacağız)</td>
+<td>Lokal LLM + fine-tuning (Hugging Face, LoRA/QLoRA)</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Deployment: canlıya alma + değerlendirme + gözlemleme + güvenlik</td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Alanların ilişkisi:</strong></p>
+<pre><code>Yapay Zekâ ⊃ Makine Öğrenmesi ⊃ Derin Öğrenme ⊃ GenAI ⊃ LLMs
+</code></pre>
+<p><strong>Perceptron:</strong></p>
+<pre><code>x1·w1 + x2·w2 + b → z → f(z) → y   (z &gt; eşik → 1 &quot;geçti&quot;, değilse 0 &quot;kaldı&quot;)
+</code></pre>
+<p><strong>Sinir ağı:</strong></p>
+<pre><code>Girdi katmanı → Gizli katman(lar) → Çıktı katmanı
+(1 gizli katman = yapay sinir ağı; &gt;1 gizli katman = derin sinir ağı)
+</code></pre>
+<p><strong>Eğitim döngüsü:</strong></p>
+<pre><code>Forward → tahmin y' → Loss(y', y) → Optimizer → Backward (ağırlık güncelle) → tekrar (epoch) → loss düzleşince dur
+</code></pre>
+<p><strong>Metinden sayıya:</strong></p>
+<pre><code>Metin → Token'lar → One-hot (seyrek, çok boyutlu) → Embedding (yoğun, düşük boyutlu, anlamsal)
+</code></pre>
+<p><strong>Transformer ailesi:</strong></p>
+<pre><code>Transformer (Encoder + Decoder, 2017)
+ ├─ yalnızca Encoder → BERT (sınıflandırma / anlam)
+ └─ yalnızca Decoder → GPT  (metin üretme) → ChatGPT (2022) → Agentic AI (2026)
+</code></pre>
+<p><strong>Tarihsel çizgi:</strong></p>
+<pre><code>Perceptron → Yapay sinir ağları → CNN → AlexNet (2012) → GAN (2014) → Transformer (2017) → GPT-3 (2020) → ChatGPT (2022) → GPT-4 (2023) → Multimodal &amp; Agentic (2025–26)
+</code></pre>
+<hr>
+<h3>Kod / uygulama</h3>
+<p>Bu derse ait kaynak kod dosyası yok (kaynak dosyada yalnızca çizim var). Uygulama kısmı çalışma ortamı kurulumundan ibaret.</p>
+<pre><code class="language-bash"># 1) uv kurulumu (komutu resmi siteden işletim sistemine göre kopyala)
+#    Not: komutlar transkriptte okunmuyor; astral.sh resmi dokümantasyonundan
+curl -LsSf https://astral.sh/uv/install.sh | sh                                        # macOS / Linux
+powershell -ExecutionPolicy ByPass -c &quot;irm https://astral.sh/uv/install.ps1 | iex&quot;     # Windows
+</code></pre>
+<ul>
+<li>Tek seferlik kurulum; uv sisteme eklenir. pip yerine uv kullanılmasının nedeni hız ve Python sürüm yönetimi.</li>
+</ul>
+<pre><code class="language-bash"># 2) Proje klasöründe (ör. day01) VS Code terminalinde
+uv init
+</code></pre>
+<ul>
+<li>Klasörü bir Python projesine çevirir: <code>.gitignore</code>, <code>README.md</code>, <code>pyproject.toml</code> oluşturur.</li>
+<li><code>pyproject.toml</code>: Python sürümü ve bağımlılık sürümlerini tutar. Projenin başka makinede birebir kurulabilmesini sağlayan dosya bu, o yüzden repoya gönderilir.</li>
+</ul>
+<pre><code class="language-bash"># 3) Kütüphane ekleme
+uv add openai
+</code></pre>
+<ul>
+<li>Paketi ve bağımlılıklarını yükler, <code>pyproject.toml</code>'a yazar. OpenAI kütüphanesi ilerideki derslerde LLM'e bağlanmak için kullanılacak.</li>
+</ul>
+<pre><code class="language-bash"># 4) Başkasının projesini aynı sürümlerle kurma (hoca: &quot;yanlış hatırlamıyorsam&quot;)
+uv sync
+</code></pre>
+<ul>
+<li><code>pyproject.toml</code> ve lock dosyasındaki sürümleri ortama yükler.</li>
+</ul>
+<p><strong>Ortam ipuçları:</strong>
+- VS Code kurarken <strong>"Add to PATH"</strong> seçeneğini işaretleyin; klasöre sağ tık → "Code ile aç" çalışsın.
+- Her proje için ayrı environment kurun.
+- Python <strong>3.12</strong> (veya 3.11) kullanın; diğer sürümlerde kütüphane çakışması çıkabiliyor.</p>
+<hr>
+<h3>Hocanın vurguları &amp; pratik kurallar</h3>
+<ul>
+<li><strong>"Proje başarısızlıkları modelden değil, kötü context'ten kaynaklanır."</strong> Garbage in, garbage out. Doğru zamanda doğru bilgi verin.</li>
+<li><strong>Hazır AI araçları (Claude, Codex, Cursor) kullanılmayacak:</strong> esnek değiller, pahalılar ve fiyatları belirsiz, çok token harcıyorlar, veri mahremiyeti yok. Kendi araçlarımızı Python ile yazacağız.</li>
+<li><strong>AI mühendisi model eğitmez, hazır modelle sistem kurar.</strong> Önemli olan sistem tasarımı ve doğru mimari seçimi.</li>
+<li><strong>Klasik ML algoritmalarını küçümsemeyin:</strong> Küçük ve orta veride LLM'e göre ucuz ve güvenilir.</li>
+<li><strong>Konular zincirleme bağlı:</strong> Bir halka kopunca üstündekiler anlaşılmaz. Her dersi takip edin.</li>
+<li><strong>Bitirme projesini ilk haftadan düşünün</strong>; son haftaya bırakmayın. Proje = başarı sertifikası + portfolyo.</li>
+<li>Günde 2–3 saat çalışma ve proje gerekli; sadece video izlemekle öğrenilmez.</li>
+<li><strong>Temel bilimler önemli:</strong> Teori sağlamsa her 5–7 yılda değişen teknolojiye kolay uyum sağlanır.</li>
+<li><strong>Kariyer:</strong> Yapay zekâ + siber güvenlik, ayrıca DevOps + yapay zekâ çok değerli kesişimler. Model şirketlerinin ambassador programlarına başvurun; topluluk içinde fırsat duyulur.</li>
+<li><strong>Kaynak:</strong> Sebastian Raschka'nın blogu ve bülteni takip edilmeli.</li>
+</ul>
+<hr>
+<h3>Sık hatalar / karşılaşılan sorunlar</h3>
+<ul>
+<li><strong>API anahtarını GitHub'a göndermek:</strong> Hocanın başına gelmiş; ücretsiz kredisi başkası tarafından harcanmış. Anahtarları repoya koymayın (gitignore ve ortam değişkeni kullanın).</li>
+<li><strong><code>pyproject.toml</code>'da kişisel bilgi (isim/e-posta) görünmesi:</strong> Dosyayı gitignore'a eklemeyin; yalnızca istemediğiniz satırları silin. Dosya sürüm tekrar üretilebilirliği için gerekli.</li>
+<li><strong>Python sürüm çakışmaları:</strong> 3.12 veya 3.11 dışındaki sürümlerde kütüphane sorunları görülebiliyor.</li>
+<li><strong>VS Code "Add to PATH" işaretlenmemişse</strong> klasörü doğrudan VS Code ile açmak zorlaşıyor.</li>
+<li><strong>uv kurmadan sistem Python'u ile ilerlemek:</strong> Çalışır, ama hoca uv'yi kurmayı önerdi (proje başına izole ortam).</li>
+<li>(Ders yönetimi) Kahoot'a linkten girişte "Kahoot is private" hatası alındı; kahoot.it adresinden oyun PIN'iyle ya da QR kodla girilerek çözüldü.</li>
+</ul>
+<hr>
+<h3>Kendini test et</h3>
+<ol>
+<li>Klasik programlama ile makine öğrenmesi arasındaki temel fark nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Klasik programlamada girdi ve kural verilir, makine çıktıyı hesaplar. ML'de girdi ve çıktı verilir, kuralı (modeli) makine kendisi öğrenir.</p>
+</details>
+<ol start="2">
+<li>Bir perceptron'un hesabını yazın. Ağırlıklar neyi temsil eder?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>z = w1·x1 + w2·x2 + … + b; y = f(z) (aktivasyon, eşik). Ağırlıklar girdilerin önemini gösterir; modelin "parametreleri" bunlardır.</p>
+</details>
+<ol start="3">
+<li>Tek bir perceptron neden XOR'u çözemez, nasıl çözülür?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>XOR doğrusal olarak ayrılamaz: (0,1) ve (1,0) noktalarını (0,0) ve (1,1)'den tek bir doğru ayıramaz. Birden fazla nöron (gizli katman) kullanılır; biri AND'i, biri OR'u öğrenir ve iki doğruyla ayrım yapılır. Böylece yapay sinir ağları doğdu.</p>
+</details>
+<ol start="4">
+<li>Yapay sinir ağı ile derin sinir ağı arasındaki fark nedir? Derin öğrenme neden gerekli oldu?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Yapay sinir ağında bir gizli katman, derin sinir ağında birden fazla gizli katman var. ML ve sığ ağlar büyük verilerdeki gizli örüntüleri bulamıyordu; derin öğrenme bunun için geliştirildi.</p>
+</details>
+<ol start="5">
+<li>Derin öğrenmenin 2010'lardan sonra patlamasının üç nedeni nedir? GPU neden önemli?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Büyük veri (internet, sosyal medya), güçlenen donanım (oyun sektörünün itmesiyle gelişen GPU'lar) ve yeni mimariler. Derin öğrenme özünde matris çarpımıdır; GPU bunları paralel yapar, CPU ise sıralı.</p>
+</details>
+<ol start="6">
+<li>Bilgisayarlı görü neden NLP'den önce ilerledi?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Bir resimdeki piksel (öznitelik) sayısı sınırlı. NLP'de her token bir öznitelik ve sözlük on binlerce token içerebiliyor; one-hot ile devasa, seyrek veri oluşuyordu.</p>
+</details>
+<ol start="7">
+<li>One-hot encoding'in sorunu nedir, embedding bunu nasıl çözer?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>One-hot'ta her token sözlük boyutunda (ör. 30 bin), çoğu sıfır olan bir vektördür: devasa ve anlamsız. Embedding token'ı düşük boyutlu (ör. 10–30) yoğun bir vektöre çevirir. Her boyut bir özelliği temsil eder, anlamca yakın kelimeler uzayda yakın durur ve king − man + woman ≈ queen gibi işlemler yapılabilir.</p>
+</details>
+<ol start="8">
+<li>BERT ile GPT'nin farkı nedir? Transformer'ın hangi bloğunu kullanırlar?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>BERT yalnızca encoder kullanır (Google): metin sınıflandırma ve anlam çıkarma. GPT yalnızca decoder kullanır (OpenAI): metin üretme. Transformer ise 2017'de Google'ın çeviri için geliştirdiği seq2seq mimarisidir.</p>
+</details>
+<ol start="9">
+<li>Hocaya göre AI projeleri neden çoğunlukla başarısız olur? Bunun bootcamp'teki karşılığı nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Model kötü olduğu için değil, kötü context yüzünden (garbage in, garbage out). Karşılığı: 1. haftanın 2. günündeki prompt ve context mühendisliği dersi; ayrıca RAG ile modele doğru bilgiyi doğru zamanda vermek.</p>
+</details>
+<ol start="10">
+<li>RAG, LLM'lerin hangi üç sorununu çözer?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Halüsinasyon, güncel verilere ulaşamama ve veri mahremiyeti (verileri model sağlayıcısına göndermeme).</p>
+</details>
+<ol start="11">
+<li><code>uv init</code>, <code>uv add</code> ve <code>uv sync</code> ne yapar? <code>pyproject.toml</code> neden repoya gönderilir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p><code>uv init</code> dizinde Python projesi oluşturur (pyproject.toml, README, .gitignore). <code>uv add &lt;paket&gt;</code> paketi kurup bağımlılığa yazar. <code>uv sync</code> dosyadaki sürümleri ortama kurar. pyproject.toml başkasının projeyi aynı sürümlerle çalıştırabilmesi için gereklidir; yalnızca kişisel bilgiler silinmelidir.</p>
+</details>
+<ol start="12">
+<li>Agentic AI'ı klasik chatbot'tan ayıran özellik nedir?</li>
+</ol>
+<details>
+<summary>Cevap</summary>
+<p>Eyleme geçebilmesi: düşünür, karar verir, araç ve doküman kullanır, çevresiyle etkileşir ve görevi kendi başına tamamlayıp bildirir.</p>
+</details>
+<hr>
+<h3>Hocaya sorulacaklar / belirsiz kalanlar</h3>
+<ul>
+<li><strong>GPT-6 Astra kaynakları:</strong> Hocanın WhatsApp'a atacağı benchmark yazısı (computer use başarısı %80+ ve diğer modellerde %20–30) ve önerdiği iki makale. Rakamlar (200 bin A100, ~1 milyar dolar) ve isabet oranları hocanın hatırladığı değerler, kaynakla doğrulanmalı.</li>
+<li><strong>Sebastian Raschka'nın önerilen kitapları:</strong> Transkriptte isimler bozuk; "PyTorch …" ve "Build a … (From Scratch)" olarak geçiyor. Tam adları sorulmalı.</li>
+<li><strong>GPT'nin yılı:</strong> Hoca ve çizim "GPT – 2019" diyor. Not: İlk GPT (GPT-1) Haziran 2018'de yayımlandı, GPT-2 2019'da.</li>
+<li><strong>MCP'nin yılı:</strong> Çizimde "MCP → 2015 Anthropic" yazıyor. Not: Anthropic MCP'yi Kasım 2024'te duyurdu; çizimdeki yıl muhtemelen yazım hatası.</li>
+<li><strong>CNN'in tarihi:</strong> Transkriptte "1990'da geliştirildi, rakam sınıflandırma"; çizimde "2010'lara kadar CNN gibi ağlar vardı". (Not: LeNet, 1989–1998.)</li>
+<li><strong>uv sync:</strong> Hoca "yanlış hatırlamıyorsam" dedi. Bir sonraki derste doğrulanmalı (lock dosyası <code>uv.lock</code> ile birlikte mi çalışıyor?).</li>
+<li><strong>pyproject.toml'da isim ve e-posta görünmesi:</strong> Neden bazı makinelerde çıktığı (git config'den mi geliyor?) netleşmedi.</li>
+<li><strong>Transkript boşlukları:</strong> ≈01:06–01:08 (AI tarihçesinin başı), ≈01:44–01:48 (backpropagation ve loss anlatımı) ve ≈02:10–02:19 (derin öğrenmenin yükselişi, CNN/AlexNet/GAN/Diffusion, piksel ve öznitelik) yalnızca çizimden tamamlandı. Videodan kontrol etmekte fayda var.</li>
+</ul>

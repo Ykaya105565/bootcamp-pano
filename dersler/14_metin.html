@@ -1,0 +1,406 @@
+<h2>14 · Day11 – Açık Kaynaklı Modeller (ayıklanmış ders metni)</h2>
+<blockquote>
+<p>Kaynak: canlı ders kaydının otomatik Türkçe altyazısı + hocanın konu anlatım çizimi (beyaz tahta). Bu derse ait kod dosyası yok; komutlar transkriptten ve ekrandaki anlatımdan derlendi.
+Transkript boşlukları: <strong>≈00:29–00:50</strong> (yalnızca birkaç kopuk cümle var; Ollama kurulumu ve Hugging Face/GPU anlatımı bu aralıkta yapılmış olmalı, metne düşmemiş), <strong>≈00:50–01:06</strong> (mola), <strong>≈01:51–02:12</strong> (mola). Boş aralıklardaki içerik yalnızca tahta çiziminden aktarıldı ve öyle işaretlendi.</p>
+</blockquote>
+<hr>
+<h3>Dersin amacı ve açık kaynaklı modellerin bugünkü durumu (≈00:02–00:04)</h3>
+<p>Bu derste açık kaynaklı (open-source) ve lokal büyük dil modelleri (LLM) işleniyor. Plan: önce teori, ardından <strong>Ollama</strong>'yı bilgisayara kurup modelleri lokalde çalıştırmak; vakit kalırsa açık modellerle çalışmada en çok kullanılan platform olan <strong>Hugging Face</strong>'e bakmak.</p>
+<p>Hoca, bir öğrencinin "abonelikler çok para tutuyor" yorumundan yola çıkarak dersi şu soruya bağladı: Açık kaynaklı/lokal modellerle neler yapabiliriz, onları nasıl çalıştırırız?</p>
+<ul>
+<li>Açık kaynaklı modeller eskiden kapalı modellerin çok gerisindeydi; artık arayı ciddi ölçüde kapattılar ve iyi cevaplar veriyorlar.</li>
+<li>Ancak <strong>küçük modeller</strong> hâlâ zayıf cevaplar verebiliyor (derste bunu canlı göreceğiz). Asıl yetişen <strong>büyük</strong> açık modeller: GLM, DeepSeek, Qwen. Hoca Qwen'i bizzat test ettiğini ve iyi çalıştığını söyledi.</li>
+<li>Şirketler bu alana yöneliyor, iki sebeple: (1) kapalı modellerde çok fazla token ve dolayısıyla çok para harcanıyor; (2) açık model kendi sunucunuzda çalıştığında <strong>veri dışarı çıkmıyor</strong>, başka bir model sağlayıcıya gitmiyor, başka yerde kullanılmıyor.</li>
+<li>Hocanın ifadesine göre Hugging Face geçtiğimiz ay Nvidia'ya satıldı. <em>(Not: transkriptteki ifade; doğrulanmadı.)</em></li>
+</ul>
+<h3>Sinir ağı, parametre ve "açık ağırlık" kavramı (≈00:04–00:08)</h3>
+<p>Tahtadaki ilk çizim en basit yapay sinir ağı: <strong>girdi katmanı (input layer) → gizli katman (hidden layer) → çıktı katmanı (output layer)</strong>. Büyük dil modelleri de sinir ağlarına dayanır ama çok daha fazla gizli katmana sahiptir (hoca "belki binlerce" dedi); bunu ayrıntılı bilmeye gerek yok.</p>
+<ul>
+<li>Girdi soldan girer, nöronlardan geçer, katsayılarla işlenir ve sağdan çıktı elde edilir.</li>
+<li>Nöronlar arasındaki <strong>bağlantı çizgileri</strong> = <strong>parametre</strong>. Aynı şeye <strong>katsayı</strong> ya da makine öğrenmesi diliyle <strong>ağırlık (weight)</strong> da denir.</li>
+<li>"27 milyar parametreli model" demek, nöronlar arasında 27 milyar bağlantı/katsayı var demektir. Eğitim bu katsayıları optimum seviyeye getirmeye çalışır; model ne kadar iyi eğitilirse katsayılar o kadar iyi olur, model de o kadar iyi çalışır.</li>
+<li>Her parametre aslında <strong>ondalıklı bir sayıdır</strong>. Açık kaynaklı modellerde bu sayılar (ağırlıklar) herkese açık yayınlanır; biz indirip kullanırız. Çıktının nasıl olacağını bu parametreler belirler.</li>
+</ul>
+<p><strong>Açık kaynaklı model = model ağırlıklarının herkese açık olması.</strong> Herkes ağırlıkları indirip kullanabilir ve bunlarla uygulama geliştirebilir. Tahtadaki şemaya göre açık kaynaklı LLM'lerle yapılabilecekler: <strong>AI uygulaması (AI app), RAG, AI ajanı (AI agent)</strong>.</p>
+<h3>Lisanslar: açık ağırlık ≠ her şeyi yapabilirim (≈00:08–00:13)</h3>
+<p>Hoca bunun önemli olduğunu özellikle vurguladı: "Açık kaynaklı model, istediğim zaman istediğim yerde kullanırım demek değildir." Her modelin bir lisansı vardır ve kullanım hakkınız lisansa göre belirlenir.</p>
+<ul>
+<li><strong>MIT</strong> ve <strong>Apache 2.0</strong>: iyi, esnek lisanslar; ticari amaçla uygulama geliştirip para kazanabilirsiniz.</li>
+<li>DeepSeek-R1 → MIT lisanslı.</li>
+<li>Qwen3 → Apache 2.0 lisanslı.</li>
+<li><strong>Meta Llama 4</strong> → <strong>Llama 4 Community License</strong>: 700 milyon kullanıcıya kadar ticari dahil serbestçe kullanabilirsiniz; uygulamanız 700 milyon kullanıcıyı geçtikten sonra Meta'dan ayrı (muhtemelen ücretli, özel) bir lisans almanız gerekir. Hoca ayrıntıyı tam bilmediğini belirtti.</li>
+<li>Lisansı modelin Hugging Face sayfasından görebilirsiniz. Hoca Hugging Face'in modeller sayfasını gösterdi: o an yaklaşık <strong>3 milyon 271 bin</strong> model vardı; sol taraftan göreve (task) göre filtreleme yapılabiliyor. En yeni modellerden biri olarak DeepSeek'in bir modelini (parametre sayısı transkriptte "7.63" olarak geçiyor, [belirsiz]) ve MIT lisansını gösterdi.</li>
+<li>Sonuç: Önce lisansı kontrol et, sonra kullan; yoksa ileride hukuki sorun çıkabilir. Yine de bu modellerin büyük çoğunluğu ücretsiz kullanılabiliyor.</li>
+</ul>
+<p><strong>Açık LLM'lerde ne açık, ne kapalı?</strong> (tahtadaki şema)</p>
+<ul>
+<li><strong>Mimarileri açıklanır.</strong> Mixture of Experts mi, dense mi kullandıkları; model sağlayıcılar modeli duyururken mimariyi de açıklıyor.</li>
+<li><strong>Model ağırlıkları yayınlanır.</strong> Ollama, Hugging Face gibi platformlarda.</li>
+<li><strong>Kodları açıklanmaz.</strong> Eğitimde <strong>hangi verilerin</strong> kullanıldığı da genelde söylenmez; veri tarafı gizli kalır.</li>
+<li><strong>Modeli çalıştırmak için parametreleri bilmek yeterlidir.</strong> Bizim için gerekli olan ağırlıklardır.</li>
+</ul>
+<p>Hoca ek olarak: Türkiye'de bir model geliştirilecekse bu ağırlıklar alınıp üzerine eğitim yapılabilir; ama bunun için para, bilgili insan, emek ve zaman gerekir. Önde gelen şirketler bile hazır bir modeli alıp üzerine ince ayar (fine-tuning) yaparak kullanıyor.</p>
+<p><strong>Kapalı kaynaklı modeller</strong> (Claude, OpenAI modelleri vb.): Ağırlıklarını bilmiyoruz, indiremiyoruz; ağırlıklar model sağlayıcıda kalır. Bunları ya <strong>API</strong> ile ya da ChatGPT/Claude gibi <strong>arayüzler</strong> üzerinden kullanırız.</p>
+<h3>Ara konu: Harness kavramı ve Hermes Agent (≈00:14–00:20)</h3>
+<p>Hoca, açık modellerle çalışan bir masaüstü ajan uygulaması olarak <strong>Hermes Agent</strong>'ı ("hörmes/harnız" diye geçiyor) tavsiye etti. Bir öğrenci de DeepSeek'i ajan tarafında Hermes üzerinden kullandığını söyledi; hoca kendisinin Qwen'i bulut üzerinden kullandığını belirtti.</p>
+<ul>
+<li>Hermes'e farklı modeller bağlanabiliyor (Kimi, Codex, Qwen Coder gibi seçenekler sayıldı; bazı adlar [belirsiz]). Kurulum kolay: masaüstü uygulamasını indirip bir model bağlıyorsunuz.</li>
+<li>Hocanın canlı örneği: Bir müşterisi için yaptığı finans takip uygulamasında Excel toplamlarında hata çıktığı bildirildi; sorunu Hermes'e yazdı, ajan uygulamayı kendisi kontrol etti, düzeltti, test etti ve deploy etti. Ajan terminale de erişiyor (ör. "Ollama'da şu sorunu yaşadım" deyince komutları kendisi çalıştırıp test ediyor). "Bir yandan güzel, bir yandan çok korkutucu."</li>
+</ul>
+<p><strong>Soru:</strong> Terminale erişen ajanlara (OpenClaw benzeri) izin vermek güvenli mi, izinleri kısıtlıyor musunuz?
+<strong>Cevap:</strong> Önce izinleri kapatıyorsunuz ama bir noktada "bunu da açayım" diyerek açıyorsunuz; dikkatli kullanmak lazım. Mümkünse bir <strong>VPS'te</strong> ya da kişisel verilerinizin olmadığı <strong>ayrı bir bilgisayarda</strong> çalıştırmak daha güvenli. Araçlar güvenliğe giderek daha çok önem veriyor; Claude Code da terminale erişip işlemleri yapıyor.</p>
+<p><strong>Soru:</strong> DeepSeek ile Hermes arasında ne fark var?
+<strong>Cevap:</strong> Karıştırılıyor. Hermes bir <strong>harness</strong>: modelin etrafındaki ekosistem. Benzetme: Arabada <strong>motor = model</strong>; aynalar, tekerlekler, direksiyon = <strong>harness</strong>. Eskiden modeller uygulamaların beyniydi ama dış dünyaya açılamıyordu; araç (tool) bağlayıp özellikler vererek etrafına harness kuruyoruz, böylece dış dünyayla iletişime geçip daha güçlü davranıyorlar. Claude Code da bir harness'tir. İkinci benzetme: At güçlü bir hayvandır; eyer takarak onu yönetirsiniz — eyer harness'tir, güçlü modeli yönlendirmenizi sağlar.</p>
+<h3>Açık kaynak vs. kapalı kaynak: avantaj ve dezavantajlar (≈00:20–00:25)</h3>
+<p><strong>Kapalı kaynaklı LLM'ler</strong></p>
+<ul>
+<li>Avantajlar:</li>
+<li><strong>Kurulum gerektirmez</strong>, güçlü bilgisayar gerekmez; API ile bağlanıp kullanırsınız.</li>
+<li>Açık modellerden <strong>bir tık ileride</strong>. Bu fark eskiden bir yıldı, sonra altı aya, sonra bir aya indi; şimdi "bir tık" — belki iki hafta, on beş gün.</li>
+<li>Dezavantajlar:</li>
+<li><strong>Ücretli</strong>. Çok kullanırsanız çok token harcanır. Hoca, insanların ve ajanların token tüketimini karşılaştıran bir grafikten bahsetti: artık sadece insanlar değil ajanlar da token tüketiyor ve ajanların tüketimi çok daha fazla.</li>
+<li><strong>Kullanım limitleri</strong> var (birkaç saat yoğun çalışınca beklemek, haftalık limite takılmak).</li>
+<li><strong>Verileriniz model sağlayıcıya gider.</strong> Verinin nasıl kullanıldığını bilmiyoruz; şirketler verilerini kendilerinde tutmak ister. "Kullanmıyoruz" deseler de ne kadar güvenilebileceği tartışmalı.</li>
+<li><strong>Çalışmak için internet</strong> gerekir.</li>
+</ul>
+<p><strong>Açık kaynaklı LLM'ler</strong></p>
+<ul>
+<li>Avantajlar:</li>
+<li><strong>Ücretsiz</strong>; lokale indirip kullanabilirsiniz.</li>
+<li>Lisansı uygunsa (MIT, Apache 2.0) <strong>ticari amaçla</strong> kullanılabilir.</li>
+<li><strong>Veriler kendi bilgisayarınızda kalır.</strong></li>
+<li><strong>İnternet gerektirmez.</strong></li>
+<li>Dezavantajlar:</li>
+<li>Kapalı modellerden <strong>bir tık geride</strong>.</li>
+<li><strong>Kurulum gerekir</strong> (Ollama, Hugging Face gibi framework'ler; biraz kod/terminal bilgisi). Ollama üzerinden bulut/API ile de kullanılabilir ama o kısım ücretli.</li>
+<li><strong>Güçlü bilgisayar</strong> gerekir. Küçük modeller kendi bilgisayarımızda çalışır ama çok iyi değildir. Hocanın önerisi: en az <strong>Qwen 27B</strong>'yi çalıştırabilecek bir bilgisayar varsa rahat çalışılır; bunun için yaklaşık <strong>RTX 4090 sınıfı, 24 GB VRAM</strong> düzeyinde bir ekran kartı gerekir (transkriptte "on sekiz GB'tan fazla VRAM" olarak da geçiyor).</li>
+</ul>
+<h3>Hangi LLM ne zaman kullanılmalı? (≈00:25–00:27)</h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Durum</th>
+<th>Öneri</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Veri gizliliği önemli</td>
+<td>Açık kaynaklı modeller</td>
+</tr>
+<tr>
+<td>Yüksek hacimli genel kullanım, ücret önemli</td>
+<td>Açık kaynaklı modeller (para sorun değilse kapalı modeller de olur)</td>
+</tr>
+<tr>
+<td>Fine-tuning yapılacak</td>
+<td>Açık kaynaklı modeller</td>
+</tr>
+<tr>
+<td>Bilgisayar güçsüz</td>
+<td>Ya <strong>küçük modeller</strong> (0,6B'den 27B'ye kadar seçenek var; ama çok iyi çalışmazlar) ya da <strong>kapalı modeller</strong> (OpenAI, Claude, Gemini)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Soru:</strong> 27B'lik bir modele kendi bilgisayarımda fine-tuning yapabilir miyim? Ek sistem gerekir mi?
+<strong>Cevap:</strong> 27B'yi çalıştırabiliyorsanız evet. Bunun için <strong>LoRA</strong> tekniği var: Modeli bir alanda uzmanlaştırmak için o alanın verisini kullanırsınız; model <strong>yeni parametre eklemez</strong>, var olan parametrelerin yalnızca bir kısmını günceller (örneğin bir katsayıyı 3,5'ten 3,3'e çekmek gibi). Güncellenen kısım ayrı saklanabilir (ör. Hugging Face'te) ve sonra ana modelle birleştirilerek kullanılır; boyutu yaklaşık <strong>30–40 MB</strong> civarındadır. Ekstra bir sistem gerekmez.</p>
+<h3>Açık modellerle çalışma araçları: Ollama ve Hugging Face (≈00:29 ve tahta)</h3>
+<p>Tahtadaki şema:</p>
+<ul>
+<li><strong>Ollama</strong> → açık kaynaklı modelleri <strong>lokale indirmek</strong> ve çalıştırmak için.</li>
+<li><strong>Hugging Face</strong> → <strong>uçtan uca ML projeleri</strong> için: <strong>Transformers</strong>, <strong>Dataset(s)</strong>, <strong>Diffusion</strong> (Diffusers), <strong>Gradio</strong>.</li>
+</ul>
+<blockquote>
+<p><strong>Transkript boşluğu (≈00:29–00:50):</strong> Ollama'nın kurulumu ve donanım anlatımı bu aralıkta yapılmış ama altyazıya düşmemiş. Tahtada bu bölüme ait şu notlar var:</p>
+<p><strong>Ollama Yükleme / Kullanma — GPU ve VRAM</strong>
+- RTX 5090 → 32 GB VRAM
+- RTX 4090 → 24 GB VRAM
+- RTX 5080 → 16 GB VRAM
+- Daha küçükler → 8 GB VRAM
+- <strong>Mac'lerde bütünleşik (unified) RAM var</strong> → aynı bellek hem GPU hem CPU tarafından kullanılıyor.</p>
+<p>Bu aralıktan kalan tek kopuk cümle: "…vektör veritabanlarıyla aynı." [belirsiz bağlam]</p>
+</blockquote>
+<h3>Ollama'da model kütüphanesi ve model indirme (≈01:07–01:19)</h3>
+<p>Ollama kurulduktan sonra sitedeki <strong>Models</strong> sayfasından modellere bakıldı:</p>
+<ul>
+<li>İki tür model var: <strong>Local</strong> (bilgisayarınıza indirebileceğiniz) ve <strong>Cloud</strong> (Ollama'nın kendi sunucularında çalışan çok büyük modeller). Örnek: bir DeepSeek modeli ~<strong>753 milyar parametre</strong> [model adı belirsiz]. "Biz 27B'yi zor çalıştırıyoruz; 753B'yi kendi bilgisayarımızda çalıştıramayız ama API/bulut üzerinden kullanabiliriz."</li>
+<li>Filtreler: <strong>tools</strong> özelliği olan modeller, <strong>thinking</strong> (düşünen) modeller, <strong>embedding</strong> modelleri. Yeni çıkan bir Gemma embedding modeli de (Google) gösterildi.</li>
+<li>Popüler lokal modeller arasında <strong>Bonsai 2</strong> (hoca da yeni duyduğunu söyledi) ve <strong>Qwen</strong> serisi.</li>
+<li><strong>Qwen 3.5</strong> seçildiğinde boyut seçenekleri listeleniyor: 2B, 4B, 9B, 27B, 35B vb. <code>latest</code> etiketi varsayılan modeldir. 9B'lik model çoğu bilgisayarda çalışır.</li>
+</ul>
+<p><strong>Ollama Cloud hakkında soru-cevap:</strong>
+<strong>Soru:</strong> Az önceki ~750 milyarlık modeli lokalde çalıştıramayız; bulutta kim çalıştırıyor?
+<strong>Cevap:</strong> Ollama'nın kendi bilgisayarları/sunucuları var; modelleri oraya yüklemişler. Ücretsiz katmanda kullanılabiliyor; ~20 dolar verince büyük modeller daha rahat kullanılabiliyor. Modeller açık kaynak olduğu için Ollama bunları kendi altyapısında çalıştırıp bir gelir modeli oluşturmuş. Fiyat/performans olarak kapalı modellere göre daha uygun; değerlendirilebilir.</p>
+<p><strong>Komutlar:</strong></p>
+<pre><code class="language-bash">ollama list                 # daha önce indirilen modelleri listeler (ilk kurulumda boş gelir)
+ollama pull qwen3.5:9b      # modeli indirir (katman katman iner)
+</code></pre>
+<p>Model, katmanlar halinde indiriliyor; daha önce inen katmanlar tekrar inmiyor.</p>
+<p>Öğrencilerin seçimleri: Çoğu <code>qwen3.5:9b</code>, interneti/bilgisayarı yavaş olanlar <code>4b</code>; biri <code>qwen3:8b</code>, biri daha küçük (1,7B) bir model indirdi.</p>
+<p><strong>Soru:</strong> 120B'lik (ör. gpt-oss-120b) bir model için 128 GB'lık M5 Max yeterli mi?
+<strong>Cevap:</strong> Evet. Hocanın kaba hesabı: Parametre sayısını (milyar) ikiye böl, biraz pay ekle — kabaca 4-bit modelde <strong>B sayısının yarısı + bir miktar</strong> kadar VRAM gerekir. Örneğin 9B için yaklaşık 6–7 GB VRAM'li bir kart yeterli; 27B için ~18 GB'tan fazla VRAM gerekir (16 GB'lık kart 27B'yi rahat çalıştırmıyor; RAM'e taşınca çok yavaşlıyor).</p>
+<h3>Modeli çalıştırmak ve sohbet etmek (≈01:19–01:25)</h3>
+<pre><code class="language-bash">ollama run qwen3.5:9b
+</code></pre>
+<ul>
+<li><code>run</code> modeli çalıştırır ve bir <strong>sohbet (chat) ekranı</strong> açılır. Model ilk kez çalışıyorsa önce indirilir.</li>
+<li>"Merhaba" yazıldı. Qwen 3.5 <strong>düşünen (thinking) bir model</strong> olduğu için önce düşünme süreci görünüyor ("Kullanıcı Türkçe merhaba dedi, Türkçe cevap verelim…"), ardından cevap geliyor.</li>
+<li>"Kediler hakkında kısa bir fıkra yaz" denince model bazen düşünürken uzun süre takılabiliyor. Bu yüzden <strong>production ortamında</strong> sonsuz düşünme döngüsüne girmesin diye sınır konur (ör. en fazla 3–5 düşünme turu).</li>
+<li>Sohbetten çıkmak: <code>/bye</code> yazmak veya <strong>Ctrl+D</strong>. Takılırsa <strong>Ctrl+C</strong> ile üretim kesilebilir. Tekrar girmek için yine <code>ollama run</code>.</li>
+<li>Küçük modellerin cevabı kapalı (OpenAI, Claude) modeller kadar iyi değil; büyük açık modeller daha iyi çalışıyor. Model sonunda "kedi ve kapı" üzerine pek komik olmayan bir fıkra yazdı.</li>
+</ul>
+<h3>Model boyutu ve kuantizasyon (quantization) (≈01:26–01:34)</h3>
+<p><strong>Model büyüklüğünü etkileyen faktörler:</strong></p>
+<ol>
+<li><strong>Parametre sayısı</strong> — arttıkça model büyür.</li>
+<li><strong>Parametrenin veri yapısı</strong> — float32 mü, float16 mı vb.</li>
+</ol>
+<blockquote>
+<p>Not: Tahtada ilk yazımda "Float32 → 8 Byte, Float16 → 4 Byte" yazıyor ve hoca anlatımda da önce böyle söyledi; ardından hesaplamada doğrusunu kullandı: <strong>FP32 = 4 bayt (32 bit), FP16 = 2 bayt (16 bit)</strong>. Hesaplar aşağıda doğru değerlerle.</p>
+</blockquote>
+<p><strong>VRAM'e sadece katsayılar yüklenmez.</strong> Ayar dosyaları ve çalışma için gereken başka veriler de yüklenir. Ayrıca bilgisayarın kendisi, CUDA, Ollama'nın kendisi ve diğer programlar da VRAM'de yer kaplar. Bu yüzden <strong>16 GB VRAM varsa 16 GB'lık model yüklenmez</strong>; 13–15 GB civarı düşünülmeli. VRAM ağzına kadar doldurulursa <strong>CUDA OOM (CUDA Out Of Memory)</strong> hatası alınır (Colab'da da sık görülen hata). Hocanın kuralı: VRAM'in yaklaşık <strong>%65–80'ini</strong> model ağırlıklarına ayırmak güvenli.</p>
+<p><strong>VRAM → çalıştırılabilecek model dosyası boyutu (tahtadaki tablo):</strong></p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>VRAM</th>
+<th>Model boyutu</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>8 GB</td>
+<td>~5–6 GB</td>
+</tr>
+<tr>
+<td>12 GB</td>
+<td>7–9 GB</td>
+</tr>
+<tr>
+<td>16 GB</td>
+<td>10–12 GB</td>
+</tr>
+<tr>
+<td>24 GB</td>
+<td>16–20 GB</td>
+</tr>
+<tr>
+<td>32 GB</td>
+<td>22–26 GB</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Hesap (10 milyar parametreli model):</strong></p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Veri tipi</th>
+<th>Parametre başına</th>
+<th>Hesap</th>
+<th>Model boyutu</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FP32</td>
+<td>4 bayt (ör. 0.31415926)</td>
+<td>10 × 4 = 40 milyar bayt</td>
+<td><strong>40 GB</strong></td>
+</tr>
+<tr>
+<td>FP16</td>
+<td>2 bayt (ör. 0.3142)</td>
+<td>10 × 2 = 20 milyar bayt</td>
+<td><strong>20 GB</strong></td>
+</tr>
+<tr>
+<td>INT8</td>
+<td>1 bayt</td>
+<td>10 × 1 = 10 milyar bayt</td>
+<td><strong>10 GB</strong></td>
+</tr>
+<tr>
+<td>4-bit</td>
+<td>0,5 bayt</td>
+<td>10 × 0,5 = 5 milyar bayt</td>
+<td><strong>5 GB</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>Genelde <strong>4-bit</strong> kullanılıyor; derste indirdiğimiz modeller de böyle. 40 GB'lık model kuantizasyonla 5 GB'a iniyor.</p>
+<p><strong>Kuantizasyon = katsayıları (ağırlıkları) küçültmek.</strong> "Ağırlıkları küçültünce model kötüleşmez mi?" — Çok fazla parametre olduğu için boyutun küçültülmesi cevaplara çok fazla etki etmiyor; bazı kayıplar olur ama küçüktür ve karşılığında modeli kendi bilgisayarımızda, daha az VRAM ile çalıştırabiliyoruz.</p>
+<p><strong>Benzetme — fotoğraf formatları:</strong> RAW formatı çok kalitelidir, her detayı görürsünüz ama çok yer kaplar. JPEG'e sıkıştırınca boyut küçülür ama gözle görülür fark pek olmaz. Daha da küçültürseniz pikseller görünmeye başlar. Burada bir <strong>trade-off</strong> var: Fazla küçültürseniz model iyi cevap veremez; FP32 saklarsanız çok fazla RAM gerekir. Dengeli nokta genelde <strong>4-bit</strong>.</p>
+<h3>Kuantizasyon türleri: basit ve akıllı (K-Quant) (≈01:34–01:37)</h3>
+<ul>
+<li><strong>Basit kuantizasyon</strong> → <strong>Q4</strong> → <strong>4-bit quantization</strong>: Her katmandaki bütün parametreler aynı şekilde (ör. FP32'den 4-bit'e) küçültülür.</li>
+<li><strong>Akıllı kuantizasyon</strong> → <strong>K-Quant</strong> → <strong>Q4_K</strong>: Her parametre aynı oranda küçültülmez. <strong>Önemli/hassas parametreler daha yüksek hassasiyetle</strong>, daha önemsiz parametreler daha düşük hassasiyetle temsil edilir.</li>
+</ul>
+<p>Ollama'da modelin sayfasına (ör. Qwen 3.5 9B) tıklanınca mimari, parametre sayısı ve kuantizasyon görülüyor: kuantizasyon <strong>Q4_K_M</strong> — "Q4" 4-bit'e indirildiğini, "K" akıllı kuantizasyonu, "M" de sıkıştırmanın şiddetini (medium) gösteriyor.</p>
+<p><strong>Sıkıştırmanın şiddeti:</strong></p>
+<ul>
+<li><strong>Small (S)</strong> → daha agresif sıkıştırma; neredeyse bütün parametreler 4-bit.</li>
+<li><strong>Medium (M)</strong> → hassas katmanlar yüksek hassasiyetle (<strong>Q6_K</strong>, 6-bit), diğerleri düşük (<strong>Q4_K</strong>, 4-bit). <strong>En dengelisi</strong>; en sık göreceğiniz bu.</li>
+<li><strong>Large (L)</strong> → parametrelerin çoğu 6-bit (<strong>Q6_K</strong>) ile temsil edilir.</li>
+</ul>
+<h3>Gemma 4 ve "efektif parametre" (E2B, E4B) (≈01:37–01:40)</h3>
+<p>Hoca <strong>Gemma 4</strong>'ü (Google) de tavsiye etti. Ollama sayfasındaki özellikleri:</p>
+<ul>
+<li><strong>Vision</strong>: görsel veriyi işleyebiliyor.</li>
+<li><strong>Tools</strong>: araç kullanabiliyor. Her modelin tool özelliği yok; bazı modellerde araç kullanamazsınız.</li>
+<li><strong>Thinking</strong>: düşünme modu var.</li>
+<li>Claude Code içinden ve bulutta da kullanılabiliyor.</li>
+<li>Boyutlar (transkriptte geçtiği haliyle): <strong>E2B, E4B, 12B, 26B, 31B</strong>.</li>
+</ul>
+<p><strong>E2B / E4B ne demek?</strong> Model aslında daha fazla parametreye sahip ama soru sorulduğunda <strong>hepsiyle çalışmıyor</strong>: E2B'de yalnızca 2 milyar, E4B'de yalnızca 4 milyar parametre aktif olarak kullanılıyor. Bu modeller <strong>edge (uç) cihazlar</strong> için: telefonlar, robotlar, internetin olmadığı küçük cihaz ve araçlar.</p>
+<p><strong>Soru:</strong> Hermes Agent, OpenClaw vb. de bu modelleri kullanabiliyor mu?
+<strong>Cevap:</strong> Evet. Hermes Agent'ta da, Claude Code'da da Ollama ile bu modeller kullanılabiliyor. Hoca terminalde <code>ollama</code> yazıp Claude Code'u Gemma 4 12B ile başlattığını gösterdi ("Bu klasöre güveniyor musunuz?" sorusuna "evet" deyip). Bağlam penceresi (context) de ayarlanabiliyor (transkriptte "iki yüz bin token" gibi bir ifade geçiyor [belirsiz]). Ollama ile ChatGPT benzeri arayüzlerde ve Hermes'te de açık kaynaklı model kullanılabiliyor.</p>
+<h3>Model mimarileri: Dense ve Mixture of Experts (MoE) (≈01:40–01:47)</h3>
+<p>Tahtadaki görsel: <strong>Normal model (Dense) vs Mixture of Experts (MoE)</strong>.</p>
+<ul>
+<li><strong>Dense modeller</strong>: <strong>Bütün katmanlar/ağırlıklar aktif</strong> (ör. 8/8 katman). Sorduğunuz soru bütün katmanlardan geçerek cevaplanır.</li>
+<li><strong>MoE (Sparse) modeller</strong>: İçeride bir <strong>router / gating</strong> bulunur. Bir soru geldiğinde bütün katmanlar çalışmaz; router soruyu ilgili <strong>uzman (expert)</strong> katmanlara yönlendirir ve yalnızca onlar çalışır (ör. 8 uzmandan 2'si aktif). <strong>Aktif uzmanlar VRAM'de hesaplanır</strong>, pasif uzmanlar yüklü ama bekler. Böylece hesaplama için daha az kaynak kullanılmış olur.</li>
+</ul>
+<p><strong>Soru:</strong> Router içinde ayrı bir yapay zekâ mı var? Neye göre karar veriyor?
+<strong>Cevap (hoca):</strong> Bir tür yönlendirici var ama nasıl yönlendirdiğini ayrıntılı bilmiyor; araştırılabilir. (OpenRouter/LLM router gibi dış yönlendiricilerden farklı olduğunu belirtti.)
+<strong>Bir öğrencinin araştırıp paylaştığı ek bilgi:</strong> Router matematiksel bir karar mekanizmasıdır; her uzmana bir <strong>uygunluk skoru</strong> (olasılık yüzdesi gibi) verir ve en iyi uzmanlar <strong>top-k</strong> olarak seçilir. Diğerleri pasif tutulur ve onlar için hesaplama/enerji harcanmaz; sonra seçilen uzmanların sonuçları birleştirilir. İlginç bir detay: <strong>load balancing</strong> — tüm uzmanların neredeyse eşit miktarda eğitilmesini ve her uzmanın gerçekten farklı bir alanda uzmanlaşmasını sağlar. Hoca ekledi: Yani matematiksel hesaplama ile (softmax) karar veriliyor ve ilgili katmanlara yönlendiriliyor. Router'da bir yapay zekâ (ör. GA tabanlı) kullanılması makale konusu bile olabilir.</p>
+<p><strong>Soru:</strong> "Sıkıştırmasız model" ne demek?
+<strong>Cevap:</strong> 32-bit, yani her parametre 4 bayt. Qwen 27B'yi sıkıştırmadan kullanmak ≈ 27 × 4 ≈ 108 GB, yani en az ~100 GB bellek demek.</p>
+<p><strong>Soru:</strong> Sıkıştırmanın hız açısından avantajı var mı?
+<strong>Cevap:</strong> Sıkıştırılmamış model biraz daha iyi cevap verir ama çok fazla RAM ister ve fark gözle çok görülür değildir. Sıkıştırılmış model <strong>daha hızlı</strong> çalışır: virgülden sonra 8 basamaklı sayılarla çarpma yapmak yerine 4 basamaklı sayılarla çarpma yapılıyor gibi düşünün. Yani sıkıştırma hem daha az RAM hem daha hızlı cevap demek. Kazancımız özellikle RAM'den olduğu için küçük kalite kaybını göz ardı ediyoruz.</p>
+<h3>Hocanın tavsiyesi: Yapay zekâ ile emek (≈01:47–01:50)</h3>
+<p>Akademik yazımda LLM kullanımı konuşuldu. Bir öğrenci, makalesinde yapay zekâyı fark edilir biçimde kullanan birinin dergiden reddedildiğini, kendisinin LLM'leri yalnızca fikir almak, başlık seçmek ve konuyu anlamak için kullandığını anlattı. Hocanın görüşü:</p>
+<ul>
+<li>Yazma yeteneğinizi geliştirmek çok değerli; yapay zekâ işleri kolaylaştırsa da <strong>bizim de emeğimiz olmalı</strong>, bir şey katmalıyız. "Her şeyi yapay zekâ yapsın, biz izleyelim" yaklaşımı doğru değil.</li>
+<li>Hoca içerik üretirken (ör. tweet) emek vererek, teknik konu üzerinde düşünerek yazmaya çalıştığını; okuyanın da bu emeği hissettiğini söyledi.</li>
+<li>Önceki derslerden bir örnek: Araştırma yaparken modelin <strong>halüsinasyon</strong> görüp uydurduğu durumlar.</li>
+<li>Mantıklı kullanım: Yazdığınızı modele verip "değerlendir, not ver" demek; yapay zekâyı bir <strong>asistan</strong> gibi kullanmak.</li>
+</ul>
+<h3>GPU/RAM kullanımını izleme ve düşünme modunu yönetme (≈02:12–02:16)</h3>
+<blockquote>
+<p>(≈01:51–02:12 mola; bu aralıkta Gemma 4 12B indirilmiş.)</p>
+</blockquote>
+<ul>
+<li>Modelin ne kadar GPU/RAM kullandığını Windows'ta <strong>Görev Yöneticisi → Performans → GPU</strong> sekmesinden görebilirsiniz (hocanın ekranında ~13,7 GB kullanım görüldü).</li>
+<li>Sohbetten çıkış: <code>/bye</code> ya da Ctrl+D. Ayrıca <code>exit</code> yazılarak da çıkıldı.</li>
+</ul>
+<p><strong>Düşünme modunu kapatma/açma (komut satırı bayrağıyla):</strong></p>
+<pre><code class="language-bash">ollama run gemma4:12b --think=false   # düşünmeden cevap verir
+ollama run gemma4:12b --think         # düşünme modu açık
+</code></pre>
+<p>Örnek: "Türkiye'de gidilecek 5 yer öner" → İstanbul, Kapadokya, Pamukkale, Antalya, Efes Antik Kenti.</p>
+<p><strong>Sohbetin içinden ayar (çıkmadan):</strong></p>
+<pre><code class="language-text">/set nothink     # düşünme modunu kapatır
+/set think       # düşünme modunu açar (&quot;Set 'think' mode&quot; mesajı gelir)
+</code></pre>
+<p>Testler:
+- "Bir kilo pamuk mu daha ağır, bir kilo demir mi?" → (nothink) "İkisi de bir kilo; fark hacimde." — Doğru.
+- "Bir dakikalık mesafede bir oto yıkamacı var; arabayı yıkatmak için yürüyerek mi gideyim, arabayla mı?" (think) → Model şakayla karışık "yürüyerek git" dedi; <strong>yanlış</strong>: arabanın yıkanması için arabayla gitmek gerekir. Bir öğrencide aynı model doğru cevap verdi. Hocanın notu: <strong>küçük açık modeller bu tür akıl yürütme sorularında genelde yanlış cevap veriyor</strong>; çok iyi çalışmadıklarını bilin.</p>
+<h3>Guardrails, sansür ve açık/kapalı model haberleri (≈02:18–02:20)</h3>
+<ul>
+<li><strong>Guardrails</strong> (koruma bariyerleri): Model "bomba nasıl yapılır", kendine zarar verme gibi sorulara cevap vermez; kendini korur. Bazıları buna "sansür" diyor; guardrails daha çok güvenlikle ilgili. Sansürlü/sansürsüz modeller var.</li>
+<li><strong>Soru:</strong> Anthropic'in Mythos modeli açık kaynak mı?
+  <strong>Cevap:</strong> Hayır. Claude'un açık kaynaklı bir modeli yok. Sızdırılan şey modelin ağırlıkları değil, <strong>Claude Code'un kaynak kodu</strong> oldu.</li>
+<li>OpenAI adındaki "open" ile açık model geliştirmek için yola çıkmıştı: <strong>GPT-1, GPT-2</strong> açık; sonrasını açmadılar. En son <strong>gpt-oss</strong> adıyla açık modeller çıkardılar (20 milyar parametreli olan anıldı).</li>
+</ul>
+<h3>Düşünmeyi gizleme, çok satırlı mesaj, model bilgisi (≈02:20–02:23)</h3>
+<p><strong>Düşünsün ama düşünmeyi göstermesin:</strong></p>
+<pre><code class="language-bash">ollama run gemma4:12b --hidethinking
+</code></pre>
+<p>Kullanım senaryosu: Bir chatbot yaptınız; kullanıcı yazınca modelin düşünme sürecinin ekranda görünmesi hoş olmaz. Model düşünür ama bu kısım gösterilmez.</p>
+<p>Mantık testi: "5 kedi 5 fareyi 5 dakikada yerse, 1 kedi 1 fareyi kaç dakikada yer?" → "5 dakika." Doğru.</p>
+<p><strong>Çok satırlı mesaj</strong> — üç tırnak (<code>"""</code>) kullanılır:</p>
+<pre><code class="language-text">&quot;&quot;&quot;Merhaba
+Nasılsın&quot;&quot;&quot;
+</code></pre>
+<p>Cevap: "Merhaba, iyiyim teşekkür ederim, siz nasılsınız?"</p>
+<p><strong>Model bilgisi ve lisans:</strong></p>
+<pre><code class="language-text">/show info       # model hakkında bilgi (mimari, parametre, kuantizasyon...)
+/show license    # modelin lisansı
+</code></pre>
+<h3>İstatistikler, sistem mesajı ve parametreler (≈02:23–02:27)</h3>
+<p><strong>Token istatistiklerini görmek:</strong></p>
+<pre><code class="language-text">/set verbose
+</code></pre>
+<p>Bundan sonra her cevapta kullanılan token sayısı, toplam süre, <strong>yükleme süresi</strong>, prompt değerlendirme (prompt eval) ve önbellekteki (cache) token bilgileri gösteriliyor. Öğrencilerle hız karşılaştırıldı (saniyedeki token sayısı makineye göre değişiyor).</p>
+<p><strong>Sistem mesajı:</strong></p>
+<pre><code class="language-text">/set system &quot;Kullanıcının sorduğu soruya her zaman kafiyeli cevap ver.&quot;
+/show system
+</code></pre>
+<p>"Benim için ne yapabilirsin?" sorusuna model kafiyeli cevap verdi. Hoca: "İki-üç yıl önce bu bize çok orijinal geliyordu, şimdi her model bunu yapabiliyor."</p>
+<p><strong>Parametreler:</strong></p>
+<pre><code class="language-text">/set parameter            # ayarlanabilecek parametreleri listeler
+/set parameter num_ctx 10000
+</code></pre>
+<p>Listede görülenler: <strong>seed</strong> (rastgele sayı tohumu; rastgeleliği sabitlemek için), <strong>top_k</strong>, <strong>top_p</strong>, <strong>temperature</strong> (modelin ne kadar yaratıcı olacağı), <strong>num_ctx</strong> (bağlam penceresi / context window). Hoca context window'u 10 000 yaptı.</p>
+<h3>Modelfile ile yeni model türetme (≈02:27–02:34)</h3>
+<p>Amaç: Gemma 4 12B'den <strong>Python uzmanı</strong>, Türkçe cevap veren bir model türetmek.</p>
+<ol>
+<li>Bir klasör açılır (hoca derse göre <code>D10</code> klasörü oluşturdu) ve VS Code'da içinde <strong><code>Modelfile</code></strong> adlı, <strong>uzantısız</strong> bir dosya oluşturulur.</li>
+<li>İçeriği (anlatımdan derlenmiş):</li>
+</ol>
+<pre><code class="language-text">FROM gemma4:12b
+SYSTEM &quot;Sen bir Python uzmanısın. Türkçe cevap ver.&quot;
+PARAMETER temperature 0.?
+</code></pre>
+<blockquote>
+<p>Temperature değeri transkriptte anlaşılmıyor ("sıfır nokta…") → [belirsiz]; 0 ile 1 arasında bir değer verildi.</p>
+</blockquote>
+<ol start="3">
+<li>Terminalde:</li>
+</ol>
+<pre><code class="language-bash">ollama create gemma4-12b-turkce -f Modelfile
+</code></pre>
+<ul>
+<li><code>create</code> yeni model oluşturur, <code>-f</code> ile Modelfile'dan türetilir.</li>
+<li>İşlem <strong>çok hızlı</strong> bitiyor; çünkü mevcut katmanları (existing layers) yeniden kullanıyor, sadece iki yeni katman (sistem mesajı/parametreler) oluşturuyor.</li>
+<li><code>ollama list</code> ile bakınca yeni model ~8 GB görünüyor ama gerçekte o kadar yer kaplamıyor; <strong>ortak katmanları</strong> ana modelle paylaşıyor.</li>
+</ul>
+<ol start="4">
+<li>Çalıştırma:</li>
+</ol>
+<pre><code class="language-bash">ollama run gemma4-12b-turkce
+</code></pre>
+<p>"Kendini tanıt" → "Merhaba, ben bir Python uzmanıyım…" Modele bir <strong>rol</strong> vermiş olduk. "Python'da merhaba dünya yazdır" isteğine de doğru kod verdi.</p>
+<h3>Çalışan modeller, Ollama sunucusu ve modeli durdurma (≈02:33–02:38)</h3>
+<pre><code class="language-bash">ollama ps
+</code></pre>
+<p>Çalışan modeli, boyutunu (ör. ~9,3 GB), işlemci kullanımını (<strong>%100 GPU</strong>), bağlam penceresini ve ne zamandır çalıştığını gösteriyor.</p>
+<ul>
+<li>Ollama arka planda bir <strong>sunucu</strong> olarak çalışır: tarayıcıda <code>http://localhost:11434</code> adresine gidince <strong>"Ollama is running"</strong> mesajı görülür. Hermes Agent, n8n gibi araçlardan Ollama'yı kullanmak istediğinizde bağlantı adresi olarak bu linki girersiniz.</li>
+<li><strong>Model kapatılmazsa çalışmaya ve RAM/VRAM'de yer kaplamaya devam eder.</strong> Durdurmak için:</li>
+</ul>
+<pre><code class="language-bash">ollama stop gemma4-12b-turkce
+</code></pre>
+<p>(Hoca ilk denemede yanlış ad yazdı; doğru model adıyla durdurdu. Sonra <code>ollama ps</code> boş geldi.)</p>
+<p><strong>Soru:</strong> <code>ollama ps</code>'teki "llama.cpp" nedir?
+<strong>Cevap:</strong> C++ ile yazılmış bir araç; Ollama'nın büyük modelleri çalıştırmasını sağlıyor.</p>
+<p><strong>Soru:</strong> "%100 GPU" o an mı kullanılıyor?
+<strong>Cevap:</strong> Model çalıştırıldığında GPU'ya yükleniyor; o yüzden %100 GPU görünüyor.</p>
+<p><strong>Soru:</strong> Türetilmiş modelin boyutu nasıl hesaplanıyor?
+<strong>Cevap:</strong> Ana model ~8 GB; türetilmiş model ortak katmanları kullandığı için kendine has kısmı küçük (~1,3–1,4 GB civarı konuşuldu), gerisi ana modelin katmanları.</p>
+<h3>Ollama komutları ve harness entegrasyonu: Claude Code'u açık modelle çalıştırma (≈02:38–02:49)</h3>
+<pre><code class="language-bash">ollama --help
+</code></pre>
+<p>Öne çıkan komutlar:
+- <code>serve</code> → Ollama sunucusunu başlatır. Claude Code, n8n veya Hermes'ten kullanacaksanız ve Ollama açık değilse önce bununla başlatırsınız.
+- <code>create</code> → yeni model oluşturur.
+- <code>run</code>, <code>list</code>, <code>ps</code>, <code>cp</code> (copy), <code>stop</code> → yukarıda görüldü.
+- Ollama hesabına kayıt/giriş için de komut var.</p>
+<p><strong>Sadece <code>ollama</code> yazınca</strong> etkileşimli bir menü açılıyor ve çeşitli <strong>harness'ler</strong> listeleniyor: <strong>Claude Code</strong>, <strong>Hermes Agent</strong>, <strong>Codex</strong>, <strong>OpenClaw</strong> ve "daha fazla" altında DeepSeek'in harness'i, Qwen Code vb. Bazı öğrencilerde menü ilk açılışta bir karşılama ekranından sonra Enter'a basınca geliyor.</p>
+<p><strong>Claude Code'u açık modelle başlatma (adımlar):</strong></p>
+<ol>
+<li>Claude Code kurulu değilse önce kurun (Windows ve Mac için ayrı kurulum komutları; hoca linki gruba gönderdi).<blockquote>
+<p>Not: Resmî kurulum komutları — Windows PowerShell: <code>irm https://claude.ai/install.ps1 | iex</code>; macOS/Linux: <code>curl -fsSL https://claude.ai/install.sh | bash</code>. Derste komutun kendisi okunmadı.</p>
+</blockquote>
+</li>
+<li>Kurulumu kontrol: <code>claude --version</code> (hocada 2.1.x sürümü [tam numara belirsiz]). Sonra <code>claude</code> yazıp "merhaba" ile deneyin.</li>
+<li>Terminalde <code>ollama</code> → menüden <strong>Launch Claude Code</strong> → Enter.</li>
+<li>Model listesinden seçim: en üstte önerilen (recommended) bulut model (ör. Gemma 4 31B Cloud), en altta lokal modeller (ör. <code>gemma4:12b</code>, kendi türettiğimiz <code>gemma4-12b-turkce</code>, <code>qwen3.5:9b</code>). Hoca genel sorular için doğrudan <code>gemma4:12b</code>'yi seçmeyi önerdi.</li>
+<li>Klasöre güven sorusuna "evet".</li>
+</ol>
+<p>Ders sonu sorunları: Bir öğrencide "Waiting for sign-in to complete" ekranı çıktı; menünün en altından lokal model seçilerek ilerlendi. Bir başkasında "auto-update failed" uyarısı vardı; hoca Claude Code / npm güncellemesi gerekebileceğini söyledi.</p>
+<p><strong>Soru:</strong> Model indirirken bazı modellerde "MLX" yazıyor, nedir?
+<strong>Cevap:</strong> <strong>Mac'e özel</strong> (Apple ürünleri için) versiyon. Mac'in mimarisi ve işletim sistemi farklı olduğu için modeller ona göre düzenleniyor. M5 Mac kullananlar MLX versiyonunu indirebilir.</p>
+<p><strong>Soru:</strong> Bazı modeller Türkçe destekliyor mu?
+<strong>Cevap:</strong> Bazı modeller Türkçeyi desteklemiyor; Gemma 4 ve Qwen destekliyor.</p>
+<p>Hoca Hugging Face tarafını da göstermek istediğini ama vaktin yetmeyeceğini söyledi; bu derste <strong>Hugging Face uygulamasına geçilmedi</strong>.</p>
