@@ -288,6 +288,42 @@
   }
   .tag.ai{border-color:var(--water); color:var(--water)}
 
+  /* ---- kod kartları ---- */
+  .kodkart{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--r);
+    margin:12px 0; overflow:hidden;
+  }
+  .kk-ust{display:flex; align-items:center; gap:10px; padding:8px 12px; background:#1F2428; color:#9AA5AD; font-family:var(--f-mono); font-size:11.5px}
+  .kk-nokta i{display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; background:#3C4A52}
+  .kk-nokta i:nth-child(1){background:#E0665A} .kk-nokta i:nth-child(2){background:#E2B14C} .kk-nokta i:nth-child(3){background:#5FB66C}
+  .kk-ad{font-family:var(--f-disp); font-weight:600; font-size:15.5px; padding:10px 14px 2px}
+  .kk-kod{
+    background:#161B1F; color:#D6DEE3; font-family:var(--f-mono); font-size:12.5px; line-height:1.7;
+    padding:10px 0; overflow-x:auto; margin:8px 0 0;
+  }
+  .kk-satir{display:flex; align-items:flex-start; gap:10px; padding:0 10px 0 8px; white-space:pre; min-height:21px}
+  .kk-satir.kk-vurgu{background:rgba(240,112,63,.09)}
+  .kk-no{flex:0 0 22px; text-align:right; color:#5B6A73; user-select:none}
+  .kk-ic{flex:1 0 auto; padding-right:30px}
+  .kk-kod .kk-balon{position:sticky; right:8px; margin-left:-26px; box-shadow:0 0 0 3px #161B1F}
+  .kk-anahtar{color:#C792EA} .kk-metin{color:#9ECE6A} .kk-yorum{color:#6B7D84; font-style:italic} .kk-fonk{color:#7FB7E8}
+  .kk-balon{
+    flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center;
+    width:20px; height:20px; border-radius:50%; background:var(--mark); color:#fff;
+    font-family:var(--f-disp); font-weight:700; font-size:11px; line-height:1; cursor:pointer;
+  }
+  .kk-liste{list-style:none; margin:0; padding:10px 14px 4px}
+  .kk-liste li{display:flex; gap:10px; align-items:flex-start; margin:0 0 9px; font-size:14px; line-height:1.5; border-radius:6px; padding:2px 4px}
+  .kk-liste .kk-balon{margin-top:2px}
+  .kk-liste li.kk-yanip{background:color-mix(in srgb,var(--mark) 14%,transparent)}
+  .kk-akis{margin:4px 10px 12px; border:0; padding:0}
+  .kk-ekran{padding:8px 12px 2px}
+  .kk-ekran figure{margin:6px 0 10px}
+  .kk-ekran img{display:block; width:100%; border:1px solid var(--line); border-radius:8px; cursor:zoom-in; background:#fff}
+  .kk-ekran img.kk-buyuk{position:fixed; inset:0; width:100vw; height:100vh; object-fit:contain; z-index:100; background:#000; border:0; border-radius:0; cursor:zoom-out}
+  .kk-ekran figcaption{font-size:12.5px; color:var(--muted); margin-top:4px; line-height:1.4}
+  .kk-zaman{font-family:var(--f-mono); font-size:11px; color:var(--contour); margin-right:4px}
+
   /* ---- GitHub okuma sürümü uyarısı ---- */
   .gh-uyari{
     display:flex; flex-direction:column; gap:5px;
@@ -4273,6 +4309,7 @@ function dersAc(nn, yerinde){
   if(x.sorular.length) meta.appendChild(etiket("span", "", x.sorular.length + " quiz sorusu"));
   meta.appendChild(etiket("span", "", x.dosyalar.length + " hoca dosyası"));
   if(x.tahta) meta.appendChild(etiket("span", "", "tahta çizimi var"));
+  if(KODKART_VAR[x.nn]) meta.appendChild(etiket("span", "", "kod kartları var"));
   box.appendChild(meta);
 
   if(Array.isArray(x.anahtar) && x.anahtar.length){
@@ -4299,6 +4336,7 @@ function dersAc(nn, yerinde){
   seg.setAttribute("role", "group"); seg.setAttribute("aria-label", "Ders bölümü");
   const sekmeler = [["notlar","Notlar"],["metin","Ders metni"]];
   if(x.tahta) sekmeler.push(["tahta","Tahta"]);
+  if(KODKART_VAR[nn]) sekmeler.push(["kod","Kod kartları"]);
   sekmeler.push(["dosyalar","Dosyalar"],["alan","Kendi alanında"]);
   if(!sekmeler.some(s => s[0] === ktSekme)) ktSekme = "notlar";
   const alan = etiket("div", "");
@@ -4328,6 +4366,13 @@ function dersAc(nn, yerinde){
       tl.appendChild(im);
     }
     alan.appendChild(tl);
+  }
+  else if(ktSekme === "kod"){
+    alan.appendChild(etiket("p", "note", "Dersin kodu, VS Code görünümünde. Kırmızı numaralara dokun: o satırın ne yaptığı altta. Şema kodun veri yolu."));
+    kodKartYukle(nn).then(d => {
+      if(!d || !d.kartlar){ alan.appendChild(etiket("div", "err", "Bu dersin kod kartları yüklenemedi.")); return; }
+      d.kartlar.forEach(k => alan.appendChild(kodKartCiz(k)));
+    });
   }
   else if(ktSekme === "dosyalar"){
     alan.appendChild(etiket("h3", "", "Hocanın dosyaları"));
@@ -4765,6 +4810,97 @@ function rotaDerslerCiz(){
 function varsayilanDers(){
   const y = DERSLER.filter(d => d.hafta >= 3 && !progress[d.id + "quiz_sonuc"]);
   return (y[0] || DERSLER[DERSLER.length - 1] || {id:"d1"}).id;
+}
+
+/* ═══════════ KOD KARTLARI: VS Code görünümlü kod + numaralı balonlar + akış ═══════════ */
+const KODKART = {};        /* nn → {kartlar} | null */
+const KODKART_VAR = {"05": true};
+async function kodKartYukle(nn){
+  if(nn in KODKART) return KODKART[nn];
+  if(!KODKART_VAR[nn]){ KODKART[nn] = null; return null; }
+  try{
+    const r = await fetch("kodkart/" + nn + ".json");
+    KODKART[nn] = r.ok ? await r.json() : null;
+  }catch(e){ KODKART[nn] = null; }
+  return KODKART[nn];
+}
+function kodRenk(satir, dil){
+  /* çok basit vurgulama: yorum, metin, anahtar kelime */
+  const sar = document.createDocumentFragment();
+  const parca = satir.split(/("""|"[^"]*"|'[^']*'|#.*$)/);
+  parca.forEach(p => {
+    if(!p) return;
+    const sp = document.createElement("span");
+    if(p[0] === "#"){ sp.className = "kk-yorum"; sp.textContent = p; sar.appendChild(sp); return; }
+    if(p[0] === '"' || p[0] === "'"){ sp.className = "kk-metin"; sp.textContent = p; sar.appendChild(sp); return; }
+    const kel = p.split(/(\b(?:from|import|def|return|for|in|print|if|else|None|True|False|uv|export|setx)\b)/);
+    kel.forEach(k => {
+      if(!k) return;
+      const s2 = document.createElement("span");
+      if(/^(from|import|def|return|for|in|if|else|None|True|False)$/.test(k)) s2.className = "kk-anahtar";
+      else if(/^(print|uv|export|setx)$/.test(k)) s2.className = "kk-fonk";
+      s2.textContent = k; sar.appendChild(s2);
+    });
+  });
+  return sar;
+}
+function kodKartCiz(k, secenek){
+  secenek = secenek || {};
+  const sar = etiket("div", "kodkart");
+  const ust = etiket("div", "kk-ust");
+  const nokta = etiket("span", "kk-nokta"); nokta.innerHTML = "<i></i><i></i><i></i>";
+  ust.appendChild(nokta);
+  ust.appendChild(etiket("span", "kk-dosya", k.dosya || ""));
+  sar.appendChild(ust);
+  if(!secenek.basliksiz){ const h = etiket("div", "kk-ad", k.ad); sar.appendChild(h); }
+  if(Array.isArray(k.ekran) && k.ekran.length && !secenek.ekransiz){
+    const eb = etiket("div", "kk-ekran");
+    eb.appendChild(etiket("p", "eyebrow", "Hocanın ekranı · derste bu an"));
+    k.ekran.forEach(e => {
+      const fig = etiket("figure", "");
+      const im = document.createElement("img"); im.src = e.dosya; im.alt = e.ne; im.loading = "lazy";
+      im.addEventListener("click", () => im.classList.toggle("kk-buyuk"));
+      fig.appendChild(im);
+      const c = etiket("figcaption", ""); c.appendChild(etiket("span", "kk-zaman", e.t)); c.appendChild(document.createTextNode(" " + e.ne)); fig.appendChild(c);
+      eb.appendChild(fig);
+    });
+    sar.appendChild(eb);
+  }
+  /* satır → balon numarası */
+  const balonNo = {};
+  (k.balon || []).forEach((b, i) => { for(let s = b.s[0]; s <= b.s[1]; s++) if(!(s in balonNo)) balonNo[s] = i + 1; });
+  const ilk = {}; (k.balon || []).forEach((b, i) => { ilk[b.s[0]] = i + 1; });
+  const pre = etiket("div", "kk-kod");
+  k.kod.forEach((satir, i) => {
+    const no = i + 1;
+    const row = etiket("div", "kk-satir" + (balonNo[no] ? " kk-vurgu" : ""));
+    row.appendChild(etiket("span", "kk-no", String(no)));
+    const ic = etiket("span", "kk-ic"); ic.appendChild(kodRenk(satir, k.dil)); row.appendChild(ic);
+    const b = etiket("span", "kk-balon", ilk[no] ? String(ilk[no]) : ""); if(!ilk[no]) b.style.visibility = "hidden";
+    row.appendChild(b);
+    if(ilk[no]) row.addEventListener("click", () => { const h = sar.querySelector("[data-kk-acik='" + ilk[no] + "']"); if(h){ h.scrollIntoView({block:"nearest", behavior:"smooth"}); h.classList.add("kk-yanip"); setTimeout(() => h.classList.remove("kk-yanip"), 900); } });
+    pre.appendChild(row);
+  });
+  sar.appendChild(pre);
+  const ol = etiket("ol", "kk-liste");
+  (k.balon || []).forEach((b, i) => {
+    const li = document.createElement("li"); li.setAttribute("data-kk-acik", String(i + 1));
+    const no = etiket("span", "kk-balon", String(i + 1)); li.appendChild(no);
+    const t = etiket("span", "", ""); t.textContent = b.n; li.appendChild(t);
+    ol.appendChild(li);
+  });
+  sar.appendChild(ol);
+  if(k.akis && typeof hcSemaCiz === "function"){
+    try{ const g = hcSemaCiz({baslik:"Veri yolu", kutular:k.akis.kutular, oklar:k.akis.oklar}); if(g){ g.classList.add("kk-akis"); sar.appendChild(g); } }catch(e){}
+  }
+  return sar;
+}
+/* hoca parçası bir notebook adını içeriyorsa o kartı bul */
+function kodKartBul(nn, baslik){
+  const d = KODKART[nn]; if(!d || !d.kartlar) return null;
+  const b = String(baslik || "").toLowerCase();
+  return d.kartlar.filter(k => k.dosya && b.indexOf(k.dosya.toLowerCase().replace(/\.(ipynb|py)$/, "")) >= 0)[0] ||
+         d.kartlar.filter(k => /ortam|api anahtar/i.test(b) && /ortam/i.test(k.ad))[0] || null;
 }
 
 /* ═══════════ ŞEMA ÇİZİCİ: kutu + ok, telefona sığar ═══════════ */
@@ -5298,6 +5434,7 @@ async function hcParcaCiz(nn, units, st, alan){
   kart.appendChild(etiket("p", "eyebrow", "Hoca anlatıyor"));
   if(ic.sema){ try{ const g = hcSemaCiz(ic.sema); if(g) kart.appendChild(g); }catch(e){} }
   const govde = etiket("div", ""); hcYaz(govde, ic.anlatim); kart.appendChild(govde);
+  try{ const kd = await kodKartYukle(nn); const kk = kd ? kodKartBul(nn, u.b) : null; if(kk){ const kkb = etiket("p", "eyebrow", "Kod kartı · " + kk.dosya); kkb.style.marginTop = "14px"; kart.appendChild(kkb); kart.appendChild(kodKartCiz(kk, {basliksiz:true})); } }catch(e){}
   const tahtaK = hcTahtaCiz(nn, st.i, units.length); if(tahtaK) kart.appendChild(tahtaK);
   const br = etiket("div", "btnrow"); br.style.marginBottom = "0";
   if(window.speechSynthesis){ const sb = dugme("Sesli dinle", "btn ghost", () => hcSes(ic.anlatim, sb)); br.appendChild(sb); }
