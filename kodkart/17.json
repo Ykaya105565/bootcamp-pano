@@ -1,0 +1,211 @@
+{
+ "ders": "17",
+ "kartlar": [
+  {
+   "id": "k0",
+   "ad": "Kurulum ve 4-bit model",
+   "dosya": "QLoRA.ipynb",
+   "dil": "python",
+   "kod": [
+    "!pip install -q -U transformers datasets peft trl bitsandbytes accelerate",
+    "",
+    "base_model = \"Qwen/Qwen3-8B\"",
+    "tokenizer = AutoTokenizer.from_pretrained(base_model, padding_side = \"right\",)",
+    "",
+    "bnb_config = BitsAndBytesConfig(",
+    "    load_in_4bit=True,",
+    "    bnb_4bit_quant_type=\"nf4\",",
+    "    bnb_4bit_use_double_quant=True,",
+    "    bnb_4bit_compute_dtype=torch.bfloat16",
+    "    )",
+    "",
+    "model = AutoModelForCausalLM.from_pretrained(",
+    "    base_model, quantization_config=bnb_config, device_map=\"auto\",)"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Altı paket: transformers model/tokenizer, datasets veri, peft LoRA, trl SFT eğitimi, bitsandbytes 4-bit, accelerate cihaz yerleşimi. pyarrow bağımlılık uyarısı bu akış için zararsız. (Bu bölüm altyazısız aralıkta; kod notebook'tan alındı.)"},
+    {"s": [3, 4], "n": "Temel model Qwen3-8B (~8 milyar parametre) ve onun tokenizer'ı; her model kendi tokenizer'ıyla çalışır. padding_side=right: eğitimde dolgu token'ları sağa eklenir."},
+    {"s": [7, 9], "n": "Ağırlıklar 4 bit'e iner: QLoRA'nın Q'su. nf4 ağırlık dağılımına uygun 4-bit tip, double quant quantization sabitlerini de sıkıştırır. Düz LoRA bu model için ~50-60 GB GPU belleği isterdi."},
+    {"s": [10, 10], "n": "Depolama 4 bit, hesaplama bfloat16. Colab'ın ücretsiz T4'ünde bf16 yok, torch.float16 yap (notlardaki çıkarım). Hoca A100'deydi; öğrenci hatalarının kaynağı büyük olasılıkla bu."},
+    {"s": [13, 14], "n": "Token üreten (causal) model 4-bit yüklenir, device_map=auto GPU'ya yerleştirir. Float32 rasteri 8-bit'e indirip saklamak gibi: bellek çok azalır, kayıp küçük."}
+   ],
+   "akis": {
+    "kutular": ["Qwen/Qwen3-8B (Hub)", "BitsAndBytesConfig", "4-bit model (GPU)", "tokenizer"],
+    "oklar": [[0, 2, "indir"], [1, 2, "nf4"], [0, 3]]
+   },
+   "zaman": "≈1:10–1:53"
+  },
+  {
+   "id": "k1",
+   "ad": "Veri seti ve sohbet formatı",
+   "dosya": "QLoRA.ipynb",
+   "dil": "python",
+   "kod": [
+    "dataset_name = \"databricks/databricks-dolly-15k\"",
+    "train_dataset = load_dataset(dataset_name, split=\"train[0:800]\")",
+    "eval_dataset = load_dataset(dataset_name, split=\"train[800:1000]\")",
+    "",
+    "def generate_prompt(sample):",
+    "    user_content = sample[\"instruction\"]",
+    "    if sample[\"context\"]:",
+    "        user_content += f\"\\n\\nContext:\\n{sample['context']}\"",
+    "    return {\"messages\": [",
+    "        {\"role\": \"user\", \"content\": user_content},",
+    "        {\"role\": \"assistant\", \"content\": sample[\"response\"]}]}",
+    "",
+    "generated_train_dataset = train_dataset.map(generate_prompt)",
+    "generated_val_dataset = eval_dataset.map(generate_prompt)"
+   ],
+   "balon": [
+    {"s": [1, 3], "n": "Dolly-15k: instruction, context, response, category sütunları. Tek bölüm (train) var; dilimle ilk 800 eğitim, 800-1000 değerlendirme olur, çakışmaz. Dengelemeye kontrol noktalarını katmamak gibi: ölçtüğün veriyle eğitmezsin."},
+    {"s": [6, 8], "n": "Talimat kullanıcı mesajı olur; bağlam varsa altına 'Context:' başlığıyla eklenir. Bağlam her örnekte yok; if olmasa boş 'Context:' satırları eklenirdi."},
+    {"s": [9, 11], "n": "Modelin sohbet şablonunun beklediği messages yapısı: user soru, assistant öğrenilecek cevap. Her modelin girdi formatı farklı; veri o biçime çevrilmeden eğitilmez."},
+    {"s": [13, 14], "n": "map fonksiyonu her örneğe uygular ve yeni messages sütunu ekler, diğer sütunlar durur. Doğrulama kümesine de aynısı uygulanmalı."}
+   ],
+   "akis": {
+    "kutular": ["dolly-15k", "train[0:800] / [800:1000]", "generate_prompt", "messages sütunu"],
+    "oklar": [[0, 1, "load_dataset"], [1, 2, "map"], [2, 3, "user + assistant"]]
+   },
+   "zaman": "≈1:53–2:00"
+  },
+  {
+   "id": "k2",
+   "ad": "PEFT hazırlığı ve LoraConfig",
+   "dosya": "QLoRA.ipynb",
+   "dil": "python",
+   "kod": [
+    "model = prepare_model_for_kbit_training(model)",
+    "",
+    "lora_config = LoraConfig(",
+    "    r=8,",
+    "    lora_alpha=16,",
+    "    target_modules=\"all-linear\",",
+    "    bias=\"none\",",
+    "    lora_dropout=0.05,",
+    "    task_type=\"CAUSAL_LM\",",
+    ")"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "4-bit modeli eğitime hazırlar: temel ağırlıkları dondurur, kararlılık için bazı katmanları uygun tipe çevirir, gradient checkpointing'e hazırlar. Ağırlıklar değişmeyecek; yalnızca yanına takılacak adaptör eğitilecek."},
+    {"s": [4, 4], "n": "rank: adaptör matrislerinin iç boyutu. lora_A 4096→8, lora_B 8→4096; r büyüdükçe eğitilen parametre artar. Projeye ve veriye göre seçilir."},
+    {"s": [5, 5], "n": "Adaptör katkısının ölçeği; etkin ölçek genellikle alpha/r = 2 (notlardaki ek bilgi)."},
+    {"s": [6, 6], "n": "Adaptör hangi katmanlara takılsın: tüm linear katmanlar (q/k/v/o projeksiyonları, MLP)."},
+    {"s": [7, 8], "n": "bias (sabit terim) eğitilmez; %5 dropout ezberlemeye (overfitting) karşı."},
+    {"s": [9, 9], "n": "Görev türü: token üreten (causal) model; AutoModelForCausalLM ile aynı görev."}
+   ],
+   "akis": {
+    "kutular": ["4-bit model (donuk)", "prepare_model_for_kbit_training", "LoraConfig (r=8)", "Adaptör A·B"],
+    "oklar": [[0, 1], [1, 3, "takılacak zemin"], [2, 3, "boyut ve ölçek"]]
+   },
+   "zaman": "≈2:00–2:03"
+  },
+  {
+   "id": "k3",
+   "ad": "Hub girişi ve eğitim ayarları",
+   "dosya": "QLoRA.ipynb",
+   "dil": "python",
+   "kod": [
+    "notebook_login()     # HF_TOKEN (yazma yetkili) — değeri asla notebook'a yazılmaz",
+    "",
+    "training_arguments = SFTConfig(",
+    "    output_dir=\"./results\",",
+    "    per_device_train_batch_size=1,",
+    "    gradient_accumulation_steps=4,",
+    "    gradient_checkpointing=True,",
+    "    learning_rate=2e-4,",
+    "    weight_decay=0.001,",
+    "    max_steps=20,",
+    "    logging_steps=5,",
+    "    save_strategy=\"steps\",",
+    "    save_steps=10,",
+    "    eval_strategy=\"steps\",",
+    "    eval_steps=10,",
+    "    bf16=True,",
+    "    report_to=\"none\",",
+    ")",
+    "model.config.use_cache = False"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Adaptörü Hub'a yüklemek için giriş; yazma yetkili token gerekir, değeri notebook'a yazılmaz. Colab'da token tanımlıysa kutu çıkmaz; bazılarında kısa kodla cihaz onayı istenir, bir kez yeterli."},
+    {"s": [5, 6], "n": "Etkin batch = 1 × 4 = 4 örnek/adım: GPU'ya her seferinde 1 örnek girer, gradyanlar 4 adım biriktirilip sonra güncellenir. Küçük bellekle büyük batch etkisi."},
+    {"s": [7, 7], "n": "Bellek tasarrufu: ara aktivasyonlar saklanmaz, geri yayılımda yeniden hesaplanır; daha az VRAM, biraz daha yavaş. Hoca 'kontrol noktası' diye anlattı; ara kaydı aslında save_steps yapar."},
+    {"s": [8, 10], "n": "learning_rate 2e-4 LoRA için tipik, görece yüksek (yalnızca küçük adaptör eğitiliyor); weight_decay aşırı uyumu azaltır. max_steps=20 yalnızca ders için: ~80 örnek, epoch 0,1."},
+    {"s": [12, 17], "n": "10 adımda bir ./results'a checkpoint ve doğrulama kaybı. bf16=True A100'de çalışır; T4'te bf16=False, fp16=True yap (notlardaki çıkarım). report_to=none: W&B gibi izleme aracı yok."},
+    {"s": [19, 19], "n": "KV cache eğitimde gereksiz ve gradient checkpointing ile çakışır, kapatılır. Çıkarımda yeniden True yapılır."}
+   ],
+   "akis": {
+    "kutular": ["notebook_login", "SFTConfig", "use_cache=False", "SFTTrainer (sonraki adım)"],
+    "oklar": [[0, 3, "Hub izni"], [1, 3, "ayarlar"], [2, 3]]
+   },
+   "zaman": "≈2:03–2:10"
+  },
+  {
+   "id": "k4",
+   "ad": "Trainer, eğitim, Hub'a yükleme",
+   "dosya": "QLoRA.ipynb",
+   "dil": "python",
+   "kod": [
+    "trainer = SFTTrainer(",
+    "    model=model,",
+    "    args=training_arguments,",
+    "    processing_class=tokenizer,",
+    "    train_dataset=generated_train_dataset,",
+    "    eval_dataset=generated_val_dataset,",
+    "    peft_config=lora_config,",
+    ")",
+    "trainer.model.print_trainable_parameters()",
+    "# trainable params: 21,823,488 || all params: 8,212,558,848 || trainable%: 0.2657",
+    "trainer.train()        # 20 adım, ≈101 sn, training_loss ≈ 2,10",
+    "trainer.model.push_to_hub(\"qwen3-8b-dolly-qlora\")   # adapter_model.safetensors 43,7 MB"
+   ],
+   "balon": [
+    {"s": [4, 4], "n": "TRL messages sütununu tokenizer'ın sohbet şablonuyla token'a çevirir, etiketleri oluşturur, uzun örnekleri kırpar. (Bu bölüm altyazısız aralıkta; kod notebook'tan alındı.)"},
+    {"s": [5, 6], "n": "Eğitim kümesiyle öğrenir, doğrulama kümesiyle 10 adımda bir ölçülür."},
+    {"s": [7, 7], "n": "Adaptörleri trainer kendisi takar; ayrıca get_peft_model çağırmaya gerek kalmaz."},
+    {"s": [9, 10], "n": "8,2 milyar parametrenin yalnızca 21,8 milyonu (%0,27) eğitiliyor: 'ağırlıkları dondur, küçük adaptör eğit' fikri sayıyla."},
+    {"s": [11, 11], "n": "Eğitim: 20 adım, ~101 saniye, training_loss ≈ 2,10. Öğrencilerdeki hatalar büyük olasılıkla GPU tipinden (T4'te bf16 yok)."},
+    {"s": [12, 12], "n": "Yalnızca adaptör ağırlıkları ve adapter_config.json yüklenir, 8B modelin kendisi değil: 43,7 MB. Bütün paftayı değil, yalnızca güncelleme katmanını paylaşmak gibi."}
+   ],
+   "akis": {
+    "kutular": ["generated_train_dataset", "SFTTrainer + lora_config", "trainer.train()", "LoRA adaptörü", "HF Hub"],
+    "oklar": [[0, 1], [1, 2], [2, 3, "21,8M parametre"], [3, 4, "push_to_hub"]]
+   },
+   "zaman": "≈2:10–2:24"
+  },
+  {
+   "id": "k5",
+   "ad": "Adaptörü geri yükleme ve çıkarım",
+   "dosya": "QLoRA.ipynb",
+   "dil": "python",
+   "kod": [
+    "peft_model_id = \"Tirendaz/qwen3-8b-dolly-qlora\"",
+    "config = PeftConfig.from_pretrained(peft_model_id)      # base: Qwen/Qwen3-8B",
+    "base_model = AutoModelForCausalLM.from_pretrained(config.base_model_name_or_path,",
+    "    quantization_config=bnb_config, device_map=\"auto\",)",
+    "tokenizer = AutoTokenizer.from_pretrained(config.base_model_name_or_path,)",
+    "fine_tuned_model = PeftModel.from_pretrained(base_model, peft_model_id,)",
+    "fine_tuned_model.eval(); fine_tuned_model.config.use_cache = True",
+    "",
+    "inputs = tokenizer.apply_chat_template(messages, add_generation_prompt=True,",
+    "    tokenize=True, return_dict=True, return_tensors=\"pt\", enable_thinking=False,)",
+    "inputs = inputs.to(fine_tuned_model.device)",
+    "with torch.no_grad():",
+    "    outputs = fine_tuned_model.generate(**inputs, max_new_tokens=100, do_sample=False,)",
+    "response = tokenizer.decode(outputs[0, inputs[\"input_ids\"].shape[1]:], skip_special_tokens=True,)"
+   ],
+   "balon": [
+    {"s": [1, 2], "n": "Hub'daki adaptörün ayarları okunur; içinde hangi temel modelle eğitildiği yazar (Qwen/Qwen3-8B). Doğru temel modeli yüklemenin güvenli yolu; bu adım ayrı bir oturumda ya da makinede de yapılabilir."},
+    {"s": [3, 6], "n": "Temel model yine 4-bit yüklenir, adaptör üstüne takılır; kalıcı birleştirme değil (merge ayrı adım, derste kullanılmadı). Altlık paftanın üstünde güncelleme katmanını açmak gibi. (≈2:26–2:30 altyazısız; kod notebook'tan alındı.)"},
+    {"s": [7, 7], "n": "eval() dropout gibi eğitim davranışlarını kapatır; KV cache çıkarımda yeniden açılır, üretim hızlanır."},
+    {"s": [9, 10], "n": "messages önceki hücrede tanımlı soru listesi ('Explain Python ... in one sentence'). add_generation_prompt sona 'şimdi asistan konuşacak' işaretini koyar; enable_thinking=False Qwen3'ün düşünme modunu kapatır."},
+    {"s": [12, 13], "n": "no_grad: çıkarımda gradyan hesaplanmaz, daha az bellek, daha hızlı. do_sample=False deterministik (greedy) cevap; en çok 100 yeni token."},
+    {"s": [14, 14], "n": "Çıktı girdiyi de içerir; girdi uzunluğu kadar token atlanıp yalnızca yeni üretilen kısım metne çevrilir. Komorida sorusu yanlış cevaplandı: fine-tuning bilgi değil cevap verme biçimi öğretir, olgu için RAG gerekir."}
+   ],
+   "akis": {
+    "kutular": ["Hub adaptörü", "PeftConfig", "4-bit temel model", "PeftModel", "generate → decode"],
+    "oklar": [[0, 1, "ayar"], [1, 2, "base adı"], [2, 3, "+ adaptör"], [0, 3], [3, 4, "soru"]]
+   },
+   "zaman": "≈2:24–2:36"
+  }
+ ]
+}

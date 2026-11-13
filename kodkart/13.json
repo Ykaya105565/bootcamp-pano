@@ -1,0 +1,213 @@
+{
+ "ders": "13",
+ "kartlar": [
+  {
+   "id": "k0",
+   "ad": "Kurulum ve MCP Inspector",
+   "dosya": "terminal",
+   "dil": "bash",
+   "kod": [
+    "uv init --python 3.12",
+    "uv add openai ipykernel python-dotenv",
+    "uv add \"mcp[cli]\"",
+    "uv sync",
+    "uv run mcp dev 02-server-demo.py",
+    "node --version"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Python 3.12 ile yeni proje. İki tire şart: yanlış yazılınca \"3.12 bulunamadı\" hatası alındı."},
+    {"s": [2, 2], "n": "Function calling notebook'u için: openai modele bağlanır, ipykernel notebook'ta çekirdek seçtirir, python-dotenv .env'deki anahtarı okur."},
+    {"s": [3, 3], "n": "MCP SDK ve komut satırı aracı (mcp dev, mcp run). [cli] eki olmadan bu komutlar gelmez; tırnak, köşeli parantezin kabukta yanlış yorumlanmasını önler."},
+    {"s": [4, 4], "n": "pyproject.toml'daki sürümlere göre ortamı yeniden kurar; kurulum hatasında ilk çare. Olmazsa yeni klasörde sıfırdan proje (uv init, uv add)."},
+    {"s": [5, 5], "n": "Tarayıcıda MCP Inspector açar: Tools, Resources, Prompts sekmelerinden sunucuyu modelsiz test edersin (50 + 75 = 125). Açılmazsa terminaldeki linki elle aç. Yeni araç ekleyince Ctrl+C ile durdurup yeniden başlat."},
+    {"s": [6, 6], "n": "Inspector Node.js tabanlı. \"npx bulunamadı\" hatasında nodejs.org'dan Node.js kur, bununla kontrol et, terminali yeniden aç. \"Gerekli araçları otomatik kur\" kutusunu işaretleme; saatler sürer, gerek yok."}
+   ],
+   "akis": {
+    "kutular": ["uv init", "uv add", "pyproject + .venv", "uv run mcp dev", "Inspector (tarayıcı)"],
+    "oklar": [[0, 2, "oluşturur"], [1, 2, "yazar"], [2, 3], [3, 4, "açar"]]
+   },
+   "zaman": "≈0:58–2:15"
+  },
+  {
+   "id": "k1",
+   "ad": "Aracı modele tanıtmak: tools şeması",
+   "dosya": "01-calling.ipynb",
+   "dil": "python",
+   "kod": [
+    "def add(a: int, b: int) -> int:",
+    "    \"\"\"İki tam sayıyı toplar.\"\"\"",
+    "    return a + b",
+    "",
+    "tools = [{",
+    "    \"type\": \"function\",",
+    "    \"name\": \"add\",",
+    "    \"description\": \"İki tam sayıyı toplar ve sonucu döndürür.\",",
+    "    \"parameters\": {",
+    "        \"type\": \"object\",",
+    "        \"properties\": {",
+    "            \"a\": {\"type\": \"integer\", \"description\": \"Toplanacak ilk sayı\"},",
+    "            \"b\": {\"type\": \"integer\", \"description\": \"Toplanacak ikinci sayı\"}",
+    "        },",
+    "        \"required\": [\"a\", \"b\"],",
+    "        \"additionalProperties\": False",
+    "    },",
+    "    \"strict\": True",
+    "}]"
+   ],
+   "balon": [
+    {"s": [1, 3], "n": "Sıradan Python fonksiyonu; modelin dışında durur, onu uygulama çalıştırır. Type hint (int) modeli doğru tipe yönlendirir, docstring aracın açıklamasıdır. LLM olasılıksal tahmincidir, çarpmayı bile şaşırabilir; hesap deterministik koda bırakılır."},
+    {"s": [5, 8], "n": "Bu sözlük modele aracı tanıtır: fonksiyonun kendisi değil, tarifi gider. name ve description modelin seçimde baktığı alanlar; özenle yazılmalı. Bu hücre tek başına hiçbir şey çağırmaz."},
+    {"s": [9, 14], "n": "parameters bir JSON Schema: her parametrenin tipi ve açıklaması. Type hint'in modelin anladığı dildeki karşılığı; öznitelik tablosundaki alan tanımı gibi."},
+    {"s": [15, 15], "n": "required: a ve b zorunlu; model birini atlayamaz."},
+    {"s": [16, 18], "n": "additionalProperties: False tanımsız ekstra parametreyi, strict: True şema dışına çıkıp parametre uydurmayı engeller. Python'da False/True büyük harfle yazılır."}
+   ],
+   "akis": {
+    "kutular": ["add() (Python)", "tools şeması", "Model", "function_call"],
+    "oklar": [[0, 1, "tarif edilir"], [1, 2, "tools="], [2, 3, "seçer"]]
+   },
+   "zaman": "≈0:58–1:42"
+  },
+  {
+   "id": "k2",
+   "ad": "Function calling döngüsü",
+   "dosya": "01-calling.ipynb",
+   "dil": "python",
+   "kod": [
+    "input_list = [{\"role\": \"user\", \"content\": \"125 ile 375'i topla.\"}]",
+    "",
+    "response = client.responses.create(model=\"gpt-6-luna\", input=input_list, tools=tools)",
+    "print(response.output)",
+    "",
+    "input_list += response.output",
+    "tool_call = next(item for item in response.output if item.type == \"function_call\")",
+    "arguments = json.loads(tool_call.arguments)",
+    "",
+    "result = add(**arguments)",
+    "input_list.append({",
+    "    \"type\": \"function_call_output\",",
+    "    \"call_id\": tool_call.call_id,",
+    "    \"output\": str(result)",
+    "})",
+    "",
+    "final_response = client.responses.create(model=\"gpt-6-luna\", input=input_list, tools=tools)",
+    "print(final_response.output_text)"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Konuşma geçmişi bir liste, çünkü büyüyecek: kullanıcı mesajı, modelin function call'u, araç çıktısı. Model kimin ne dediğini bu sırayla takip eder."},
+    {"s": [3, 4], "n": "Responses API; tools ile model \"bunları kullanabilirsin\" bilgisini alır. Çıktıda cevap yok: type=\"function_call\", name, arguments, call_id var. Model yalnızca \"add'i şu parametrelerle çağır\" der."},
+    {"s": [6, 8], "n": "Modelin çıktısı geçmişe eklenir (bağlam genişler). next tipi function_call olan ilk öğeyi alır; çok araçlı senaryoda anlamlı. Argümanlar JSON metni gelir, json.loads sözlüğe çevirir: a=125, b=375."},
+    {"s": [10, 10], "n": "Kritik satır: aracı model değil UYGULAMA çalıştırır. **arguments sözlüğü a=..., b=... parametrelerine açar; sonuç 500. Model iş emrini yazar, ölçüyü ekip yapar."},
+    {"s": [11, 15], "n": "Sonuç geçmişe eklenir. call_id bu çıktının hangi çağrıya ait olduğunu eşler; birden çok çağrıda karışmayı önler. Çıktı metin olarak gider, bu yüzden str(result)."},
+    {"s": [17, 18], "n": "tools yine verilir: model sonuca bakıp aracı tekrar çağırmak isteyebilir. Model geçmişi okuyup \"125 + 375 = 500\" cevabını üretir."}
+   ],
+   "akis": {
+    "kutular": ["input_list", "Model (1. çağrı)", "function_call", "add(**arguments)", "function_call_output", "Model (son cevap)"],
+    "oklar": [[0, 1], [1, 2], [2, 3, "json.loads"], [3, 4, "500"], [4, 5, "call_id"]]
+   },
+   "zaman": "≈0:58–1:42"
+  },
+  {
+   "id": "k3",
+   "ad": "İlk MCP sunucusu",
+   "dosya": "02-server-demo.py",
+   "dil": "python",
+   "kod": [
+    "from mcp.server import MCPServer",
+    "",
+    "mcp = MCPServer(\"Bootcamp MCP Server\")",
+    "",
+    "@mcp.tool()",
+    "def add(a: int, b: int) -> int:",
+    "    \"\"\"İki tam sayıyı toplar.\"\"\"",
+    "    return a + b",
+    "",
+    "if __name__ == \"__main__\":",
+    "    mcp.run(transport=\"stdio\")"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Sunucu sınıfı. Not: bu import hocanın dosyasından; mcp 2.3.0'da yol değişmiş olabilir (eski sürümlerde FastMCP). Hata alırsan kurulu sürümü kontrol et."},
+    {"s": [3, 3], "n": "Sunucu örneği; verilen ad istemcide görünür."},
+    {"s": [5, 8], "n": "Aynı add fonksiyonu, tek fark dekoratör. @mcp.tool() fonksiyonu MCP aracına çevirir; şema type hint ve docstring'den üretilir, tools sözlüğünü elle yazmaya gerek kalmaz. Bir kez yazılır, her host bağlanabilir."},
+    {"s": [10, 11], "n": "Dosya doğrudan çalıştırılınca sunucu başlar. stdio: host sunucuyu alt süreç olarak açıp standart girdi/çıktı ile konuşur. Bu blok unutulursa Inspector bağlanamaz; timeout'ta ilk bakılacak yer. Sunucu .py olur, notebook değil."}
+   ],
+   "akis": {
+    "kutular": ["add()", "@mcp.tool()", "MCPServer", "stdio", "Host / Inspector"],
+    "oklar": [[0, 1], [1, 2, "kaydeder"], [2, 3, "run"], [3, 4, "bağlanır"]]
+   },
+   "zaman": "≈1:44–2:15"
+  },
+  {
+   "id": "k4",
+   "ad": "Tool, Resource, Prompt",
+   "dosya": "03-server.py",
+   "dil": "python",
+   "kod": [
+    "# ... MCPServer, add aracı ve if __name__ bloğu 02-server-demo.py ile aynı",
+    "@mcp.tool()",
+    "def joke(topic: str | None = None) -> str:",
+    "    \"\"\"İsteğe bağlı bir konuya göre kısa bir şaka döndürür.\"\"\"",
+    "    return f\"{topic} hakkında bir fıkra\"",
+    "",
+    "@mcp.resource(\"course://mcp\")",
+    "def course_info() -> str:",
+    "    \"\"\"MCP dersi hakkında kısa bilgi verir.\"\"\"",
+    "    return (\"Bu kaynak AI Engineering Bootcamp içindeki \"",
+    "            \"Model Context Protocol dersine aittir.\")",
+    "",
+    "@mcp.prompt()",
+    "def explain_mcp(level: str = \"başlangıç\") -> str:",
+    "    \"\"\"MCP konusunu belirtilen seviyeye göre açıklayan prompt oluşturur.\"\"\"",
+    "    return (f\"Model Context Protocol konusunu {level} seviyesindeki \"",
+    "            \"bir öğrenciye sade örneklerle açıkla.\")"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Yeni araç ekleyince sunucuyu Ctrl+C ile durdurup yeniden başlat ve Inspector'da yeniden Connect et; yoksa yeni araç görünmez."},
+    {"s": [2, 4], "n": "Tool = aksiyon. str | None = None isteğe bağlı parametre demek; girilmezse None. Docstring yine modelin seçim ipucu."},
+    {"s": [5, 5], "n": "f-string şart: hoca ilk yazışta topic'i metinde kullanmadı ve hata aldı; f\"{topic} ...\" ile düzeldi. \"AI\" girince \"AI hakkında bir fıkra\" döner."},
+    {"s": [7, 11], "n": "Resource = modele ek bilgi (bağlam), aksiyon değil. URI ile adreslenir (course://mcp); pafta numarasıyla arşivden belge çağırmak gibi. Inspector'da Resources sekmesinde görünür."},
+    {"s": [13, 14], "n": "Prompt = parametreli hazır şablon. level boş bırakılırsa varsayılan \"başlangıç\" kullanılır."},
+    {"s": [16, 17], "n": "Dönen şey cevap değil, modele verilecek prompt metni: level=\"zor\" ile \"...zor seviyesindeki bir öğrenciye...\" üretilir."}
+   ],
+   "akis": {
+    "kutular": ["03-server.py", "Tools (add, joke)", "Resources (course://mcp)", "Prompts (explain_mcp)", "Host / LLM"],
+    "oklar": [[0, 1], [0, 2], [0, 3], [1, 4, "aksiyon"], [2, 4, "bağlam"], [3, 4, "şablon"]]
+   },
+   "zaman": "≈2:15–2:39"
+  },
+  {
+   "id": "k5",
+   "ad": "Sunucuyu VS Code'a bağlamak",
+   "dosya": ".vscode/mcp.json",
+   "dil": "text",
+   "kod": [
+    "{",
+    "  \"servers\": {",
+    "    \"ai-engineering-mcp\": {",
+    "      \"type\": \"stdio\",",
+    "      \"command\": \"uv\",",
+    "      \"args\": [\"run\", \"mcp\", \"run\", \"${workspaceFolder}/03-server.py\"],",
+    "      \"cwd\": \"${workspaceFolder}\"",
+    "    }",
+    "  }",
+    "}",
+    "",
+    "# Ctrl+Shift+P > MCP: List Servers",
+    "# Ctrl+Shift+P > Chat: Open Chat",
+    "# \"add aracını kullanarak 18 ile 20'yi topla\" -> izin ver -> 38"
+   ],
+   "balon": [
+    {"s": [3, 3], "n": "VS Code'da listelenecek sunucu adı. Dosyanın kendisi .vscode/ klasöründe olmalı; hoca önce proje köküne koydu, VS Code görmedi. Alternatif: \"MCP: Open User Configuration\"."},
+    {"s": [4, 4], "n": "stdio: VS Code (host) sunucuyu alt süreç olarak kendisi başlatır, stdin/stdout ile konuşur. Bu yüzden terminalde ayrıca çalıştırmak genelde gerekmez (notlarda hocaya teyit ettirilecek olarak duruyor)."},
+    {"s": [5, 6], "n": "Sonuçta \"uv run mcp run .../03-server.py\" komutu oluşur. Dosya adı gerçek adla birebir aynı olmalı; değilse \"dosya bulunamadı\". Burada mcp dev değil mcp run: Inspector açılmaz, sunucu doğrudan çalışır."},
+    {"s": [7, 7], "n": "${workspaceFolder} VS Code'da açık olan klasör; cwd sunucunun çalışacağı dizin. Yanlış klasörü açarsan yol tutmaz."},
+    {"s": [12, 13], "n": "Komut paletinden sunucu listelenip başlatılır, sonra sohbet paneli açılır. List Servers görünmüyorsa muhtemelen bir VS Code/Copilot ayarı kapalı (derste çözülemedi); sohbet için Copilot etkin olmalı."},
+    {"s": [14, 14], "n": "Araç adını istekte açıkça yaz; yoksa model bazen aracı kullanmadan kendisi cevaplar. VS Code izin sorar, onay verince sonuç 38 döner."}
+   ],
+   "akis": {
+    "kutular": [".vscode/mcp.json", "VS Code (Host)", "MCP Client", "03-server.py (Server)", "add aracı"],
+    "oklar": [[0, 1, "okur"], [1, 2, "oluşturur"], [2, 3, "stdio"], [3, 4, "çalıştırır"], [4, 1, "38"]]
+   },
+   "zaman": "≈2:47–3:21"
+  }
+ ]
+}
