@@ -1,0 +1,779 @@
+{
+ "ders": "12",
+ "kartlar": [
+  {
+   "id": "k0",
+   "ad": "İlk ajan: create_agent",
+   "dosya": "2_langchain.ipynb",
+   "dil": "python",
+   "kod": [
+    "from dotenv import load_dotenv",
+    "load_dotenv(override=True)",
+    "",
+    "from langchain.agents import create_agent",
+    "agent = create_agent(model=\"openai:gpt-6-luna\")",
+    "",
+    "from langchain.messages import HumanMessage",
+    "question = HumanMessage(content=\"Bugün gram altın kaç TL?\")",
+    "response = agent.invoke({\"messages\": [question]})",
+    "print(response['messages'][-1].content)"
+   ],
+   "balon": [
+    {
+     "s": [
+      2,
+      2
+     ],
+     "n": "override=True: terminalde aynı adla önceden tanımlanmış bir anahtar varsa .env'dekinin onu ezmesini sağlar. Derste AuthenticationError'ın çözümü buydu. .env değişince bu hücre yeniden çalıştırılmalı."
+    },
+    {
+     "s": [
+      5,
+      5
+     ],
+     "n": "\"sağlayıcı:model\" biçiminde tek satırda ajan. Henüz aracı yok: beyin var ama el yok (1. seviye, kavanozdaki beyin)."
+    },
+    {
+     "s": [
+      8,
+      8
+     ],
+     "n": "Mesajlar rollerle verilir: HumanMessage kullanıcı, AIMessage model. Konuşma bu rollerle kurulur."
+    },
+    {
+     "s": [
+      9,
+      9
+     ],
+     "n": "Ajanın girdisi her zaman {\"messages\": [...]} sözlüğüdür; düz metin verilmez."
+    },
+    {
+     "s": [
+      10,
+      10
+     ],
+     "n": "response['messages'] tüm mesaj zinciri, [-1] son mesaj yani ajanın cevabı. Cevap: \"Canlı piyasa verisine erişemiyorum.\" Model eğitim tarihinden sonrasını bilmez; güncel olmayan altlıkla sahaya çıkmak gibi. Çözüm araç bağlamak."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "HumanMessage",
+     "messages sözlüğü",
+     "agent (gpt-6-luna)",
+     "messages[-1].content"
+    ],
+    "oklar": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2,
+      "invoke"
+     ],
+     [
+      2,
+      3,
+      "cevap"
+     ]
+    ]
+   },
+   "zaman": "≈0:51–0:59"
+  },
+  {
+   "id": "k1",
+   "ad": "Ajana araç: Tavily web arama",
+   "dosya": "2_langchain.ipynb",
+   "dil": "python",
+   "kod": [
+    "from langchain.tools import tool",
+    "from typing import Dict, Any",
+    "from tavily import TavilyClient",
+    "",
+    "tavily_client = TavilyClient()",
+    "",
+    "@tool",
+    "def web_search(query: str) -> Dict[str, Any]:",
+    "    \"\"\"Search the web for information\"\"\"",
+    "    return tavily_client.search(query)",
+    "",
+    "web_search.invoke(\"Bugün gram altın kaç TL?\")",
+    "",
+    "agent = create_agent(model=\"openai:gpt-6-luna\", tools=[web_search])",
+    "# ...",
+    "print(response['messages'][-1].text)"
+   ],
+   "balon": [
+    {
+     "s": [
+      5,
+      5
+     ],
+     "n": "TAVILY_API_KEY'i ortamdan kendisi okur. Anahtarı .env'e ekleyip load_dotenv'i yeniden çalıştırmazsan hata verir. Ücretsiz kota (aylık yaklaşık 1000 kredi) ders için yeterli."
+    },
+    {
+     "s": [
+      7,
+      7
+     ],
+     "n": "@tool dekoratörü sıradan fonksiyonu ajanın kullanabileceği bir araca çevirir."
+    },
+    {
+     "s": [
+      8,
+      8
+     ],
+     "n": "Tip ipuçları ajan için şema olur: girdi metin, çıktı sözlük. Python normalde tip istemez; burada ajan doğru veriyi göndersin diye açıkça yazılır."
+    },
+    {
+     "s": [
+      9,
+      9
+     ],
+     "n": "En kritik satır: ajan aracı adına ve bu açıklamaya bakarak seçer. Belirsiz yazarsan araç hiç çağrılmayabilir; mümkünse İngilizce. Katman adı ve açıklaması iyi yazılmış bir CBS veri setini başkasının doğru seçmesi gibi."
+    },
+    {
+     "s": [
+      12,
+      12
+     ],
+     "n": "Aracı ajansız, tek başına test eder. Ham web sonuçları döner; ajan bunları sonra bağlam olarak kullanır."
+    },
+    {
+     "s": [
+      14,
+      16
+     ],
+     "n": "tools listesine birden çok araç verilebilir. .text: yeni modellerde content bir bileşen listesi dönebiliyor; .text yalnızca cevap metnini verir. Artık ajan güncel fiyatı bulabildi."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "Soru",
+     "agent",
+     "web_search (@tool)",
+     "Tavily API",
+     ".text cevap"
+    ],
+    "oklar": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2,
+      "docstring'e göre"
+     ],
+     [
+      2,
+      3,
+      "search"
+     ],
+     [
+      3,
+      1,
+      "sonuçlar"
+     ],
+     [
+      1,
+      4
+     ]
+    ]
+   },
+   "zaman": "≈0:59–1:19"
+  },
+  {
+   "id": "k2",
+   "ad": "LangGraph: State, düğüm, kenar",
+   "dosya": "3_langgraph.ipynb",
+   "dil": "python",
+   "kod": [
+    "class State(TypedDict):",
+    "    messages: Annotated[list, add_messages]",
+    "",
+    "builder = StateGraph(State)",
+    "model = ChatOpenAI(model=\"gpt-6-luna\")",
+    "",
+    "def chatbot(state: State):",
+    "    response = model.invoke(state[\"messages\"])",
+    "    return {\"messages\": [response]}",
+    "",
+    "builder.add_node(\"chatbot\", chatbot)",
+    "builder.add_edge(START, \"chatbot\")",
+    "builder.add_edge(\"chatbot\", END)",
+    "graph = builder.compile()"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      2
+     ],
+     "n": "State ajanın hafızası. Annotated iki bilgiyi birleştirir: tip (liste) ve güncelleme kuralı. add_messages yeni mesajı üzerine yazmaz, listeye ekler; olmasaydı her cevap öncekini silerdi."
+    },
+    {
+     "s": [
+      4,
+      5
+     ],
+     "n": "StateGraph grafın iskeleti, hafızası State; model ajanın beyni. Veri düğümlerden kenarlarla akar, iş akış şeması gibi."
+    },
+    {
+     "s": [
+      7,
+      9
+     ],
+     "n": "Düğüm sıradan bir Python fonksiyonu: state alır, güncellenecek alanları sözlük olarak döndürür. Tüm geçmiş modele gider; cevap liste içinde döner çünkü add_messages liste bekler."
+    },
+    {
+     "s": [
+      11,
+      11
+     ],
+     "n": "(\"düğüm adı\", fonksiyon). Hücre iki kez çalışırsa \"Node 'chatbot' already present\" hatası; kernel restart ve Run All ile builder yeniden kurulur."
+    },
+    {
+     "s": [
+      12,
+      13
+     ],
+     "n": "START ve END hazır gelir, ayrıca tanımlanmaz. Sıra hep aynı: düğümleri oluştur, kenarları oluştur, bağla, derle."
+    },
+    {
+     "s": [
+      14,
+      14
+     ],
+     "n": "Derler. Checkpointer verilmediği için graf belleksiz: \"Benim adım Evren\" sonrası \"Benim adım ne?\" sorusuna \"bilmiyorum\" der."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "START",
+     "chatbot düğümü",
+     "model.invoke",
+     "State (messages)",
+     "END"
+    ],
+    "oklar": [
+     [
+      0,
+      1
+     ],
+     [
+      3,
+      1,
+      "okur"
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      3,
+      "ekler"
+     ],
+     [
+      1,
+      4
+     ]
+    ]
+   },
+   "zaman": "≈1:26–1:39"
+  },
+  {
+   "id": "k3",
+   "ad": "Bellek: checkpointer ve thread_id",
+   "dosya": "3_langgraph.ipynb",
+   "dil": "python",
+   "kod": [
+    "checkpointer = InMemorySaver()",
+    "graph = builder.compile(checkpointer=checkpointer)",
+    "",
+    "config = {\"configurable\": {\"thread_id\": \"conversation-1\"}}",
+    "result = graph.invoke({\"messages\": [HumanMessage(content=\"Merhaba, benim adım Evren.\")]}, config=config)",
+    "result = graph.invoke({\"messages\": [HumanMessage(content=\"Benim adım ne?\")]}, config=config)",
+    "# -> \"Adın Evren.\"   config_2 (farklı thread) ile -> \"bilmiyorum\"",
+    "",
+    "snapshot = graph.get_state(config)",
+    "for message in snapshot.values[\"messages\"]:",
+    "    print(message.type, \":\", message.content)",
+    "",
+    "# Kısa yol: StateGraph(MessagesState)"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      2
+     ],
+     "n": "InMemorySaver state'i her adımda RAM'e kaydeder; üretimde PostgreSQL/MySQL gibi kalıcı veritabanı kullanılır. Her adım saklandığı için 7. adımda hata çıksa düzeltince baştan değil kaldığı yerden devam eder."
+    },
+    {
+     "s": [
+      4,
+      4
+     ],
+     "n": "Her oturuma ayrı bellek. Aynı thread hatırlar, farklı thread hatırlamaz; her iş için ayrı ölçü defteri tutmak gibi."
+    },
+    {
+     "s": [
+      5,
+      6
+     ],
+     "n": "config her invoke'ta verilmeli; verilmezse bellekli graf hangi thread'e yazacağını bilemez. İkinci çağrıda yalnızca yeni mesaj gönderilir, geçmişi checkpointer ekler."
+    },
+    {
+     "s": [
+      7,
+      7
+     ],
+     "n": "config_2 ile aynı soru \"bilmiyorum\" döndü, çünkü isim conversation-1'de saklı. Hatırlamıyorsa iki sebep: graf checkpointer'sız derlenmiş ya da thread_id farklı/eksik."
+    },
+    {
+     "s": [
+      9,
+      11
+     ],
+     "n": "Thread'in tüm geçmişini metadata ve token bilgileriyle okur; döngü yalnızca tip ve içerik basar (human / ai sırasıyla)."
+    },
+    {
+     "s": [
+      13,
+      13
+     ],
+     "n": "MessagesState, elle yazılan State sınıfının hazır hâli; aynı işi yapar, kodu kısaltır."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "HumanMessage + config",
+     "graph.invoke",
+     "checkpointer (RAM)",
+     "thread: conversation-1",
+     "Cevap (geçmişle)"
+    ],
+    "oklar": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2,
+      "kaydet"
+     ],
+     [
+      2,
+      3,
+      "thread_id"
+     ],
+     [
+      3,
+      1,
+      "geçmiş"
+     ],
+     [
+      1,
+      4
+     ]
+    ]
+   },
+   "zaman": "≈1:39–1:53"
+  },
+  {
+   "id": "k4",
+   "ad": "Chain: iki uzman model, state, şema",
+   "dosya": "4_chain.ipynb",
+   "dil": "python",
+   "kod": [
+    "sql_model     = ChatOpenAI(model=\"gpt-6-luna\", reasoning_effort=\"none\", temperature=0)",
+    "explain_model = ChatOpenAI(model=\"gpt-6-luna\", reasoning_effort=\"none\", temperature=0.7)",
+    "",
+    "class State(MessagesState):",
+    "    user_query: str",
+    "    sql_query: str",
+    "    sql_explanation: str",
+    "",
+    "class ChainInput(TypedDict):  user_query: str",
+    "class ChainOutput(TypedDict): sql_query: str; sql_explanation: str",
+    "",
+    "DATABASE_SCHEMA = \"\"\"",
+    "Table: sales",
+    "Columns:",
+    "- product_name TEXT",
+    "- sales_amount NUMERIC",
+    "\"\"\"",
+    "SQL_PROMPT = SystemMessage(f\"\"\"... Use ONLY the following schema. Do not invent tables or columns:",
+    "{DATABASE_SCHEMA}\"\"\")"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      2
+     ],
+     "n": "Aynı model, iki kişilik. SQL kesin olmalı: temperature 0; açıklama daha serbest: 0.7. reasoning_effort=\"none\" düşünmeyi kapatır; hocaya göre GPT-6 Luna'da temperature kullanmak için gerekli (notlarda soru olarak duruyor)."
+    },
+    {
+     "s": [
+      4,
+      7
+     ],
+     "n": "Hazır MessagesState'ten kalıtım ve üç metin alanı. Her düğüm kendi alanına yazar: 1. düğüm sql_query'ye, 2. düğüm sql_explanation'a."
+    },
+    {
+     "s": [
+      9,
+      10
+     ],
+     "n": "İç state geniş, dış arayüz dar: kullanıcı yalnızca user_query verir, yalnızca SQL ve açıklamayı alır. Tipler sabit olunca ajan yanlış tipte veri üretip uygulamayı patlatamaz."
+    },
+    {
+     "s": [
+      12,
+      17
+     ],
+     "n": "Veritabanı şeması. Şemasız denemede model \"ürünler ve satışlar tabloları olduğunu varsayarsak\" diyerek tablo uydurdu. Lejantı verilmemiş paftayı yorumlatmak gibi."
+    },
+    {
+     "s": [
+      18,
+      19
+     ],
+     "n": "\"Yalnızca bu şemayı kullan, tablo/sütun uydurma.\" Sonuç doğru sorgu: product_name'e göre grupla, SUM(sales_amount) ile azalan sırala, LIMIT 5. Text-to-SQL'de şema ve uydurma yasağı şart."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "ChainInput: user_query",
+     "State (iç alanlar)",
+     "SQL_PROMPT + şema",
+     "ChainOutput: sql + açıklama"
+    ],
+    "oklar": [
+     [
+      0,
+      1,
+      "girer"
+     ],
+     [
+      2,
+      1,
+      "rol"
+     ],
+     [
+      1,
+      3,
+      "yalnızca bunlar"
+     ]
+    ]
+   },
+   "zaman": "≈2:20–2:39"
+  },
+  {
+   "id": "k5",
+   "ad": "Chain: SQL üret, SQL'i açıkla",
+   "dosya": "4_chain.ipynb",
+   "dil": "python",
+   "kod": [
+    "def generate_sql(state: State) -> dict:",
+    "    question = HumanMessage(state[\"user_query\"])",
+    "    res = sql_model.invoke([SQL_PROMPT, *state[\"messages\"], question])",
+    "    return {\"sql_query\": res.text, \"messages\": [question, res]}",
+    "",
+    "def explain_sql(state: State) -> dict:",
+    "    instruction = HumanMessage(",
+    "    f\"Kullanıcının sorusu: {state['user_query']}\\n\\n\"",
+    "    f\"Üretilen sorgu:\\n{state['sql_query']}\\n\\n\"",
+    "    f\"Bu sorgunun ne yaptığını açıkla.\" )",
+    "    res = explain_model.invoke([EXPLAIN_PROMPT, instruction])",
+    "    return {\"sql_explanation\": res.text, \"messages\": [res]}",
+    "",
+    "graph = StateGraph(State, input_schema=ChainInput, output_schema=ChainOutput)",
+    "# ... add_node(\"generate_sql\", ...), add_node(\"explain_sql\", ...)",
+    "graph.add_edge(START, \"generate_sql\"); graph.add_edge(\"generate_sql\", \"explain_sql\"); graph.add_edge(\"explain_sql\", END)",
+    "display(Image(graph.compile().get_graph().draw_mermaid_png()))"
+   ],
+   "balon": [
+    {
+     "s": [
+      2,
+      3
+     ],
+     "n": "Modele sırayla: sistem rolü (SQL_PROMPT), state'teki önceki mesajlar (* ile listeye açılır), en sonda kullanıcı sorusu. Rol önce gelir."
+    },
+    {
+     "s": [
+      4,
+      4
+     ],
+     "n": "İki alan birden güncellenir: sql_query sonraki düğüm için, messages hafıza için."
+    },
+    {
+     "s": [
+      8,
+      10
+     ],
+     "n": "Zincirin özü: 2. düğüm, 1. düğümün state'e yazdığı sql_query'yi okur. Önceki ekibin teslim ettiği ölçü dosyasıyla çalışmaya devam etmek gibi."
+    },
+    {
+     "s": [
+      11,
+      11
+     ],
+     "n": "Ayrı rol (EXPLAIN_PROMPT) ve 0.7 temperature'lı model: uzman ajan fikri. Not: burada state[\"messages\"] verilmiyor; çok turlu konuşmada eklenmesi gerekir mi belirsiz."
+    },
+    {
+     "s": [
+      14,
+      15
+     ],
+     "n": "input_schema/output_schema dış arayüzü sınırlar: invoke'a {\"user_query\": ...} yeter, sonuçta yalnızca sql_query ve sql_explanation döner. add_node satırları notta kısaltılmış."
+    },
+    {
+     "s": [
+      16,
+      17
+     ],
+     "n": "START, generate_sql, explain_sql, END: düz zincir. draw_mermaid_png mimariyi PNG olarak çizer; kurduğun grafı gözle doğrularsın."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "START",
+     "generate_sql (T=0)",
+     "State: sql_query",
+     "explain_sql (T=0.7)",
+     "END"
+    ],
+    "oklar": [
+     [
+      0,
+      1,
+      "user_query"
+     ],
+     [
+      1,
+      2,
+      "yazar"
+     ],
+     [
+      2,
+      3,
+      "okur"
+     ],
+     [
+      3,
+      4,
+      "sql_explanation"
+     ]
+    ]
+   },
+   "zaman": "≈2:20–2:39"
+  },
+  {
+   "id": "k6",
+   "ad": "Router: iki depo ve yapılandırılmış karar",
+   "dosya": "5_router.ipynb",
+   "dil": "python",
+   "kod": [
+    "embeddings = OpenAIEmbeddings(model=\"text-embedding-3-small\")",
+    "medical_store   = InMemoryVectorStore.from_documents(documents=medical_documents,   embedding=embeddings)",
+    "insurance_store = InMemoryVectorStore.from_documents(documents=insurance_documents, embedding=embeddings)",
+    "medical_retriever   = medical_store.as_retriever(search_kwargs={\"k\": 2})",
+    "insurance_retriever = insurance_store.as_retriever(search_kwargs={\"k\": 2})",
+    "",
+    "class State(TypedDict):",
+    "    user_query: str",
+    "    domain: Literal[\"records\", \"insurance\"]",
+    "    documents: list[Document]",
+    "    answer: str",
+    "",
+    "class RouteDecision(BaseModel):",
+    "    domain: Literal[\"records\", \"insurance\"]",
+    "",
+    "router_model = model.with_structured_output(RouteDecision, method=\"function_calling\")"
+   ],
+   "balon": [
+    {
+     "s": [
+      2,
+      3
+     ],
+     "n": "Her alan için ayrı vektör deposu; router hangi depoda aranacağını seçer. Kadastro ve imar arşivini ayrı dolaplarda tutup soruya göre dolap seçmek gibi. InMemoryVectorStore RAM'de çalışır ve numpy ister; yoksa hata alırsın (uv add numpy, kernel restart)."
+    },
+    {
+     "s": [
+      4,
+      5
+     ],
+     "n": "k=2: her depodan en yakın 2 belge (varsayılan 4)."
+    },
+    {
+     "s": [
+      9,
+      9
+     ],
+     "n": "Literal: domain yalnızca iki değer alabilir. Hoca çoktan seçmeli soruya benzetti: seçenekler verilir, model birini seçer."
+    },
+    {
+     "s": [
+      10,
+      11
+     ],
+     "n": "documents'ı arama düğümü, answer'ı cevap düğümü dolduracak. State, graf boyunca akan verinin alanlarıdır."
+    },
+    {
+     "s": [
+      13,
+      16
+     ],
+     "n": "with_structured_output çıktıyı Pydantic şemasına zorlar. Olmasaydı model \"Bu soru sigortayla ilgili görünüyor...\" gibi serbest metin döndürebilir, yönlendirme bozulurdu."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "Belgeler (Document)",
+     "embeddings",
+     "medical_store",
+     "insurance_store",
+     "retriever'lar (k=2)"
+    ],
+    "oklar": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2,
+      "sağlık"
+     ],
+     [
+      1,
+      3,
+      "sigorta"
+     ],
+     [
+      2,
+      4
+     ],
+     [
+      3,
+      4
+     ]
+    ]
+   },
+   "zaman": "≈2:39–3:03"
+  },
+  {
+   "id": "k7",
+   "ad": "Router: koşullu kenar ve cevap",
+   "dosya": "5_router.ipynb",
+   "dil": "python",
+   "kod": [
+    "def router(state):  ... return {\"domain\": decision.domain}",
+    "",
+    "def select_retriever(state) -> Literal[\"retrieve_records\",\"retrieve_insurance\"]:",
+    "    return \"retrieve_records\" if state[\"domain\"] == \"records\" else \"retrieve_insurance\"",
+    "",
+    "def generate_answer(state):",
+    "    context = \"\\n\\n\".join(f\"Kaynak: {d.metadata['source']}\\n{d.page_content}\" for d in state[\"documents\"])",
+    "    # Sistem: \"Yalnızca verilen bağlamı kullan; yeterli bilgi yoksa açıkça belirt.\"",
+    "    ...",
+    "    return {\"answer\": response.content}",
+    "# ... retrieve_records / retrieve_insurance düğümleri ve add_node satırları (notta yok)",
+    "builder.add_edge(START, \"router\")",
+    "builder.add_conditional_edges(\"router\", select_retriever)",
+    "builder.add_edge(\"retrieve_records\", \"generate_answer\")",
+    "builder.add_edge(\"retrieve_insurance\", \"generate_answer\")",
+    "builder.add_edge(\"generate_answer\", END)"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      1
+     ],
+     "n": "router bir düğüm: LLM (structured output ile) soruyu iki kategoriden birine ayırır ve state'e domain yazar."
+    },
+    {
+     "s": [
+      3,
+      4
+     ],
+     "n": "Düğüm değil, koşullu kenarın yön fonksiyonu: domain'i gidilecek düğümün adına çevirir. Dönen ad add_node'daki adla birebir aynı olmalı; tek harf hatası yönlendirmeyi bozar."
+    },
+    {
+     "s": [
+      7,
+      7
+     ],
+     "n": "Getirilen belgeler \"Kaynak:\" etiketiyle tek metinde birleştirilir; böylece cevapta kaynak gösterilebilir."
+    },
+    {
+     "s": [
+      8,
+      8
+     ],
+     "n": "\"Yalnızca bağlamı kullan, bilgi yoksa söyle\": halüsinasyon önlemi. Model, kendisinin bilemeyeceği hasta kaydını belgeden okuyup cevapladı."
+    },
+    {
+     "s": [
+      13,
+      13
+     ],
+     "n": "Dallanma burada: router'dan sonra select_retriever'ın döndürdüğü düğüme gidilir. Router mimarisinin kalbi."
+    },
+    {
+     "s": [
+      14,
+      16
+     ],
+     "n": "İki dal generate_answer'da birleşir, sonra END. Testler: \"Reçeteli ilaçlar...\" insurance (%80 sigorta, %20 sigortalı); \"Son muayenede teşhis?\" records (10 Haziran 2026, mevsimsel alerji)."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "router (LLM)",
+     "select_retriever",
+     "retrieve_records",
+     "retrieve_insurance",
+     "generate_answer"
+    ],
+    "oklar": [
+     [
+      0,
+      1,
+      "domain"
+     ],
+     [
+      1,
+      2,
+      "records"
+     ],
+     [
+      1,
+      3,
+      "insurance"
+     ],
+     [
+      2,
+      4,
+      "documents"
+     ],
+     [
+      3,
+      4,
+      "documents"
+     ]
+    ]
+   },
+   "zaman": "≈2:39–3:03"
+  }
+ ]
+}

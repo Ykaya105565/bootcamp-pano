@@ -1,0 +1,218 @@
+{
+ "ders": "15",
+ "kartlar": [
+  {
+   "id": "k0",
+   "ad": "Ortam ve GPU kontrolü",
+   "dosya": "terminal + notebook",
+   "dil": "python",
+   "kod": [
+    "# terminal (Conda ortamı)",
+    "conda create -n genai python=3.11",
+    "conda activate genai",
+    "nvidia-smi",
+    "",
+    "# notebook",
+    "import torch",
+    "",
+    "print(torch.cuda.is_available())",
+    "print(torch.version.cuda)",
+    "print(torch.cuda.get_device_name(0))"
+   ],
+   "balon": [
+    {"s": [2, 3], "n": "genai adında Python 3.11'li ayrı bir sanal ortam kurar ve açar; terminalde (genai) görünür. uv'den farkı: Conda'da ortamı her seferinde elle activate etmek gerekir. Her projeye ayrı ortam en iyisi."},
+    {"s": [4, 4], "n": "NVIDIA kartını, sürücüsünü ve VRAM kullanımını gösterir. Mac'te çalışmaz; orada bilgi sistem ayarlarından görülür."},
+    {"s": [9, 9], "n": "PyTorch GPU'yu görüyor mu? False geliyorsa çoğunlukla pytorch.org'da yanlış seçimle CPU sürümü kurulmuştur. Windows'ta sitenin verdiği pip3 komutunu pip yap."},
+    {"s": [10, 10], "n": "PyTorch'un hangi CUDA sürümüyle derlendiğini yazar. CUDA, NVIDIA'nın hesapları GPU'da yaptıran platformu; o olmadan model GPU'yu kullanamaz."},
+    {"s": [11, 11], "n": "İlk GPU'nun (0 numara) adını yazar; GPU yoksa hata verir. Mac'te CUDA yok, karşılığı MPS."}
+   ],
+   "akis": {
+    "kutular": ["conda ortamı", "PyTorch (CUDA'lı)", "CUDA", "NVIDIA GPU"],
+    "oklar": [[0, 1, "içinde"], [1, 2, "kullanır"], [2, 3, "hesap"]]
+   },
+   "zaman": "≈0:28–0:38"
+  },
+  {
+   "id": "k1",
+   "ad": "pipeline ile metin duygu analizi",
+   "dosya": "notebook",
+   "dil": "python",
+   "kod": [
+    "from transformers import pipeline",
+    "",
+    "classifier = pipeline(",
+    "    'text-classification',",
+    "    model=\"distilbert/distilbert-base-uncased-finetuned-sst-2-english\"",
+    ")",
+    "classifier(\"I really enjoyed this movie.\")"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "pipeline, HuggingFace'in en üst düzey kapısı: görev ve model adını verirsin, modeli ve o modele ait tokenizer'ı birlikte indirip hazırlar. Her modelin kendi tokenizer'ı var; eşleştirmeyi o yapar."},
+    {"s": [4, 4], "n": "Görev (task). Pipeline'a hangi ön ve son işlemi yapacağını söyler; Hub'da modeller de bu görevlere göre filtrelenir."},
+    {"s": [5, 5], "n": "Hub'daki model kimliği: kullanıcı/model. Yazmazsan görevin varsayılan modeli iner. DistilBERT, BERT'in (Transformer'ın encoder kısmı) küçültülmüş hali; SST-2 İngilizce film yorumlarıyla eğitildiği için İngilizce cümle bekler."},
+    {"s": [7, 7], "n": "Tahmin. Çıktı etiket + skor listesi: POSITIVE ≈ 0.99. Model yalnızca POSITIVE ve NEGATIVE bilir; nötr cümleye de bu ikisinden birini verir."}
+   ],
+   "akis": {
+    "kutular": ["Cümle", "Tokenizer", "DistilBERT", "Etiket + skor"],
+    "oklar": [[0, 1], [1, 2, "token"], [2, 3]]
+   },
+   "zaman": "≈0:53–0:58"
+  },
+  {
+   "id": "k2",
+   "ad": "Gradio ile siyah-beyaz dönüştürücü",
+   "dosya": "notebook",
+   "dil": "python",
+   "kod": [
+    "from skimage.color import rgb2gray",
+    "",
+    "def transform_image(img):",
+    "    return rgb2gray(img)",
+    "",
+    "import gradio as gr",
+    "",
+    "demo = gr.Interface(",
+    "    fn=transform_image,",
+    "    inputs=gr.Image(),",
+    "    outputs=\"image\"",
+    ")",
+    "demo.launch()"
+   ],
+   "balon": [
+    {"s": [1, 4], "n": "Model yok, saf görüntü işleme: RGB diziyi gri tonlamaya çevirir. Arayüzün mantığını görmek için önce basit bir fonksiyon. Gereken paketler: gradio ve scikit-image."},
+    {"s": [9, 9], "n": "Arayüzün çağıracağı fonksiyon. Parantez yok: fonksiyonun kendisi verilir, sonucu değil. transform_image() yazarsan hemen, resimsiz çalışır ve hata verir."},
+    {"s": [10, 10], "n": "Kullanıcıya resim yükleme alanı açar; yüklenen resmi NumPy dizisi olarak fonksiyona verir."},
+    {"s": [11, 11], "n": "Fonksiyondan dönen diziyi resim olarak gösterir. Girdi ve çıktı tipleri fonksiyonun aldığı ve döndürdüğüyle uyuşmalı."},
+    {"s": [13, 13], "n": "Arayüzü notebook içinde ve yerel bir linkte başlatır; resmi yükle, Submit'e bas. Aynı uygulama HuggingFace Spaces'te yayınlanabilir."}
+   ],
+   "akis": {
+    "kutular": ["gr.Image (yükleme)", "NumPy dizisi", "transform_image", "Gri dizi", "Ekranda resim"],
+    "oklar": [[0, 1], [1, 2, "img"], [2, 3, "return"], [3, 4, "outputs"]]
+   },
+   "zaman": "≈1:26–1:38"
+  },
+  {
+   "id": "k3",
+   "ad": "Görüntüden duygu analizi",
+   "dosya": "notebook",
+   "dil": "python",
+   "kod": [
+    "from transformers import pipeline",
+    "from PIL import Image",
+    "",
+    "emotion = pipeline(",
+    "    task=\"image-classification\",",
+    "    model=\"dima806/facial_emotions_image_detection\")",
+    "",
+    "img = Image.open(\"C:/Users/PC/Desktop/Day11/docs/01.png\").convert(\"RGB\")",
+    "preds = emotion(img)",
+    "print(preds[:5])"
+   ],
+   "balon": [
+    {"s": [4, 6], "n": "Görev bu sefer image-classification. Model, config.json'daki etiketlere göre (sad, angry, neutral, happy, surprise...) sınıflar. Etiketleri model kartından öğrenirsin; haritanın lejantı gibi."},
+    {"s": [8, 8], "n": "Resmi PIL nesnesi olarak açar. Windows'ta yolu / ile yaz: \\ kaçış karakteri sayılır ve dosya bulunamaz. Göreli yol notebook'un açıldığı klasöre göre çözülür."},
+    {"s": [8, 8], "n": ".convert(\"RGB\") resmi 3 kanala çevirir; PNG 4 kanallı (RGBA) ya da tek kanallı olabilir, model 3 kanal bekler. İlk denemedeki index hatası büyük olasılıkla buna bağlandı. Bant sayısı farklı bir rasteri modele vermemek gibi."},
+    {"s": [9, 9], "n": "Tahmin: skora göre sıralı etiket-skor listesi döner."},
+    {"s": [10, 10], "n": "İlk 5 tahmin: happy ≈ 0.92, surprise ≈ 0.04, neutral ≈ 0.01. Kernel yeniden başlarsa 'Image tanımlı değil' hatası gelir; import hücrelerini tekrar çalıştır."}
+   ],
+   "akis": {
+    "kutular": ["01.png", "Image.open", "convert(\"RGB\")", "emotion pipeline", "[{label, score}]"],
+    "oklar": [[0, 1], [1, 2], [2, 3, "img"], [3, 4, "preds"]]
+   },
+   "zaman": "≈1:42–1:58"
+  },
+  {
+   "id": "k4",
+   "ad": "Görüntüden yaş tahmini",
+   "dosya": "notebook",
+   "dil": "python",
+   "kod": [
+    "age_classifier = pipeline(",
+    "    task=\"image-classification\",",
+    "    model=\"nateraw/vit-age-classifier\"",
+    ")",
+    "img = Image.open(\"docs/evren.png\").convert(\"RGB\")",
+    "age_classifier(img)"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "pipeline ve Image önceki hücrelerde import edildi. Kernel yeniden başladıysa önce o hücreleri çalıştır."},
+    {"s": [3, 3], "n": "ViT (Vision Transformer) tabanlı, yaşı aralık sınıfı olarak tahmin eden model; ağırlıkları ~343 MB, .bin formatında. Model indirmek aslında ağırlıkları indirmektir."},
+    {"s": [3, 3], "n": "Aynı isimli kopyalara dikkat: derste 45 indirmeli bir kopya seçilince 'Invalid model index' hatası geldi, ~150 bin indirmeli orijinal çalıştı. İndirme sayısına ve yükleyene bak; resmî olmayan bir pafta kopyasını kullanmamak gibi."},
+    {"s": [5, 5], "n": "Göreli yol: docs/ klasörü notebook'un çalıştığı dizine göre aranır; VS Code üst klasörde açıksa dosya bulunamaz. RGB dönüşümü yine modelin 3 kanal beklentisi için."},
+    {"s": [6, 6], "n": "Çıktı yaş aralıkları ve skorları: 40-49 birinci, 30-39 ikinci geldi. Model tek bir yaş değil, aralık sınıfı verir."}
+   ],
+   "akis": {
+    "kutular": ["evren.png", "convert(\"RGB\")", "vit-age-classifier", "Yaş aralığı + skor"],
+    "oklar": [[0, 1], [1, 2, "img"], [2, 3]]
+   },
+   "zaman": "≈1:59–2:08"
+  },
+  {
+   "id": "k5",
+   "ad": "HuggingFace CLI ve önbellek",
+   "dosya": "terminal",
+   "dil": "bash",
+   "kod": [
+    "uv pip install huggingface_hub",
+    "hf auth login",
+    "hf auth whoami",
+    "hf download <model_id>",
+    "",
+    "# önbellek: ~/.cache/huggingface/hub"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "hf komutunu getiren paketi kurar."},
+    {"s": [2, 2], "n": "Token ile giriş; tarayıcıda onay sayfası açılır. Model ya da Space yüklemek için gerekir, açık modelleri indirmek için çoğu zaman gerekmez. Token'ı koda veya ekrana yazma."},
+    {"s": [3, 3], "n": "Kimle giriş yaptığını (kullanıcı, organizasyon) gösterir; girişin tuttuğunu buradan kontrol edersin."},
+    {"s": [4, 4], "n": "Modeli önbelleğe indirir. Zorunlu değil: pipeline aynı önbelleği kullanır ve modeli kendisi indirir; model ikinci kez inmez."},
+    {"s": [6, 6], "n": "Modellerin indiği yer. Zamanla şişer (hocada 29 GB); arada temizle."}
+   ],
+   "akis": {
+    "kutular": ["hf download / pipeline", "HF Hub", "~/.cache/huggingface", "Sonraki çalıştırma"],
+    "oklar": [[0, 1, "ister"], [1, 2, "indirir"], [2, 3, "yeniden kullanır"]]
+   },
+   "zaman": "≈1:36–1:51"
+  },
+  {
+   "id": "k6",
+   "ad": "Supabase bağlantı testi",
+   "dosya": "2_test_supabase.py",
+   "dil": "python",
+   "kod": [
+    "import os",
+    "from dotenv import load_dotenv",
+    "from supabase import create_client",
+    "",
+    "load_dotenv()",
+    "",
+    "supabase = create_client(",
+    "    os.environ[\"SUPABASE_URL\"],",
+    "    os.environ[\"SUPABASE_SECRET_KEY\"],",
+    ")",
+    "",
+    "response = (",
+    "    supabase.table(\"students\")",
+    "    .select(\"id, name, course\")",
+    "    .order(\"id\")",
+    "    .execute()",
+    ")",
+    "",
+    "for student in response.data:",
+    "    print(f\"{student['id']} | {student['name']} | {student['course']}\")"
+   ],
+   "balon": [
+    {"s": [3, 3], "n": "Supabase istemcisini kuran fonksiyon. Dikkat: dosyana supabase.py adı verirsen Python paket yerine kendi dosyanı import edebilir ve create_client bulunamaz; ders dosyasındaki 2_test_supabase.py adı bu açıdan güvenli."},
+    {"s": [5, 5], "n": ".env'deki SUPABASE_URL ve SUPABASE_SECRET_KEY'i ortam değişkenlerine yükler; anahtar koda gömülmez. .env kaydedilmeden çalıştırırsan değişiklik yansımaz."},
+    {"s": [8, 9], "n": "Köşeli parantezle okuma: değişken yoksa hemen KeyError verir, sessizce None ile devam etmez. Secret key (sb_secret_...) RLS'teki service_role olarak bağlanır; publishable key alınırsa bağlantı başarılı görünür ama liste boş gelir."},
+    {"s": [13, 15], "n": "SQL'in Python hali: SELECT id, name, course FROM students ORDER BY id. Tablo Supabase SQL Editor'da RLS açılarak kuruldu (o SQL ders dosyalarında yok, anlatımdan). ArcGIS'teki Select By Attributes gibi, ama bulut veritabanında."},
+    {"s": [16, 16], "n": "Sorgu ancak burada sunucuya gider; önceki satırlar yalnızca sorguyu kurar. execute() unutulursa veri gelmez."},
+    {"s": [19, 20], "n": "Satırlar response.data içinde sözlük listesi olarak gelir, her biri 'id | name | course' biçiminde basılır. Sohbetten kopyalanan kodda print başındaki görünmez boşluk 'non-printable character' hatası verdi. Çalıştırma: uv run ile."}
+   ],
+   "akis": {
+    "kutular": [".env", "create_client", "Supabase (RLS)", "response.data", "print"],
+    "oklar": [[0, 1, "URL + secret key"], [1, 2, "select/order/execute"], [2, 3, "satırlar"], [3, 4]]
+   },
+   "zaman": "≈2:58–3:06"
+  }
+ ]
+}

@@ -1,0 +1,505 @@
+{
+ "ders": "08",
+ "kartlar": [
+  {
+   "id": "k0",
+   "ad": "Ortam: uv ile proje ve kütüphaneler",
+   "dosya": "terminal",
+   "dil": "bash",
+   "kod": [
+    "uv init --python 3.12",
+    "uv add jupyter",
+    "uv add ipykernel            # kernel görünmezse",
+    "uv add sentence-transformers",
+    "uv sync                     # başkasının projesini aynı sürümlerle kurar"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      1
+     ],
+     "n": "Projeyi Python 3.12 ile başlatır. Her proje ayrı ortam: kütüphane sürümleri birbirine karışmaz."
+    },
+    {
+     "s": [
+      2,
+      3
+     ],
+     "n": "jupyter notebook için. VS Code kernel listesinde proje ortamı çıkmazsa ipykernel eklenir; çoğu zaman VS Code'u kapatıp açmak da çözer."
+    },
+    {
+     "s": [
+      4,
+      4
+     ],
+     "n": "Açık kaynak, bilgisayarda yerel çalışan embedding kütüphanesi; API ve ücret gerekmez. Kurulumdan sonra import hata verirse kernel restart edilir."
+    },
+    {
+     "s": [
+      5,
+      5
+     ],
+     "n": "Hocanın klasörünü indirdiğinde pyproject'teki kütüphaneleri aynı sürümle kurar. Aynı projeksiyon parametreleriyle çalışan iki ekip gibi: sonuçlar tutar."
+    },
+    {
+     "s": [
+      1,
+      5
+     ],
+     "n": "FAISS, openai ve python-dotenv'in kurulum komutu transkriptte geçmiyor; notlar genelde uv add faiss-cpu openai python-dotenv olduğunu söylüyor. uv sorun çıkarırsa pip ya da Conda ile devam."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "uv init",
+     "uv add",
+     "pyproject.toml",
+     ".venv",
+     "uv sync"
+    ],
+    "oklar": [
+     [
+      0,
+      2,
+      "oluşturur"
+     ],
+     [
+      1,
+      2,
+      "yazar"
+     ],
+     [
+      1,
+      3,
+      "kurar"
+     ],
+     [
+      2,
+      4,
+      "okur"
+     ],
+     [
+      4,
+      3,
+      "kurar"
+     ]
+    ]
+   },
+   "zaman": "≈00:40–00:47"
+  },
+  {
+   "id": "k1",
+   "ad": "SQLite ile anahtar kelime araması",
+   "dosya": "01-Keyword-Search.ipynb",
+   "dil": "python",
+   "kod": [
+    "import sqlite3",
+    "conn = sqlite3.connect(\":memory:\")",
+    "cur = conn.cursor()",
+    "cur.execute(\"CREATE TABLE dokumanlar (id INTEGER PRIMARY KEY, icerik TEXT)\")",
+    "# kayitlar: (\"metin\",) biçiminde tek elemanlı tuple listesi",
+    "cur.executemany(\"INSERT INTO dokumanlar (icerik) VALUES (?)\", kayitlar)",
+    "cur.execute(\"SELECT icerik FROM dokumanlar WHERE icerik LIKE '%araba bozuldu%'\")",
+    "sonuc = cur.fetchall()",
+    "print(\"Bulunan satır:\", len(sonuc))"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      3
+     ],
+     "n": "sqlite3 Python ile gelir, kurulum yok. \":memory:\" veri tabanını RAM'de açar; kernel kapanınca silinir. cursor SQL komutlarını çalıştıran imleçtir."
+    },
+    {
+     "s": [
+      4,
+      4
+     ],
+     "n": "Tablo: id benzersiz birincil anahtar, icerik metin. Bir parsel tablosunda ada/parsel no'nun anahtar olması gibi. Hücreler sırasız çalışırsa 'no such column' hatası gelir; çözüm Restart ve sırayla çalıştırmak."
+    },
+    {
+     "s": [
+      5,
+      6
+     ],
+     "n": "Listedeki her kayıt için bir INSERT. ? yer tutucusu değeri güvenli yerleştirir (SQL enjeksiyonuna karşı). En sık hata: sondaki virgülü unutup tuple yerine düz metin vermek; hoca da bu yüzden önce hata aldı."
+    },
+    {
+     "s": [
+      7,
+      9
+     ],
+     "n": "LIKE birebir metin arar: '%araba bozuldu%' 0 satır döner. '%araba%' yalnızca arızayla ilgisi bile olmayan 'Yeni arabamı...' cümlesini bulur; 'aracım', 'otomobilim', 'vasıtam' kaçar."
+    },
+    {
+     "s": [
+      7,
+      9
+     ],
+     "n": "Dersin can alıcı noktası: kelime araması eş anlamlıyı tanımaz. Mahalle adında 'Güzelyalı' arayınca 'Güzel Yalı' yazılmış kaydı bulamamak gibi. Anlamsal arama bu yüzden gerekiyor."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "kayitlar",
+     "SQLite (RAM)",
+     "LIKE sorgusu",
+     "fetchall()",
+     "0 / 1 satır"
+    ],
+    "oklar": [
+     [
+      0,
+      1,
+      "executemany"
+     ],
+     [
+      2,
+      1,
+      "execute"
+     ],
+     [
+      1,
+      3
+     ],
+     [
+      3,
+      4
+     ]
+    ]
+   },
+   "zaman": "≈00:47–01:06"
+  },
+  {
+   "id": "k2",
+   "ad": "Sentence Transformers ile anlamsal arama",
+   "dosya": "02-Semantic-Search.ipynb",
+   "dil": "python",
+   "kod": [
+    "from sentence_transformers import SentenceTransformer",
+    "model = SentenceTransformer(\"paraphrase-multilingual-MiniLM-L12-v2\")",
+    "metinler = [k[0] for k in kayitlar]",
+    "vektorler = model.encode(metinler)",
+    "print(vektorler.shape)          # (5, 384)",
+    "sorgu = \"araba bozuldu\"",
+    "sorgu_vek = model.encode(sorgu)",
+    "skorlar = model.similarity(sorgu_vek, vektorler)[0]",
+    "for i in np.argsort(-skorlar)[:3]:",
+    "    print(f\"{skorlar[i]:.3f} {metinler[i]}\")"
+   ],
+   "balon": [
+    {
+     "s": [
+      2,
+      2
+     ],
+     "n": "Küçük, çok dilli model; Türkçe için seçildi. Yalnızca İngilizce model Türkçe token'ları iyi temsil edemez. İlk seferde birkaç yüz MB iner, sonra önbellekten gelir."
+    },
+    {
+     "s": [
+      3,
+      3
+     ],
+     "n": "Tuple'lardan düz metin listesi çıkarır; kütüphane girdiyi liste olarak ister. k[0] her tuple'ın ilk ve tek elemanı."
+    },
+    {
+     "s": [
+      4,
+      5
+     ],
+     "n": "Her cümle tek bir 384 boyutlu vektör olur: (5, 384). Önce token vektörleri bağlama göre hesaplanır, sonra ortalaması alınarak cümle vektörü çıkar."
+    },
+    {
+     "s": [
+      7,
+      8
+     ],
+     "n": "Sorgu da AYNI modelle vektöre çevrilmeli; farklı modelin vektörleri farklı koordinat sistemindeki noktalar gibidir, kıyaslanamaz. similarity'de büyük skor = daha benzer (hoca önce tersini söyleyip düzeltti)."
+    },
+    {
+     "s": [
+      9,
+      10
+     ],
+     "n": "argsort küçükten büyüğe sıralar; eksiyle çarpınca büyükten küçüğe olur, [:3] ilk üç. Sonuç: 'Otomobilim marş basmıyor...' ve 'Aracım çalışmıyor...' en üstte; kelime aramasının bulamadıkları."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "metinler",
+     "model.encode",
+     "vektörler (5,384)",
+     "sorgu vektörü",
+     "similarity + argsort"
+    ],
+    "oklar": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      1,
+      3,
+      "aynı model"
+     ],
+     [
+      2,
+      4
+     ],
+     [
+      3,
+      4
+     ]
+    ]
+   },
+   "zaman": "≈01:31–01:46"
+  },
+  {
+   "id": "k3",
+   "ad": "OpenAI ile embedding fonksiyonu",
+   "dosya": "03-Vector-DB.ipynb",
+   "dil": "python",
+   "kod": [
+    "from dotenv import load_dotenv",
+    "load_dotenv()",
+    "from openai import OpenAI",
+    "client = OpenAI()",
+    "model = \"text-embedding-3-small\"",
+    "",
+    "def get_embedding(text):",
+    "    response = client.embeddings.create(input=text, model=model)",
+    "    return response.data[0].embedding"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      2
+     ],
+     "n": ".env içindeki OPENAI_API_KEY=sk-... satırını ortama yükler. Ortam değişkeni Windows'ta zaten tanımlıysa gerekmez. Ad büyük harfle yazılmalı, yoksa tanınmayabilir."
+    },
+    {
+     "s": [
+      4,
+      4
+     ],
+     "n": "İstemci anahtarı ortamdan kendisi okur. Anahtar tanımsızsa ya da API kredisi bitmişse çağrı hata verir; derste bir öğrencide kredi bitmişti."
+    },
+    {
+     "s": [
+      5,
+      5
+     ],
+     "n": "Küçük embedding modeli: her metin 1536 sayılık vektör. large daha büyük boyut üretir; bu örnek için small yeterli. Bu model metin üretmez, yalnızca vektör döndürür."
+    },
+    {
+     "s": [
+      7,
+      9
+     ],
+     "n": "Metni API'ye gönderir, cevaptaki ilk (ve tek) girdinin vektörünü Python listesi olarak döndürür. Fonksiyon olarak yazıldı ki her chunk ve sorgu için tekrar kullanılsın. Her çağrı ücretli bir istektir."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     ".env",
+     "load_dotenv()",
+     "OpenAI client",
+     "embeddings.create",
+     "1536 boyutlu liste"
+    ],
+    "oklar": [
+     [
+      0,
+      1,
+      "okur"
+     ],
+     [
+      1,
+      2,
+      "anahtar"
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      3,
+      4,
+      "data[0]"
+     ]
+    ]
+   },
+   "zaman": "≈02:52–03:10"
+  },
+  {
+   "id": "k4",
+   "ad": "FAISS: vektörleri indeksle ve ara",
+   "dosya": "03-Vector-DB.ipynb",
+   "dil": "python",
+   "kod": [
+    "document_embeddings = np.array([get_embedding(t) for t in text_chunks]).astype(\"float32\")",
+    "index = faiss.IndexFlatL2(document_embeddings.shape[1])",
+    "index.add(document_embeddings)",
+    "print(index.ntotal)                              # 6",
+    "query_embedding = np.array(get_embedding(query)).astype(\"float32\")",
+    "distances, indices = index.search(query_embedding.reshape(1, -1), k)"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      1
+     ],
+     "n": "Altı chunk tek tek vektöre çevrilip (6, 1536) dizisi olur. numpy varsayılanı float64, FAISS float32 ister; dönüştürülmezse tip hatası alınır."
+    },
+    {
+     "s": [
+      2,
+      2
+     ],
+     "n": "L2 (Öklid) mesafesiyle tam arama yapan indeks; iki nokta arası düz çizgi mesafesi, koordinatlardan kenar hesabı gibi. Boyut shape[1] = 1536 olmalı. Bu düz indeks her vektörü tek tek tarar; HNSW gibi hızlı yaklaşık indeksler derste kodlanmadı."
+    },
+    {
+     "s": [
+      3,
+      4
+     ],
+     "n": "Vektörleri indekse ekler; ntotal 6 çıkmalı. Hücre iki kez çalışırsa aynı kayıtlar iki kez eklenir ve sonuçlar tuhaflaşır; çözüm Restart + Run All. İndeks bellekte, kernel kapanınca silinir."
+    },
+    {
+     "s": [
+      5,
+      5
+     ],
+     "n": "Sorgu da aynı modelle vektöre çevrilir ve float32 yapılır. Kayıtlar bir modelle, sorgu başka modelle çevrilirse arama anlamsız olur."
+    },
+    {
+     "s": [
+      6,
+      6
+     ],
+     "n": "reshape(1, -1): (1536,) vektörü (1, 1536) yapar; FAISS her zaman 'sorgu sayısı x boyut' bekler. Dönüş: mesafeler ve indisler. L2'de KÜÇÜK değer daha yakın; benzerlik skorunun tersi. 'Menekşeler ne renktir?' için ilk sonuç 'Menekşeler mavidir.'"
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "text_chunks",
+     "get_embedding",
+     "float32 dizi",
+     "IndexFlatL2",
+     "search(sorgu, k)"
+    ],
+    "oklar": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      3,
+      "add"
+     ],
+     [
+      3,
+      4,
+      "en yakın k"
+     ]
+    ]
+   },
+   "zaman": "≈02:53–03:10"
+  },
+  {
+   "id": "k5",
+   "ad": "Hibrit sorgu: pgvector + metadata filtresi",
+   "dosya": "çizim (PostgreSQL + pgvector)",
+   "dil": "text",
+   "kod": [
+    "SELECT title, category, publish_date, views,",
+    "       embedding <=> :query_vector AS distance",
+    "FROM documents",
+    "WHERE category = 'science' AND publish_date > '2023-01-01'",
+    "ORDER BY distance ASC",
+    "LIMIT 10;"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      1
+     ],
+     "n": "Bu kod çalıştırılmadı; yalnızca tahtadaki çizimden aktarıldı, sözlü anlatımı transkriptte yok. Klasik sütunlar normal SQL gibi seçilir."
+    },
+    {
+     "s": [
+      2,
+      2
+     ],
+     "n": "<=> pgvector'ün mesafe operatörü: her dokümanın vektörünün sorgu vektörüne uzaklığını hesaplar. Notlara göre <=> kosinüs, <-> L2 mesafesidir."
+    },
+    {
+     "s": [
+      4,
+      4
+     ],
+     "n": "Metadata filtresi: kategori ve tarih. Gerçek hayatta yalnızca vektör yetmez; CBS'de mekânsal sorguyla öznitelik sorgusunu birleştirmek gibi (hem 500 m içinde hem 'konut' olanlar)."
+    },
+    {
+     "s": [
+      5,
+      6
+     ],
+     "n": "Mesafe olduğu için küçükten büyüğe (ASC) sıralanır, ilk 10 alınır. DESC yazılırsa en alakasız 10 doküman gelir."
+    },
+    {
+     "s": [
+      1,
+      6
+     ],
+     "n": "Şirkette zaten PostgreSQL varsa pgvector eklentisi mantıklı seçim. Küçük deney için FAISS ya da Chroma, büyük ölçek için Qdrant, Weaviate, Milvus, Pinecone."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "Sorgu vektörü",
+     "embedding <=>",
+     "WHERE filtreleri",
+     "ORDER BY ASC",
+     "ilk 10 doküman"
+    ],
+    "oklar": [
+     [
+      0,
+      1,
+      "mesafe"
+     ],
+     [
+      1,
+      3
+     ],
+     [
+      2,
+      3,
+      "metadata"
+     ],
+     [
+      3,
+      4,
+      "LIMIT"
+     ]
+    ]
+   },
+   "zaman": "≈02:07–02:51"
+  }
+ ]
+}

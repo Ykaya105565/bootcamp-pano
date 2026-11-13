@@ -1,0 +1,614 @@
+{
+ "ders": "11",
+ "kartlar": [
+  {
+   "id": "k0",
+   "ad": "İndeksleme: Document, chunk, PGVector",
+   "dosya": "3_rag_queries.ipynb",
+   "dil": "python",
+   "kod": [
+    "text = file_path.read_text(encoding=\"utf-8\")",
+    "raw_documents = [Document(page_content=text, metadata={\"source\": str(file_path)})]",
+    "",
+    "text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=80)",
+    "documents = text_splitter.split_documents(raw_documents)",
+    "",
+    "embeddings_model = OpenAIEmbeddings(model=\"text-embedding-3-small\")",
+    "db = PGVector.from_documents(",
+    "    documents=documents,",
+    "    embedding=embeddings_model,",
+    "    connection=\"postgresql+psycopg://ai:ai@localhost:6024/ai_db\",",
+    "    collection_name=\"rag-antik-yunan-2-cohort-demo-01\",",
+    "    use_jsonb=True,",
+    "    pre_delete_collection=False",
+    ")",
+    "",
+    "retriever = db.as_retriever(search_kwargs={\"k\": 2})"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      2
+     ],
+     "n": "Metni okur ve tek bir Document'a sarar. metadata'daki source her chunk'a miras kalır; cevapta kaynağı gösterebilmek için. Paftanın kenar bilgisi gibi: parça kesilse de nereden geldiği bilinir."
+    },
+    {
+     "s": [
+      4,
+      5
+     ],
+     "n": "600 karakterlik parçalar, 80 karakter bindirme. Overlap, iki chunk arasında bölünen cümlenin anlamını korur; ortofoto paftalarındaki bindirme payı gibi. Küçük metin için hocanın önerdiği başlangıç değerleri."
+    },
+    {
+     "s": [
+      7,
+      7
+     ],
+     "n": "Her chunk'ı yaklaşık 1536 boyutlu bir vektöre çevirir. Zayıf bilgisayarlarda da çalışsın diye küçük ve ucuz model seçildi. Soru da aynı modelle vektöre çevrilmeli; model değişirse vektörler karşılaştırılamaz."
+    },
+    {
+     "s": [
+      11,
+      11
+     ],
+     "n": "Docker'da çalışan Postgres'in adresi, port 6024. Docker kapalıysa hücre hata vermez, asılı kalır; tablo oluşmadığı için sonraki hücreler de hata verir. En sık karşılaşılan sorun bu."
+    },
+    {
+     "s": [
+      12,
+      14
+     ],
+     "n": "Aynı koleksiyona aynı veriyi ikinci kez yüklersen chunk'lar çoğalır; hoca bu yüzden koleksiyon adını değiştirdi. pre_delete_collection=False var olanı silmez (bu, parametrenin anlamı; hoca ayrıca açıklamadı)."
+    },
+    {
+     "s": [
+      17,
+      17
+     ],
+     "n": "Retriever üç iş yapar: soruyu vektöre çevirir, en yakınları bulur, k=2 chunk döndürür. k küçükse bilgi kaçar, büyükse gereksiz token ve modelin kafası karışır."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "txt dosyası",
+     "Document + source",
+     "chunk'lar (600/80)",
+     "embedding",
+     "PGVector (Docker)",
+     "retriever k=2"
+    ],
+    "oklar": [
+     [
+      0,
+      1,
+      "okur"
+     ],
+     [
+      1,
+      2,
+      "böler"
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      3,
+      4,
+      "yazar"
+     ],
+     [
+      4,
+      5,
+      "arar"
+     ]
+    ]
+   },
+   "zaman": "≈0:20–0:45"
+  },
+  {
+   "id": "k1",
+   "ad": "Temel QA zinciri ve @chain",
+   "dosya": "3_rag_queries.ipynb",
+   "dil": "python",
+   "kod": [
+    "SYSTEM_PROMPT = (\"\"\"Answer the question based only on the following context:\\n{context}\"\"\")",
+    "prompt = ChatPromptTemplate([(\"system\", SYSTEM_PROMPT), (\"human\", \"{question}\"),])",
+    "llm = ChatOpenAI(model_name=\"gpt-5.6-luna\",)",
+    "",
+    "@chain",
+    "def qa(input):",
+    "    docs = retriever.invoke(input)",
+    "    formatted = prompt.invoke({\"context\": docs, \"question\": input})",
+    "    answer = llm.invoke(formatted)",
+    "    return answer",
+    "",
+    "# çağrı: qa.invoke(query)  ->  metin: result.content"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      1
+     ],
+     "n": "\"Yalnızca verilen bağlama göre cevapla\": modeli kendi ezberinden değil getirilen chunk'lardan konuşturur, halüsinasyonu azaltır. Geliştirmek için \"bilmiyorsan bilmiyorum de\" ve rol tanımı eklenebilir."
+    },
+    {
+     "s": [
+      2,
+      2
+     ],
+     "n": "system kısmına kural ve bağlam, human kısmına kullanıcının sorusu gider. İki boşluk var: {context} ve {question}; invoke'ta biri eksik verilirse hata alırsın."
+    },
+    {
+     "s": [
+      3,
+      3
+     ],
+     "n": "Bağlam küçük olduğu için küçük model yeterli; hoca daha yeni gpt-6-luna'nın da kullanılabileceğini söyledi."
+    },
+    {
+     "s": [
+      5,
+      6
+     ],
+     "n": "@chain dekoratörü sıradan fonksiyona LangChain Runnable özelliği kazandırır: .invoke() ile çağrılır, pipe'a bağlanabilir. İleride @tool ile fonksiyonu araca çevirmek aynı mantık."
+    },
+    {
+     "s": [
+      7,
+      9
+     ],
+     "n": "Klasik RAG'in üç adımı: getir, prompt'u doldur, cevap üret. Kirli sorgu buraya aynen gittiği için model cevabın sonuna \"ocaktaki yemeği kontrol edin\" diye ekledi; sonraki teknikler bunu çözer."
+    },
+    {
+     "s": [
+      12,
+      12
+     ],
+     "n": "Dönen şey bir AIMessage nesnesi; yalnızca metni almak için .content kullanılır."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "Soru",
+     "retriever",
+     "prompt (context + soru)",
+     "llm",
+     "result.content"
+    ],
+    "oklar": [
+     [
+      0,
+      1,
+      "invoke"
+     ],
+     [
+      1,
+      2,
+      "docs"
+     ],
+     [
+      0,
+      2,
+      "question"
+     ],
+     [
+      2,
+      3,
+      "formatted"
+     ],
+     [
+      3,
+      4
+     ]
+    ]
+   },
+   "zaman": "≈0:20–0:45"
+  },
+  {
+   "id": "k2",
+   "ad": "Rewrite-Retrieve-Read",
+   "dosya": "3_rag_queries.ipynb",
+   "dil": "python",
+   "kod": [
+    "rewrite_prompt = ChatPromptTemplate.from_template(\"\"\"",
+    "    Provide a better search query for vector search to answer the given question.",
+    "    Remove irrelevant details.",
+    "    Return only the improved search query.",
+    "    Question: {x}",
+    "    Improved search query:\"\"\")",
+    "",
+    "def parse_rewriter_output(message):",
+    "    return message.content.strip('\"').strip(\"**\").strip()",
+    "",
+    "rewriter = rewrite_prompt | llm | parse_rewriter_output",
+    "",
+    "@chain",
+    "def qa_rrr(input):",
+    "    new_query = rewriter.invoke(input)",
+    "    print(\"Rewritten query:\", new_query)",
+    "    docs = retriever.invoke(new_query)",
+    "    formatted = prompt.invoke({\"context\": docs, \"question\": input})",
+    "    answer = llm.invoke(formatted)",
+    "    return answer"
+   ],
+   "balon": [
+    {
+     "s": [
+      2,
+      4
+     ],
+     "n": "Üç emir: daha iyi arama sorgusu üret, alakasız detayı at, yalnızca sorguyu döndür. Son cümle olmazsa model açıklama ekler, o da aramaya karışır. Prompt Türkçe de yazılabilir."
+    },
+    {
+     "s": [
+      5,
+      5
+     ],
+     "n": "Şablonda tek değişken var ({x}); bu yüzden rewriter.invoke(query) sözlük yerine düz metinle çağrılabiliyor."
+    },
+    {
+     "s": [
+      8,
+      9
+     ],
+     "n": "Modelin eklediği tırnak, ** ve boşlukları kırpar; sonraki adıma boşuna token gitmesin. strip yalnızca baştaki ve sondaki karakterleri siler, ortadakilere dokunmaz."
+    },
+    {
+     "s": [
+      11,
+      11
+     ],
+     "n": "LCEL pipe: şablon dolar, llm'e gider, çıktı temizlenir. Her | bir adımın çıktısını sonrakine verir; sayısallaştırma, topoloji, kontrol hattı gibi."
+    },
+    {
+     "s": [
+      15,
+      17
+     ],
+     "n": "Arama yeniden yazılmış temiz sorguyla yapılır. print ile sorgunun neye dönüştüğünü görürsün (\"Antik Yunan felsefesinin önde gelen filozofları...\"); diş fırçalama ve ocak kısmı atılmıştır."
+    },
+    {
+     "s": [
+      18,
+      18
+     ],
+     "n": "Kritik ayrım: cevap ORİJİNAL soruyla üretilir (\"question\": input). Buraya new_query yazılırsa kullanıcının asıl niyeti kaybolabilir. En sık karıştırılan satır."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "Kirli soru",
+     "rewriter (LLM)",
+     "Temiz sorgu",
+     "retriever",
+     "prompt + llm",
+     "Cevap"
+    ],
+    "oklar": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      3,
+      "arama"
+     ],
+     [
+      3,
+      4,
+      "docs"
+     ],
+     [
+      0,
+      4,
+      "orijinal soru"
+     ],
+     [
+      4,
+      5
+     ]
+    ]
+   },
+   "zaman": "≈0:45–0:57"
+  },
+  {
+   "id": "k3",
+   "ad": "Multi-Query Retrieval",
+   "dosya": "3_rag_queries.ipynb",
+   "dil": "python",
+   "kod": [
+    "retriever = db.as_retriever(search_kwargs={\"k\": 5})",
+    "perspectives_prompt = ChatPromptTemplate.from_template(\"\"\"",
+    "    ... generate five different versions of the given user question ...",
+    "    Provide these alternative questions separated by newlines.",
+    "    Original question: {question}",
+    "\"\"\")",
+    "def parse_queries_output(message):",
+    "    return message.content.split(\"\\n\")",
+    "query_gen = perspectives_prompt | llm | parse_queries_output",
+    "",
+    "def get_unique_union(document_lists):",
+    "    deduped_docs = {",
+    "        doc.page_content: doc",
+    "        for sublist in document_lists",
+    "        for doc in sublist",
+    "    }",
+    "    return list(deduped_docs.values())",
+    "",
+    "retrieval_chain = query_gen | retriever.batch | get_unique_union",
+    "@chain",
+    "def multi_query_qa(input):",
+    "    docs = retrieval_chain.invoke(input)",
+    "    # ... prompt.invoke + llm.invoke: qa ile aynı"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      1
+     ],
+     "n": "Her alt sorgu için 5 chunk (varsayılan 4). 5 sorgu x 5 chunk = 25 chunk; tekrarlar atılmazsa hepsi token olarak faturaya yazılır."
+    },
+    {
+     "s": [
+      3,
+      3
+     ],
+     "n": "Aynı sorunun 5 farklı versiyonu istenir. Her versiyon embedding uzayında farklı noktaya düşer, kendi yakınındaki chunk'ları getirir. Tek istasyondan değil birkaç istasyondan ölçü almak gibi."
+    },
+    {
+     "s": [
+      4,
+      8
+     ],
+     "n": "\"separated by newlines\" ile split(\"\\n\") bir anlaşma: prompt alt alta yazdırır, parser satırlara böler. Biri değişirse liste bozulur. Boş satırlar da sorgu sayılabilir; derste 25 yerine 45 chunk çıkması buna işaret ediyor olabilir (notlardaki kendi gözlem)."
+    },
+    {
+     "s": [
+      12,
+      16
+     ],
+     "n": "Dict comprehension iki işi birden yapar: iç içe listeyi düzleştirir ve page_content'i anahtar yapar. Aynı metin aynı anahtara düşüp eskisini ezer; her chunk tek kopya kalır. Derste 45 chunk 13'e indi."
+    },
+    {
+     "s": [
+      19,
+      19
+     ],
+     "n": "Sorgu listesi üret, retriever.batch her sorguyu ayrı arar ve liste-listesi döndürür, sonra benzersiz birleşim alınır. invoke tek sorgu alır; liste için batch gerekir."
+    },
+    {
+     "s": [
+      20,
+      23
+     ],
+     "n": "Cevap fonksiyonu qa ile aynı; tek fark docs artık zenginleştirilmiş bağlamdan gelir. Soru prompt'a yine orijinal haliyle girer."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "Soru",
+     "query_gen (5 sorgu)",
+     "retriever.batch",
+     "liste-listesi",
+     "get_unique_union",
+     "context → LLM"
+    ],
+    "oklar": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2,
+      "5 sorgu"
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      3,
+      4,
+      "tekrarı at"
+     ],
+     [
+      4,
+      5
+     ]
+    ]
+   },
+   "zaman": "≈1:22–1:43"
+  },
+  {
+   "id": "k4",
+   "ad": "RAG Fusion: Reciprocal Rank Fusion",
+   "dosya": "3_rag_queries.ipynb",
+   "dil": "python",
+   "kod": [
+    "def reciprocal_rank_fusion(results, k=60):",
+    "    scores = {}",
+    "    documents = {}",
+    "    for doc_list in results:",
+    "        for rank, doc in enumerate(doc_list):",
+    "            content = doc.page_content",
+    "            if content not in documents:",
+    "                documents[content] = doc",
+    "            point = 1 / (k + rank + 1)",
+    "            scores[content] = scores.get(content, 0) + point",
+    "    sorted_contents = sorted(scores, key=scores.get, reverse=True)",
+    "    ranked_docs = []",
+    "    for content in sorted_contents:",
+    "        ranked_docs.append(documents[content])",
+    "    return ranked_docs",
+    "",
+    "retrieval_chain = query_gen | retriever.batch | reciprocal_rank_fusion"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      1
+     ],
+     "n": "k=60 yumuşatma sabiti: tek bir listedeki 1. sıranın aşırı baskın olmasını engeller. Literatürde yaygın değer; derste neden seçildiği açıklanmadı."
+    },
+    {
+     "s": [
+      2,
+      3
+     ],
+     "n": "results her sorgunun sıralı doküman listesi. İki sözlük: scores toplam puanı, documents asıl Document nesnesini tutar; ikisinde de anahtar metnin kendisi."
+    },
+    {
+     "s": [
+      5,
+      8
+     ],
+     "n": "enumerate sırayı 0'dan başlatır; 0 en yakın chunk demek. Doküman ilk görüldüğünde saklanır, sonraki görüşlerde yalnızca puanı artar."
+    },
+    {
+     "s": [
+      9,
+      10
+     ],
+     "n": "Formülün kalbi: üst sıradaki daha çok puan alır, birden çok listede çıkanın puanları toplanır. İki listede 1. sıra ≈ 0,033; tek listede ≈ 0,016. Birden çok ölçüyle doğrulanan nokta daha güvenilir sayılır gibi."
+    },
+    {
+     "s": [
+      11,
+      14
+     ],
+     "n": "Toplam puana göre büyükten küçüğe sıralar. reverse=True unutulursa en alakasız chunk en üste çıkar; oysa model bağlamın üstündekine daha çok dikkat eder."
+    },
+    {
+     "s": [
+      17,
+      17
+     ],
+     "n": "Multi-Query zincirinin aynısı, yalnızca son adım değişti: tekrarı atmak yerine puanla ve sırala. Bu kod derste canlı çalıştırılmadı, notebook'tan anlatılıp ödev bırakıldı; anlatımın başı kayıtta yok."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "query_gen (4 sorgu)",
+     "retriever.batch",
+     "sıralı listeler",
+     "RRF puanlama",
+     "sıralı context → LLM"
+    ],
+    "oklar": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      3,
+      "1/(k+rank+1)"
+     ],
+     [
+      3,
+      4,
+      "en alakalı üstte"
+     ]
+    ]
+   },
+   "zaman": "≈1:43–1:53"
+  },
+  {
+   "id": "k5",
+   "ad": "HyDE: varsayımsal pasajla arama",
+   "dosya": "3_rag_queries.ipynb",
+   "dil": "python",
+   "kod": [
+    "prompt_hyde = ChatPromptTemplate.from_template(\"\"\"",
+    "    Please write a passage to answer the question.",
+    "    Question: {question}",
+    "    Passage:",
+    "\"\"\")",
+    "llm = ChatOpenAI(temperature=0)",
+    "generate_doc = prompt_hyde | llm | StrOutputParser()",
+    "retrieval_chain = generate_doc | retriever"
+   ],
+   "balon": [
+    {
+     "s": [
+      2,
+      4
+     ],
+     "n": "Modelden soru değil, cevap gibi duran kısa bir pasaj istenir. \"Sokrates, Platon ve Aristoteles...\" gibi bir cümle kısa sorudan çok daha fazla anahtar kelime taşır, daha zengin bağlam getirir."
+    },
+    {
+     "s": [
+      6,
+      6
+     ],
+     "n": "temperature=0: varsayımsal pasaj her çalıştırmada tutarlı olsun. Dikkat: model adı verilmemiş, varsayılan model kullanılıyor; bilinçli mi belirsiz."
+    },
+    {
+     "s": [
+      7,
+      7
+     ],
+     "n": "StrOutputParser, AIMessage'ı düz metne çevirir. Zincirin sonraki adımı retriever metin beklediği için gerekli."
+    },
+    {
+     "s": [
+      8,
+      8
+     ],
+     "n": "Arama sorunun değil pasajın embedding'iyle yapılır; cevap yine orijinal soruyla üretilir. Kısa, belirsiz ya da dokümandan farklı ifadeyle (farklı dilde) sorulan sorularda tercih edilir. Derste canlı çalıştırılmadı."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "Soru",
+     "LLM: pasaj yaz",
+     "Varsayımsal pasaj",
+     "retriever",
+     "LLM (context + soru)"
+    ],
+    "oklar": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2,
+      "StrOutputParser"
+     ],
+     [
+      2,
+      3,
+      "embedding"
+     ],
+     [
+      3,
+      4,
+      "chunk'lar"
+     ],
+     [
+      0,
+      4,
+      "orijinal soru"
+     ]
+    ]
+   },
+   "zaman": "≈1:46–1:54"
+  }
+ ]
+}

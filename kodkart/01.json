@@ -1,0 +1,86 @@
+{
+ "ders": "01",
+ "kartlar": [
+  {
+   "id": "k0",
+   "ad": "Kendi verinle çalışmak: temel RAG hattı",
+   "dosya": "tahta çizimi (01_konu_05/06.jpg)",
+   "dil": "text",
+   "kod": [
+    "Kendi verin ─┬─ RAG",
+    "             └─ Fine-tuning (belirli alanda uzman LLM) ─┬─ LoRA",
+    "                                                         └─ QLoRA   → sadece belirli parametreler eğitilir",
+    "",
+    "İndeksleme:   Documents → (data loading) → Text chunks → (embedding) → Vector embeddings → Vector DB",
+    "Sorgu:        User query → Vector embedding → Vector DB'de arama (retrieval) → Top-K chunks",
+    "              Top-K chunks + User query → LLM (generation) → Response"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Model şirketin ya da kurumun iç bilgisini bilmez. Tüm bilgiyi her seferinde modele vermek çok pahalı; RAG yalnızca ilgili parçaları getirir."},
+    {"s": [2, 3], "n": "İkinci yol modelin ağırlıklarını güncellemek. LoRA/QLoRA tüm ağırlıkları değil yalnızca bir kısmını eğitir: daha kısa süre, daha az yer. Bilgi sık değişiyorsa RAG daha pratiktir."},
+    {"s": [5, 5], "n": "İndeksleme bir kez yapılır: dokümanlar küçük parçalara (chunk) bölünür, her parça sayıya (embedding) çevrilip vektör veritabanına yazılır. Parselleri önceden mekânsal indeksle kaydetmeye benzer."},
+    {"s": [6, 6], "n": "Soru da aynı yolla embedding'e çevrilir ve anlamca en yakın K parça bulunur (semantic search). Bir noktaya en yakın K komşuyu aramak gibi; kelime eşleşmesi değil, anlam yakınlığı."},
+    {"s": [7, 7], "n": "Bulunan parçalar soruyla birlikte LLM'e gider, cevap bu parçalara dayanır. Hoca 'halüsinasyonu çözer' diyor; pratikte azaltır, tamamen kaldırmaz."}
+   ],
+   "akis": {
+    "kutular": ["Dokümanlar", "Chunk + embedding", "Vektör DB", "Kullanıcı sorusu", "Top-K + soru", "LLM cevabı"],
+    "oklar": [[0, 1, "böl"], [1, 2, "kaydet"], [3, 2, "ara"], [2, 4, "getir"], [4, 5, "üret"]]
+   },
+   "zaman": "≈0:16–0:20"
+  },
+  {
+   "id": "k1",
+   "ad": "Context ve model seçimi",
+   "dosya": "tahta çizimi (01_konu_04.jpg)",
+   "dil": "text",
+   "kod": [
+    "Sistem prompt'u + önceki konuşmalar + tool bilgileri + dokümanlar  →  CONTEXT  →  LLM",
+    "Kötü uygulama  ≠ kötü model   →   = kötü context",
+    "",
+    "Modeller",
+    "├─ Kapalı kaynak (GPT, Claude) → API ile iletişim → paralı → veri sağlayıcıya gider",
+    "└─ Açık kaynak (Gemma, Qwen)   → lokal çalışır → ücretsiz → veri güvende → Ollama / Hugging Face → model indir",
+    "                                  └─ model boyutları → VRAM → Quantization"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Modele giden şey yalnızca senin sorun değil: sistem prompt'u, geçmiş konuşma, tool çıktıları ve dokümanların hepsi context. Context engineering bu bütünü bilinçli tasarlamaktır."},
+    {"s": [2, 2], "n": "Garbage in, garbage out. Sonuç kötüyse önce modele değil bağlama bak. Kötü YKN ile iyi yazılım da kötü ortofoto üretir."},
+    {"s": [5, 5], "n": "Kapalı model API ile çağrılır, token başına ücretlidir ve gönderdiğin veri sağlayıcının sunucusuna gider."},
+    {"s": [6, 6], "n": "Açık model kendi bilgisayarında çalışır; ücretsiz, limitsiz ve veri dışarı çıkmaz. Malik bilgisi gibi kişisel veri içeren işlerde bu fark belirleyicidir. Gemma Google'ın, Qwen Alibaba'nın modelidir."},
+    {"s": [7, 7], "n": "Lokal modelin sığıp sığmayacağını GPU belleği (VRAM) belirler. Quantization modeli sıkıştırıp sığdırır; büyük bir ortofotoyu sıkıştırıp belleğe almak gibi, biraz kaliteden verilir."}
+   ],
+   "akis": {
+    "kutular": ["Sistem prompt'u", "Geçmiş, tool, doküman", "CONTEXT", "LLM", "Cevap"],
+    "oklar": [[0, 2], [1, 2], [2, 3, "girdi"], [3, 4]]
+   },
+   "zaman": "≈0:11–0:16"
+  },
+  {
+   "id": "k2",
+   "ad": "Öğrenme sırası, MCP ve production hattı",
+   "dosya": "tahta çizimi (01_konu_07/08.jpg)",
+   "dil": "text",
+   "kod": [
+    "API → Tool Calling → AI Agent → MCP",
+    "",
+    "Host (AI uygulaması: Claude, ChatGPT)  ⇄  Client  ⇄  Server  ⇄  GitHub / Veritabanı / Slack",
+    "",
+    "Uygulamayı geliştir → dış dünyaya aç → API (FastAPI | LangGraph Server) → Docker",
+    "  → Deploy (AWS | Azure | GCP) → CI/CD",
+    "  → Observability → Evaluation → Security + Cost"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Hocanın kesin vurgusu: bu sırayla öğren. Her adım öncekinin üstüne kurulur; API çağrısını bilmeyen tool calling'i, tool calling'i bilmeyen ajanı anlayamaz."},
+    {"s": [3, 3], "n": "MCP uygulamayı dış sistemlere bağlar. Host AI uygulamasıdır, client bağlantıyı taşır, server dış sistemin yeteneklerini sunar. Transkriptte server tanımı karışık geçiyor; standart tanım budur."},
+    {"s": [5, 5], "n": "Uygulama lokalde kalmaz: FastAPI ile API'ye çevrilir, Docker ile her makinede aynı çalışacak şekilde paketlenir."},
+    {"s": [6, 6], "n": "Buluta alınır; CI/CD sonraki değişiklikleri otomatik test edip yayına alır. Elle kopyalama yapılmaz."},
+    {"s": [7, 7], "n": "Yayına almak işin sonu değil. Hangi prompt, kaç token, hangi adımda hata izlenir; test seti ve beklenen sonuçlarla ölçülür. 'Bana göre güzel çalışıyor' ölçüt değil; kontrol noktası olmadan doğruluk raporu yazılmaz."}
+   ],
+   "akis": {
+    "kutular": ["Uygulama", "FastAPI", "Docker", "Bulut (AWS/Azure/GCP)", "İzleme + değerlendirme"],
+    "oklar": [[0, 1, "API'ye çevir"], [1, 2, "paketle"], [2, 3, "deploy"], [3, 4, "izle"]]
+   },
+   "zaman": "≈0:22–0:28"
+  }
+ ]
+}

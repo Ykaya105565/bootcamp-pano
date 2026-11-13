@@ -1,0 +1,609 @@
+{
+ "ders": "09",
+ "kartlar": [
+  {
+   "id": "k0",
+   "ad": "Ortam: LangChain paketleri",
+   "dosya": "terminal",
+   "dil": "bash",
+   "kod": [
+    "uv init --python 3.12",
+    "uv add langchain jupyter",
+    "uv add langchain-text-splitters",
+    "# Not: aşağıdaki satır transkriptte yok (kayıt boşluğu); notebook'taki import'lardan çıkarıldı",
+    "uv add langchain-openai langchain-chroma python-dotenv"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      1
+     ],
+     "n": "Projeyi Python 3.12 ile başlatır; pyproject.toml ve .gitignore oluşur. Sonra kernel olarak Select Kernel, Python Environments, day05 seçilir."
+    },
+    {
+     "s": [
+      2,
+      2
+     ],
+     "n": "LangChain çatısı ve notebook. uv paketleri pip'ten çok daha hızlı kurar ve sürümü pyproject.toml'a yazar."
+    },
+    {
+     "s": [
+      3,
+      3
+     ],
+     "n": "Metni parçalara bölen splitter'lar ayrı pakette. Kurulu olduğu halde import hatası verirse kernel yeni paketi görmemiştir; Restart."
+    },
+    {
+     "s": [
+      4,
+      5
+     ],
+     "n": "Bu komut derste duyulmadı; notebook'taki import'lardan çıkarıldı. langchain-openai embedding ve sohbet modeli, langchain-chroma vektör DB, python-dotenv .env'deki anahtar için."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "uv init",
+     "LangChain çekirdek",
+     "text-splitters",
+     "openai + chroma",
+     "day05 kernel"
+    ],
+    "oklar": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      3,
+      4,
+      "Restart"
+     ]
+    ]
+   },
+   "zaman": "≈01:25–01:32"
+  },
+  {
+   "id": "k1",
+   "ad": "Dosyayı oku, Document nesnesine koy",
+   "dosya": "indexing.ipynb",
+   "dil": "python",
+   "kod": [
+    "from pathlib import Path",
+    "path = Path(\"./docs/test.txt\")",
+    "text = path.read_text(encoding=\"utf-8\")",
+    "",
+    "from langchain_core.documents import Document",
+    "raw_documents = [",
+    "    Document(",
+    "    page_content=text,",
+    "    metadata={\"source\": \"docs/test.txt\"},",
+    "    )",
+    "]"
+   ],
+   "balon": [
+    {
+     "s": [
+      2,
+      2
+     ],
+     "n": "Yolu işletim sisteminden bağımsız bir nesneye çevirir; Windows'taki ters eğik çizgi farkını Path kendisi yönetir. Dosya docs klasöründe olmalı, yoksa FileNotFoundError."
+    },
+    {
+     "s": [
+      3,
+      3
+     ],
+     "n": "encoding=\"utf-8\" yazılmazsa ç, ş, ğ gibi Türkçe karakterler bozuk okunabilir. Pipeline'ın ilk adımı: veri yükleme."
+    },
+    {
+     "s": [
+      8,
+      8
+     ],
+     "n": "Metnin kendisi. Document LangChain'in standart kabıdır: splitter, vektör DB, retriever hepsi bunu bekler."
+    },
+    {
+     "s": [
+      9,
+      9
+     ],
+     "n": "Metadata cevabın kaynağını izlemek için: hangi dosya, hangi parça. Bir paftadaki kenar bilgisi gibi; cevap şüpheliyse kaynağa buradan dönülür."
+    },
+    {
+     "s": [
+      6,
+      11
+     ],
+     "n": "Liste, çünkü splitter ve vektör DB doküman listesi bekler; ileride başka dosya eklenebilir. Şu an tek eleman var: raw_documents[1] hata verir."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "docs/test.txt",
+     "Path",
+     "read_text (utf-8)",
+     "Document",
+     "raw_documents listesi"
+    ],
+    "oklar": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      3,
+      "page_content"
+     ],
+     [
+      3,
+      4
+     ]
+    ]
+   },
+   "zaman": "≈01:32–01:39"
+  },
+  {
+   "id": "k2",
+   "ad": "Chunking: metni parçalara böl",
+   "dosya": "indexing.ipynb",
+   "dil": "python",
+   "kod": [
+    "from langchain_text_splitters import RecursiveCharacterTextSplitter",
+    "",
+    "text_splitter = RecursiveCharacterTextSplitter(",
+    "    chunk_size=600,",
+    "    chunk_overlap=120,",
+    "    add_start_index=True",
+    ")",
+    "documents = text_splitter.split_documents(raw_documents)",
+    "len(documents)"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      1
+     ],
+     "n": "Metni doğal yerlerden böler: önce paragraf, olmazsa satır, o da olmazsa boşluk. Bütün metni LLM'e vermek token'ı ve context'i şişirir; bölmenin sebebi bu."
+    },
+    {
+     "s": [
+      4,
+      4
+     ],
+     "n": "Bir parça en fazla ~600 karakter. Başparmak kuralı: kısa metin 300-600, makale 600-1000, uzun metin 1000-2000. Çok büyükse gereksiz bilgi, çok küçükse eksik bilgi gider."
+    },
+    {
+     "s": [
+      5,
+      5
+     ],
+     "n": "Ardışık parçaların ortak kısmı; 600'ün %20'si. Sınırda bağlam kopmasın diye. Bindirmeli hava fotoğrafları gibi: bindirme olmazsa iki görüntü birleşmez. Az olursa bağ kopar, çok olursa tekrar artar."
+    },
+    {
+     "s": [
+      6,
+      6
+     ],
+     "n": "Her parçanın metadata'sına orijinal metinde başladığı karakteri (start_index) yazar; kaynak gösterirken işe yarar."
+    },
+    {
+     "s": [
+      8,
+      9
+     ],
+     "n": "Metadata'yı koruyarak böler; sonuç yine Document listesi. Paragraflar 600'den kısa olduğu için her paragraf ayrı parça oldu (ilki 411 karakter) ve overlap görünmedi; bu hata değil. len ile parça sayısına bakmadan documents[16] gibi indeks denemek IndexError verir."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "raw_documents",
+     "Splitter (600/120)",
+     "split_documents",
+     "chunk listesi",
+     "start_index"
+    ],
+    "oklar": [
+     [
+      0,
+      2
+     ],
+     [
+      1,
+      2,
+      "ayarlar"
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      3,
+      4,
+      "metadata"
+     ]
+    ]
+   },
+   "zaman": "≈01:44–02:00"
+  },
+  {
+   "id": "k3",
+   "ad": "Embedding ve Chroma'ya kaydetme",
+   "dosya": "indexing.ipynb",
+   "dil": "python",
+   "kod": [
+    "from dotenv import load_dotenv",
+    "load_dotenv()",
+    "",
+    "from langchain_openai import OpenAIEmbeddings",
+    "embeddings = OpenAIEmbeddings(model=\"text-embedding-3-small\")",
+    "",
+    "texts = [doc.page_content for doc in documents]",
+    "vectors = embeddings.embed_documents(texts)",
+    "print(\"Vektör boyutu:\", len(vectors[0]))",
+    "# ...",
+    "from langchain_chroma import Chroma",
+    "import shutil",
+    "PERSIST_DIR = \"./chroma_db\"",
+    "shutil.rmtree(PERSIST_DIR, ignore_errors=True)",
+    "",
+    "vector_store = Chroma.from_documents(",
+    "    documents=documents,",
+    "    embedding=embeddings,",
+    "    persist_directory=PERSIST_DIR,",
+    "    collection_name=\"antik_yunan\",",
+    ")"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      5
+     ],
+     "n": "Bu bölüm kayıt boşluğunda kaldı (ses yok); kod hocanın notebook'undan, açıklamalar notu yazanın. load_dotenv .env'deki OPENAI_API_KEY=sk-... değerini yükler; model her parçayı 1536 boyutlu vektöre çevirir."
+    },
+    {
+     "s": [
+      7,
+      9
+     ],
+     "n": "Yalnızca görmek için elle embedding: her parça bir vektör, parça sayısı = vektör sayısı. Aşağıdaki Chroma adımı embedding'i zaten kendisi yeniden hesaplar; bu satırlar atlanabilir ama ikinci kez ücret öder."
+    },
+    {
+     "s": [
+      13,
+      14
+     ],
+     "n": "Hücre her çalıştığında eski veritabanı klasörünü siler. Silinmezse aynı parçalar tekrar tekrar eklenir ve arama aynı paragrafı üç kez getirir."
+    },
+    {
+     "s": [
+      16,
+      21
+     ],
+     "n": "Parçaları vektöre çevirip ./chroma_db klasörüne antik_yunan koleksiyonu olarak kalıcı yazar. FAISS'in bellekteki indeksinden farkı: kernel kapansa da diskte kalır, bir geodatabase gibi."
+    },
+    {
+     "s": [
+      18,
+      18
+     ],
+     "n": "Burada verilen embedding modeli soruları çevirirken de kullanılacak. Kayıt ve sorgu farklı modelle çevrilirse vektörler kıyaslanamaz."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "chunk listesi",
+     "OpenAIEmbeddings",
+     "Chroma.from_documents",
+     "./chroma_db",
+     "antik_yunan"
+    ],
+    "oklar": [
+     [
+      0,
+      2
+     ],
+     [
+      1,
+      2,
+      "vektörler"
+     ],
+     [
+      2,
+      3,
+      "kalıcı yazar"
+     ],
+     [
+      3,
+      4,
+      "koleksiyon"
+     ]
+    ]
+   },
+   "zaman": "≈02:00–02:33"
+  },
+  {
+   "id": "k4",
+   "ad": "Retriever ve prompt şablonu",
+   "dosya": "indexing.ipynb",
+   "dil": "python",
+   "kod": [
+    "retriever = vector_store.as_retriever(search_kwargs={\"k\": 3})",
+    "docs = retriever.invoke(\"Antik Yunan'da kadınların toplumdaki rolü nedir?\")",
+    "len(docs)   # 3",
+    "",
+    "SYSTEM_PROMPT = (",
+    "    \"Answer the question based only on the following context. \"",
+    "    \"If the answer isn't in the context, say you don't know.\\n\\n\"",
+    "    \"Context:\\n{context}\" )",
+    "",
+    "prompt = ChatPromptTemplate([",
+    "    (\"system\", SYSTEM_PROMPT),",
+    "    (\"human\", \"{question}\"),",
+    "])",
+    "prompt.input_variables   # ['context', 'question']",
+    "",
+    "def format_docs(docs):",
+    " return \"\\n\\n\".join(doc.page_content for doc in docs)"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      1
+     ],
+     "n": "Retriever üç işi birden yapar: soruyu vektöre çevirir, DB'deki vektörlerle kıyaslar, en benzer parçaları döndürür. Varsayılan k=4; context şişmesin diye 3'e indirildi."
+    },
+    {
+     "s": [
+      2,
+      3
+     ],
+     "n": "invoke LangChain'de her şeyi çalıştırmanın ortak yolu. Dönen şey 3 Document; içinde metin ve metadata var."
+    },
+    {
+     "s": [
+      6,
+      7
+     ],
+     "n": "Halüsinasyonu engelleyen asıl kural: yalnızca bağlama göre cevapla, yoksa bilmediğini söyle. Bu satır olmazsa model boşluğu kendi bilgisiyle doldurur."
+    },
+    {
+     "s": [
+      8,
+      12
+     ],
+     "n": "{context} ve {question} süslü parantezle tanımlanmış yer tutucular; çalışma anında doldurulur. input_variables beklenen değişkenleri listeler; adlar invoke'ta verilenle birebir aynı olmalı."
+    },
+    {
+     "s": [
+      16,
+      17
+     ],
+     "n": "Document listesinden yalnızca metinleri alıp aralarına boş satır koyarak tek düz metin yapar. Metadata modele gitmez; model yalnızca okuması gerekeni görür."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "Soru",
+     "retriever (k=3)",
+     "3 Document",
+     "format_docs",
+     "prompt şablonu"
+    ],
+    "oklar": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2,
+      "benzerlik"
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      3,
+      4,
+      "{context}"
+     ],
+     [
+      0,
+      4,
+      "{question}"
+     ]
+    ]
+   },
+   "zaman": "≈02:33–02:41"
+  },
+  {
+   "id": "k5",
+   "ad": "LLM ve ilk RAG zinciri",
+   "dosya": "indexing.ipynb",
+   "dil": "python",
+   "kod": [
+    "from langchain_openai import ChatOpenAI",
+    "llm = ChatOpenAI(model=\"gpt-5.6-luna\", temperature=0)",
+    "",
+    "rag_chain = prompt | llm",
+    "response = rag_chain.invoke({\"context\": docs, \"question\": question})",
+    "print(response.content)"
+   ],
+   "balon": [
+    {
+     "s": [
+      2,
+      2
+     ],
+     "n": "temperature=0: kesin, tekrarlanabilir, yorum katmayan cevap; 1'e yaklaştıkça yaratıcılaşır. Derste daha yeni bir model temperature ile hata verdi; gpt-5.6-luna'ya dönülünce düzeldi. Bazı yeni modeller bu parametreyi desteklemiyor."
+    },
+    {
+     "s": [
+      4,
+      4
+     ],
+     "n": "Pipe (|) adımları bağlar: şablonun çıktısı LLM'in girdisi olur. Bu satırda istek gitmez, yalnızca tarif kurulur."
+    },
+    {
+     "s": [
+      5,
+      5
+     ],
+     "n": "Şablon dolar ve modele gider. Dikkat: context olarak docs listesi doğrudan verilmiş, format_docs uygulanmamış; metadata da prompt'a karışır. Bir sonraki adımdaki fonksiyon bunu düzeltiyor."
+    },
+    {
+     "s": [
+      6,
+      6
+     ],
+     "n": "Cevap dokümandaki ilgili paragrafla birebir uyumlu çıktı: model kendi bilgisinden değil verilen bağlamdan konuştu."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "docs + question",
+     "prompt",
+     "llm (temp=0)",
+     "response.content"
+    ],
+    "oklar": [
+     [
+      0,
+      1,
+      "invoke"
+     ],
+     [
+      1,
+      2,
+      "|"
+     ],
+     [
+      2,
+      3
+     ]
+    ]
+   },
+   "zaman": "≈02:41–02:50"
+  },
+  {
+   "id": "k6",
+   "ad": "@chain ile kaynak gösteren QA fonksiyonu",
+   "dosya": "indexing.ipynb",
+   "dil": "python",
+   "kod": [
+    "from langchain_core.runnables import chain",
+    "",
+    "@chain",
+    "def qa_with_sources(question: str):",
+    "    docs = retriever.invoke(question)              # 1) retrieval",
+    "    context = format_docs(docs)                    # 2) düz metin context",
+    "    formatted_prompt = prompt.invoke({             # 3) şablonu doldur",
+    "        \"context\": context,",
+    "        \"question\": question",
+    "    })",
+    "    answer = llm.invoke(formatted_prompt)          # 4) generation",
+    "    return {\"answer\": answer.content, \"docs\": docs}  # 5) cevap + kaynaklar",
+    "",
+    "result = qa_with_sources.invoke(\"Antik Yunan'da günlük yaşam nasıldı?\")",
+    "for doc in result[\"docs\"]:",
+    "    print(doc.page_content); print(doc.metadata); print(\"-\" * 50)",
+    "",
+    "# RAG'in en kritik davranışı: bilmediğini bilmek",
+    "result = qa_with_sources.invoke(\"Antik Yunan'da hangi kripto paralar kullanılıyordu?\")",
+    "print(result[\"answer\"])"
+   ],
+   "balon": [
+    {
+     "s": [
+      3,
+      4
+     ],
+     "n": "Dekoratör fonksiyona ek özellik kazandırır: @chain onu Runnable yapar, .invoke() ile çağrılır ve | ile başka zincirlere bağlanabilir. Her soruda adımları tekrar yazmamak için tek fonksiyon."
+    },
+    {
+     "s": [
+      5,
+      6
+     ],
+     "n": "RAG'in 'R'si: ilgili parçaları getir, düz metne çevir. Önceki adımdaki 'liste verildi' sorunu burada format_docs ile çözülüyor."
+    },
+    {
+     "s": [
+      7,
+      11
+     ],
+     "n": "Şablon doldurulup LLM'e verilir: 'G' yani üretim. Sıra önemli: önce getir, sonra şablona koy, sonra üret."
+    },
+    {
+     "s": [
+      12,
+      16
+     ],
+     "n": "Yalnızca cevabı değil hangi parçalardan geldiğini de döndürür. metadata'da source ve start_index (derste 0, 940, 2003) görünür; çok dosyalı sistemde hangi PDF, hangi sayfa da burada olur."
+    },
+    {
+     "s": [
+      18,
+      20
+     ],
+     "n": "Kaynakta olmayan soru. Model 'metinde yer almıyor' dedi: system prompt'taki 'bilmiyorsan söyle' kuralı çalıştı. RAG halüsinasyonu azaltır ama sıfırlamaz; yanlış parça gelirse yine yanlış cevap olabilir."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "Soru",
+     "retriever",
+     "format_docs",
+     "prompt",
+     "llm",
+     "cevap + docs"
+    ],
+    "oklar": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2,
+      "docs"
+     ],
+     [
+      2,
+      3,
+      "context"
+     ],
+     [
+      3,
+      4
+     ],
+     [
+      4,
+      5
+     ]
+    ]
+   },
+   "zaman": "≈02:50–02:55"
+  }
+ ]
+}

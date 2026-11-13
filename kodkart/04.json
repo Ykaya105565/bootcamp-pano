@@ -1,0 +1,91 @@
+{
+ "ders": "04",
+ "kartlar": [
+  {
+   "id": "k0",
+   "ad": "uv ile proje ortamı",
+   "dosya": "terminal (day01)",
+   "dil": "bash",
+   "kod": [
+    "# 1) uv kurulumu (komutu resmi siteden işletim sistemine göre kopyala)",
+    "curl -LsSf https://astral.sh/uv/install.sh | sh   # macOS / Linux",
+    "powershell -ExecutionPolicy ByPass -c \"irm https://astral.sh/uv/install.ps1 | iex\"   # Windows",
+    "",
+    "# 2) Proje klasöründe (ör. day01) VS Code terminalinde",
+    "uv init",
+    "",
+    "# 3) Kütüphane ekleme",
+    "uv add openai",
+    "",
+    "# 4) Başkasının projesini aynı sürümlerle kurma",
+    "uv sync"
+   ],
+   "balon": [
+    {"s": [2, 3], "n": "Tek seferlik kurulum. Bu iki komut transkriptte okunmuyor; notta astral.sh resmi dokümantasyonundan eklendi. uv Rust ile yazılmış, pip'ten çok daha hızlı ve Python sürümlerini de yönetiyor."},
+    {"s": [6, 6], "n": "Klasörü Python projesine çevirir: .gitignore, README.md ve pyproject.toml oluşur. Hoca Python 3.12 (ya da 3.11) öneriyor; başka sürümlerde kütüphane çakışması çıkabiliyor."},
+    {"s": [6, 6], "n": "pyproject.toml projenin kimlik kartı: Python ve paket sürümleri burada. Repoya gönderilir; içinde ad ya da e-posta görünürse dosyayı .gitignore'a ekleme, yalnızca o satırları sil."},
+    {"s": [9, 9], "n": "Paketi bağımlılıklarıyla kurar ve sürümüyle pyproject.toml'a yazar. openai sonraki derslerde modele bağlanmak için kullanılacak."},
+    {"s": [12, 12], "n": "pyproject.toml ve kilit dosyasındaki (uv.lock) sürümleri birebir kurar; projeyi başka makinede aynı ortamla çalıştırmak için. Hoca 'yanlış hatırlamıyorsam' dedi, sonraki derste doğrulanmalı."}
+   ],
+   "akis": {
+    "kutular": ["uv kurulumu", "uv init", "pyproject.toml", "uv add openai", "uv sync"],
+    "oklar": [[0, 1], [1, 2, "oluşturur"], [3, 2, "yazar"], [2, 4, "başka makinede okur"]]
+   },
+   "zaman": "≈2:48–2:58"
+  },
+  {
+   "id": "k1",
+   "ad": "Perceptron, sinir ağı ve eğitim döngüsü",
+   "dosya": "tahta çizimi",
+   "dil": "text",
+   "kod": [
+    "z = Σ wᵢxᵢ + b,   y = f(z)",
+    "x1·w1 + x2·w2 + b → z → f(z) → y   (z > eşik → 1 \"geçti\", değilse 0 \"kaldı\")",
+    "",
+    "Girdi katmanı → Gizli katman(lar) → Çıktı katmanı",
+    "(1 gizli katman = yapay sinir ağı; >1 gizli katman = derin sinir ağı)",
+    "",
+    "Forward → tahmin y' → Loss(y', y) → Optimizer → Backward (ağırlık güncelle) → tekrar (epoch) → loss düzleşince dur"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Tek yapay nöron: girdiler ağırlıklarla çarpılıp toplanır, bias (b) sabit olarak eklenir. Ağırlık = parametre; 'X milyar parametreli model' bunları sayar. Dengelemedeki gözlem ağırlıkları gibi, hangi girdinin sonuca ne kadar etki ettiğini belirler."},
+    {"s": [2, 2], "n": "Dersteki örnek: x1 çalışma süresi, x2 deneme puanı. Aktivasyon f(z) eşiği (ör. 70) geçerse 1 'geçti', geçmezse 0 'kaldı'."},
+    {"s": [4, 5], "n": "Tek perceptron tek bir doğru çizer. AND ve OR böyle ayrılır ama XOR ayrılamaz; bu yüzden gizli katmanlı ağlar doğdu. Birden fazla gizli katman = derin öğrenme. İçeride ne olduğu tam açıklanamaz: kara kutu."},
+    {"s": [7, 7], "n": "Eğitim: ileri geçişte tahmin üretilir, loss tahminle gerçeği karşılaştırır, optimizer geri yayılımla ağırlıkları düzeltir. Verinin bir tam geçişi bir epoch. İteratif dengelemede düzeltmeler küçülünce durmak gibi, loss düzleşince eğitim durur."},
+    {"s": [7, 7], "n": "AI mühendisi bu döngüyü çalıştırmaz; hazır eğitilmiş modeli kullanır. Hoca: ayrıntıyı bilmek şart değil, neyin ne olduğunu bilmek yeter."}
+   ],
+   "akis": {
+    "kutular": ["Girdiler x", "Ağırlıklar w + b", "z toplamı", "f(z) aktivasyon", "Çıktı y"],
+    "oklar": [[0, 2, "çarp"], [1, 2], [2, 3, "eşik"], [3, 4]]
+   },
+   "zaman": "≈1:24–1:50"
+  },
+  {
+   "id": "k2",
+   "ad": "Metinden sayıya: token, embedding, Transformer",
+   "dosya": "tahta çizimi",
+   "dil": "text",
+   "kod": [
+    "Metin → Token'lar → One-hot (seyrek, çok boyutlu) → Embedding (yoğun, düşük boyutlu, anlamsal)",
+    "",
+    "king − man + woman ≈ queen",
+    "",
+    "Transformer (Encoder + Decoder, 2017)",
+    " ├─ yalnızca Encoder → BERT (sınıflandırma / anlam)",
+    " └─ yalnızca Decoder → GPT  (metin üretme) → ChatGPT (2022) → Agentic AI (2026)"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Model metinden değil sayıdan anlar. Token metnin en küçük parçası; kaba oran 1000 token ≈ 750 kelime. One-hot'ta her token sözlük boyutunda (ör. 30 bin) bir vektör, tek 1 gerisi 0: devasa ve seyrek."},
+    {"s": [1, 1], "n": "Embedding token'ı 10-30 boyutlu yoğun bir vektöre çevirir; her boyut bir özelliği taşır. Kelimeye koordinat vermek gibi: anlamca yakın kelimeler uzayda yakın düşer. RAG'in temeli bu."},
+    {"s": [3, 3], "n": "Vektörlerle aritmetik yapılabilir: kral eksi erkek artı kadın, kraliçeye yakın bir noktaya düşer. man-woman farkı king-queen farkına paraleldir."},
+    {"s": [5, 5], "n": "Google'ın 2017'de çeviri için geliştirdiği diziden diziye mimari. Encoder girdiyi sayısal temsile çevirir; decoder kelime kelime üretir, her tahmini sona ekleyip tekrar girdi yapar (otoregresif)."},
+    {"s": [6, 7], "n": "BERT yalnızca encoder: anlam çıkarma ve sınıflandırma. GPT yalnızca decoder: metin üretme. Hoca GPT için 2019 diyor; ilk GPT 2018'de, GPT-2 2019'da yayımlandı."}
+   ],
+   "akis": {
+    "kutular": ["Metin", "Token'lar", "One-hot", "Embedding", "Transformer"],
+    "oklar": [[0, 1, "böl"], [1, 2], [2, 3, "sıkıştır"], [3, 4, "girdi"]]
+   },
+   "zaman": "≈2:19–2:33"
+  }
+ ]
+}

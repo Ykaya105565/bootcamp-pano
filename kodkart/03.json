@@ -1,0 +1,105 @@
+{
+ "ders": "03",
+ "kartlar": [
+  {
+   "id": "k0",
+   "ad": "Proje klasörü ve conda ortamı",
+   "dosya": "terminal",
+   "dil": "bash",
+   "kod": [
+    "mkdir langchain-for-genai",
+    "cd langchain-for-genai",
+    "code .",
+    "conda create -n langchain",
+    "conda activate langchain",
+    "pip install -r requirements.txt",
+    "pip list"
+   ],
+   "balon": [
+    {"s": [1, 2], "n": "Komutlar transkriptten yeniden kuruldu; klasör ve ortam adının tam yazımı belirsiz. mkdir klasörü açar, cd içine girer; sonraki bütün dosyalar burada oluşur."},
+    {"s": [3, 3], "n": "VS Code'u bu dizinde açar; nokta 'bulunduğum klasör' demektir. Yanlış klasörde açarsan .env ve requirements.txt başka yere düşer."},
+    {"s": [4, 4], "n": "-n ile adı verilen izole bir ortam kurar, onay için y denir. Her projeye ayrı ortam: farklı sürümler çakışmaz. ED50 ve ITRF projelerini aynı dosyada karıştırmamak gibi. python=3.11 eklemek önerilir (videoda yok)."},
+    {"s": [5, 5], "n": "Ortamı etkinleştirir; satır başında (langchain) görünür. Her yeni terminalde tekrar gerekir; unutulursa pip paketleri yanlış ortama kurar ve sonra ModuleNotFoundError gelir."},
+    {"s": [6, 7], "n": "-r dosyadaki tüm paketleri bağımlılıklarıyla kurar; langchain-community kendiliğinden gelir. pip list sürümleri doğrular. Ardından VS Code'da Select Interpreter ile bu ortam seçilmeli."}
+   ],
+   "akis": {
+    "kutular": ["Proje klasörü", "VS Code", "conda ortamı", "pip install", "Select Interpreter"],
+    "oklar": [[0, 1, "code ."], [1, 2, "create / activate"], [2, 3, "-r requirements"], [3, 4, "seç"]]
+   },
+   "zaman": "≈0:00–0:07"
+  },
+  {
+   "id": "k1",
+   "ad": "requirements.txt ile sürüm sabitleme",
+   "dosya": "requirements.txt",
+   "dil": "text",
+   "kod": [
+    "langchain==0.1.6",
+    "langchain-core==0.1.2",
+    "langchain-openai==0.0.1",
+    "python-dotenv==1.0.1"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "== sürümü tam sabitler; ortam başka makinede birebir aynı kurulur (tekrarlanabilirlik). Sürüm yazılmazsa her kurulumda en yenisi gelir ve dün çalışan kod bugün bozulabilir."},
+    {"s": [2, 3], "n": "LangChain modüler: çekirdek (core) ve sağlayıcı entegrasyonu (openai) ayrı paketler. Bu sürümler videonun tarihine ait (0.1.x) ve altyazı hatası olabilir; bugün PyPI'daki güncel sürümü ya da bootcamp'in kendi dosyasını kullan."},
+    {"s": [4, 4], "n": ".env dosyasını okumak için. Paket adı python-dotenv ama kodda from dotenv import diye çağrılır; iki adın farklı olması sık şaşırtır."}
+   ],
+   "akis": {
+    "kutular": ["PyPI", "requirements.txt", "pip install -r", "langchain ortamı"],
+    "oklar": [[0, 1, "sürüm bak"], [1, 2], [2, 3, "kurar"]]
+   },
+   "zaman": "≈0:03–0:07"
+  },
+  {
+   "id": "k2",
+   "ad": ".env ve .gitignore",
+   "dosya": ".env + .gitignore",
+   "dil": "text",
+   "kod": [
+    "# .env",
+    "OPENAI_API_KEY=sk-...",
+    "",
+    "# .gitignore",
+    ".env"
+   ],
+   "balon": [
+    {"s": [2, 2], "n": "Anahtar koda değil bu dosyaya yazılır. Değişken adı tam OPENAI_API_KEY olmalı; OpenAI ve langchain-openai bu adı kendiliğinden arar, farklı ad verirsen bulamaz."},
+    {"s": [2, 2], "n": "OpenAI platform → API keys → Create secret key. Anahtar yalnızca bir kez gösterilir; kaydet. İşin bitince panelden sil, sızdıysa hemen silip yenisini oluştur."},
+    {"s": [5, 5], "n": ".gitignore'daki dosyaları Git takip etmez; .env GitHub'a gitmez. Bu satır unutulursa anahtar herkese açık repoda kalır ve faturayı başkası şişirir."}
+   ],
+   "akis": {
+    "kutular": ["OpenAI API keys", ".env dosyası", ".gitignore", "Git deposu"],
+    "oklar": [[0, 1, "kopyala"], [2, 1, "hariç tutar"], [1, 3, "gitmez"]]
+   },
+   "zaman": "≈0:07–0:10"
+  },
+  {
+   "id": "k3",
+   "ad": "Notebook'ta anahtarı yükleme",
+   "dosya": "langchain.ipynb",
+   "dil": "python",
+   "kod": [
+    "from dotenv import load_dotenv",
+    "load_dotenv()",
+    "",
+    "import os",
+    "os.getenv(\"OPENAI_API_KEY\")",
+    "",
+    "# Alternatif: elle ayarlama",
+    "import os",
+    "os.environ[\"OPENAI_API_KEY\"] = \"sk-...\""
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Önce sağ üstten Select Kernel ile langchain ortamı seçilir; yanlış kernel import hatası verir. İlk çalıştırmada VS Code ipykernel kurulmasını ister, Install denir (derste yaşandı)."},
+    {"s": [2, 2], "n": "Çalışma dizinindeki .env'i okur, değişkenleri ortama ekler ve True döner. False dönerse .env bu klasörde değildir ya da adı yanlıştır (.env.txt gibi)."},
+    {"s": [5, 5], "n": "Anahtarın yüklendiğini kontrol eder ama anahtarı ekrana yazar. Yalnızca gösterim için; çıktıyı silmeden notebook'u paylaşma ya da commit'leme."},
+    {"s": [9, 9], "n": "Alternatif: anahtarı doğrudan oturuma yazmak. Hızlı ama anahtar kodun içinde kalır; hoca dotenv yöntemini öneriyor."}
+   ],
+   "akis": {
+    "kutular": [".env", "load_dotenv()", "os.environ", "os.getenv kontrol", "langchain-openai okur"],
+    "oklar": [[0, 1, "okur"], [1, 2, "yükler"], [2, 3], [2, 4, "otomatik"]]
+   },
+   "zaman": "≈0:10–0:13"
+  }
+ ]
+}

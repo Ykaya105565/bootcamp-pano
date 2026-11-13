@@ -1,0 +1,230 @@
+{
+ "ders": "02",
+ "kartlar": [
+  {
+   "id": "k0",
+   "ad": "input tuzağı ve tip dönüşümü",
+   "dosya": "Spyder",
+   "dil": "python",
+   "kod": [
+    "sayi1 = float(input(\"Lütfen bir sayı giriniz: \"))",
+    "sayi2 = float(input(\"Lütfen diğer sayıyı giriniz: \"))",
+    "print(sayi1 + sayi2)"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Bu dersin kod dosyası yok; kod derste anlatılan örnekten yeniden kuruldu. input() klavyeden ne gelirse gelsin her zaman str (metin) döndürür. Dönüşüm yapılmazsa 5 ile 3.4 toplanmaz, '53.4' diye yan yana yazılır."},
+    {"s": [1, 2], "n": "float() metni ondalıklı sayıya çevirir. int() kullanılsaydı 5.3 girildiğinde ValueError ile program dururdu. CSV'den okunan koordinatlar da metin gelir; hesaptan önce float'a çevrilir."},
+    {"s": [3, 3], "n": "İki değer artık sayı olduğu için + toplama yapar. Aynı + işareti metinde birleştirme, sayıda toplama demektir; sonucu tipe bağlıdır."}
+   ],
+   "akis": {
+    "kutular": ["Klavye", "input() → str", "float()", "sayi1 + sayi2", "print()"],
+    "oklar": [[0, 1, "metin"], [1, 2, "çevir"], [2, 3, "sayı"], [3, 4]]
+   },
+   "zaman": "≈0:57–1:00"
+  },
+  {
+   "id": "k1",
+   "ad": "Üç sayıdan en büyüğü",
+   "dosya": "Spyder",
+   "dil": "python",
+   "kod": [
+    "def en_buyuk(say1, say2, say3):",
+    "    if say1 >= say2 and say1 >= say3:",
+    "        return say1",
+    "    elif say2 >= say1 and say2 >= say3:",
+    "        return say2",
+    "    else:",
+    "        return say3",
+    "",
+    "print(en_buyuk(400, 50, 6))   # 400"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Yeniden kurulmuş örnek. def üç parametreli bir fonksiyon tanımlar; satır sonundaki iki nokta ve alttaki girinti zorunludur, yoksa SyntaxError."},
+    {"s": [2, 3], "n": "say1'in en büyük olması için iki karşılaştırmanın da doğru olması gerekir, bu yüzden and. >= yerine > yazılsaydı (5, 5, 1) gibi eşitlikte iki koşul da düşer ve yanlışlıkla 1 dönerdi."},
+    {"s": [4, 5], "n": "İlk koşul tutmazsa elif denenir. if-elif zinciri yukarıdan aşağı okunur; ilk doğru olan çalışır, gerisine bakılmaz."},
+    {"s": [6, 7], "n": "İlk ikisi değilse en büyük kalan say3'tür; ayrıca koşul yazmaya gerek yok. else unutulursa bu durumda fonksiyon None döndürür."},
+    {"s": [9, 9], "n": "return değeri çağırana geri verir, print ekrana yazar. return yerine fonksiyon içinde print kullansaydın sonucu başka bir hesapta kullanamazdın."}
+   ],
+   "akis": {
+    "kutular": ["400, 50, 6", "en_buyuk()", "if-elif-else", "return", "print → 400"],
+    "oklar": [[0, 1, "argüman"], [1, 2], [2, 3, "ilk doğru"], [3, 4]]
+   },
+   "zaman": "≈1:15–1:20"
+  },
+  {
+   "id": "k2",
+   "ad": "Kelime tahmin oyunu: while ve bayrak",
+   "dosya": "Spyder",
+   "dil": "python",
+   "kod": [
+    "gizli_kelime = \"tirendaz\"",
+    "tahmin = \"\"",
+    "tahmin_sayisi = 0",
+    "tahmin_limit = 3",
+    "tahmin_cikis = False",
+    "",
+    "while tahmin != gizli_kelime and not(tahmin_cikis):",
+    "    if tahmin_sayisi < tahmin_limit:",
+    "        tahmin = input(\"Tahmin giriniz: \")",
+    "        tahmin_sayisi += 1",
+    "    else:",
+    "        tahmin_cikis = True",
+    "",
+    "if tahmin_cikis:",
+    "    print(\"Üzgünüz kaybettiniz\")",
+    "else:",
+    "    print(\"Tebrikler kazandınız\")"
+   ],
+   "balon": [
+    {"s": [2, 2], "n": "Yeniden kurulmuş örnek. Döngü koşulu ilk turda tahmin'i kontrol eder; bu boş başlangıç değeri olmazsa NameError çıkar. while'ın birinci altın kuralı: başlangıç değeri."},
+    {"s": [5, 5], "n": "Bayrak (flag): hakkın bitip bitmediğini tutan True/False değişkeni. Döngü bittikten sonra neden bittiğini bu değişkenden anlarız."},
+    {"s": [7, 7], "n": "İkinci kural, koşul: kelime bilinmedikçe VE hak bitmedikçe döner. İkisinden biri bozulunca döngü durur."},
+    {"s": [8, 10], "n": "Üçüncü kural, adım: tahmin_sayisi += 1. Bu satır unutulursa sayaç hiç dolmaz, döngü sonsuza kadar tahmin ister. RTK'da fix için en fazla 3 deneme hakkı tanımak gibi."},
+    {"s": [11, 12], "n": "Hak bitince bayrak kalkar; bir sonraki koşul kontrolünde not(True) yanlış olur ve döngüden çıkılır."},
+    {"s": [14, 17], "n": "Döngüden sonra bayrağa bakılır: True ise haklar bitmiştir, False ise kelime bilinmiştir. Üçüncü hakta bilinirse bayrak hiç kalkmaz, oyun kazanılır."}
+   ],
+   "akis": {
+    "kutular": ["Başlangıç değerleri", "while koşulu", "input() tahmin", "Sayaç / bayrak", "Sonuç mesajı"],
+    "oklar": [[0, 1], [1, 2, "koşul doğru"], [2, 3], [3, 1, "tekrar kontrol"], [1, 4, "koşul yanlış"]]
+   },
+   "zaman": "≈1:25–1:34"
+  },
+  {
+   "id": "k3",
+   "ad": "for ile listedeki sayıların toplamı",
+   "dosya": "Spyder",
+   "dil": "python",
+   "kod": [
+    "sayilar = [8, 15, 17, 20]",
+    "toplam = 0",
+    "for i in sayilar:",
+    "    toplam = toplam + i",
+    "print(toplam)   # 60"
+   ],
+   "balon": [
+    {"s": [2, 2], "n": "Yeniden kurulmuş örnek. Biriktirici (akümülatör) sıfırdan başlar. Bu satır döngünün içine konsaydı her turda sıfırlanır, sonuç yalnızca son eleman (20) olurdu."},
+    {"s": [3, 3], "n": "for listenin üzerinde gezer; her turda i sıradaki elemanı alır. while gibi sayaç ve adım yazmaya gerek yoktur, liste bitince kendiliğinden durur."},
+    {"s": [4, 4], "n": "Her eleman biriktiriciye eklenir: 0 → 8 → 23 → 40 → 60. Parsellerin alanlarını tek tek toplayıp ada alanını bulmak gibi. Kısa yazımı toplam += i."},
+    {"s": [5, 5], "n": "print girintisiz, yani döngünün dışında; sonuç bir kez yazılır. Girintili yazılsaydı her turdaki ara toplam ekrana dökülürdü."}
+   ],
+   "akis": {
+    "kutular": ["sayilar listesi", "for i", "toplam + i", "toplam", "print → 60"],
+    "oklar": [[0, 1, "eleman"], [1, 2], [2, 3, "biriktir"], [3, 1, "sonraki tur"], [3, 4, "liste bitince"]]
+   },
+   "zaman": "≈1:34–1:39"
+  },
+  {
+   "id": "k4",
+   "ad": "Hata yönetimi: try / except",
+   "dosya": "Spyder",
+   "dil": "python",
+   "kod": [
+    "try:",
+    "    sayi1 = int(input(\"Bir sayı giriniz: \"))",
+    "    sayi2 = int(input(\"Bir sayı daha giriniz: \"))",
+    "    print(sayi1 / sayi2)",
+    "except ValueError:",
+    "    print(\"Geçersiz giriş\")",
+    "except ZeroDivisionError:",
+    "    print(\"Sayı sıfıra bölünemez\")"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Yeniden kurulmuş örnek. Hata çıkarabilecek satırlar try bloğuna konur. try olmasaydı tek bir yanlış girişte program çöker ve durur."},
+    {"s": [2, 3], "n": "Kullanıcı sayı yerine harf girerse int() ValueError fırlatır: 'invalid literal for int() with base 10'."},
+    {"s": [4, 4], "n": "İkinci sayı 0 ise bölme tanımsızdır, ZeroDivisionError çıkar. Ölçek ya da eğim hesabında paydanın 0 olması aynı hatadır."},
+    {"s": [5, 6], "n": "Hata türü belirtilmiş except yalnızca o hatayı yakalar. Tek bir except: yazılsaydı her hataya aynı mesaj verilir, kullanıcı nerede yanlış yaptığını anlamazdı."},
+    {"s": [7, 8], "n": "Her hata türüne ayrı mesaj. Alternatif: except (ValueError, ZeroDivisionError) as hata: ile Python'un kendi mesajı da gösterilir. finally ise hata olsa da olmasa da çalışır."}
+   ],
+   "akis": {
+    "kutular": ["Kullanıcı girdisi", "try bloğu", "ValueError", "ZeroDivisionError", "Sonuç / mesaj"],
+    "oklar": [[0, 1], [1, 4, "hata yoksa"], [1, 2, "harf girilirse"], [1, 3, "0 girilirse"], [2, 4], [3, 4]]
+   },
+   "zaman": "≈1:53–2:01"
+  },
+  {
+   "id": "k5",
+   "ad": "Dosyanın ortasına satır ekleme",
+   "dosya": "Spyder + notlar.txt",
+   "dil": "python",
+   "kod": [
+    "with open(\"notlar.txt\", \"r+\") as dosya:",
+    "    veri = dosya.readlines()",
+    "    veri.insert(1, \"Ali 70\\n\")",
+    "    dosya.seek(0)",
+    "    dosya.writelines(veri)"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Yeniden kurulmuş örnek. r+ hem okur hem yazar. with blok bitince (hata olsa bile) dosyayı kendisi kapatır, close() gerekmez. w modu seçilseydi eski içerik silinirdi."},
+    {"s": [2, 2], "n": "readlines() satırları liste olarak verir. Liste değiştirilebilir olduğu için artık insert gibi liste metotları kullanılabilir."},
+    {"s": [3, 3], "n": "1. indekse (ikinci satır) yeni satır eklenir, alttakiler aşağı kayar. Sondaki \\n unutulursa sonraki satır aynı satıra yapışır. Bir koordinat listesine araya nokta eklemek gibi."},
+    {"s": [4, 4], "n": "Okuma bitince imleç dosyanın sonundadır. seek(0) imleci başa alır; bu satır olmazsa güncel liste eski içeriğin arkasına eklenir ve satırlar çiftlenir."},
+    {"s": [5, 5], "n": "Güncellenmiş listeyi baştan yazar. Türkçe karakterli dosyada open(..., encoding=\"utf-8\") vermek karakter bozulmasını önler (derste anlatılmadı)."}
+   ],
+   "akis": {
+    "kutular": ["notlar.txt", "readlines() → liste", "insert(1, ...)", "seek(0)", "writelines()"],
+    "oklar": [[0, 1, "oku"], [1, 2], [2, 3], [3, 4], [4, 0, "yaz"]]
+   },
+   "zaman": "≈2:07–2:12"
+  },
+  {
+   "id": "k6",
+   "ad": "Sınıf, __init__, kalıtım ve super()",
+   "dosya": "Spyder",
+   "dil": "python",
+   "kod": [
+    "class Ebeveyn:",
+    "    def __init__(self, isim, memleket):",
+    "        self.isim = isim",
+    "        self.memleket = memleket",
+    "",
+    "    def goster(self):",
+    "        print(\"Adım\", self.isim, \"ve memleketim\", self.memleket)",
+    "",
+    "class Cocuk(Ebeveyn):",
+    "    def __init__(self, isim, memleket, yas):",
+    "        super().__init__(isim, memleket)",
+    "        self.yas = yas",
+    "",
+    "    def goster(self):",
+    "        super().goster()",
+    "        print(\"Yaşım\", self.yas)",
+    "",
+    "c1 = Cocuk(\"Ali\", \"İzmir\", 18)",
+    "c1.goster()"
+   ],
+   "balon": [
+    {"s": [2, 4], "n": "Yeniden kurulmuş örnek. __init__ nesne oluşturulurken kendiliğinden çalışır; self oluşan nesnenin kendisidir. self.isim = isim parametreyi nesnenin kalıcı niteliği yapar; self. yazılmazsa değer fonksiyon bitince kaybolur."},
+    {"s": [9, 9], "n": "Parantezdeki sınıftan miras alır: Ebeveyn'in nitelik ve metotları kopyalamadan gelir. Genel 'Nokta' sınıfından 'PoligonNoktasi' türetmek gibi; ortak kod bir kez yazılır."},
+    {"s": [10, 12], "n": "super().__init__ ebeveynin kurulum kodunu yeniden yazmadan çalıştırır; burada self yazılmaz. Ardından çocuğa özgü yeni nitelik (yas) eklenir."},
+    {"s": [14, 16], "n": "Aynı adla goster yazmak ebeveyninkini ezer (override). İçindeki super().goster() önce eski davranışı çalıştırır, sonra yaşı ekler; super satırı silinirse yalnızca yaş yazılır."},
+    {"s": [18, 19], "n": "Sınıf şablon, c1 somut nesne. Çıktı iki satır: 'Adım Ali ve memleketim İzmir' ve 'Yaşım 18'. Sınıf adları geleneksel olarak büyük harfle başlar."}
+   ],
+   "akis": {
+    "kutular": ["Ebeveyn sınıfı", "Cocuk(Ebeveyn)", "super().__init__", "c1 nesnesi", "goster() çıktısı"],
+    "oklar": [[0, 1, "miras"], [1, 2], [2, 0, "çağırır"], [1, 3, "üretir"], [3, 4]]
+   },
+   "zaman": "≈2:19–2:34"
+  },
+  {
+   "id": "k7",
+   "ad": "Lambda ve map",
+   "dosya": "Spyder",
+   "dil": "python",
+   "kod": [
+    "sayilar = [1, 2, 3, 4, 5]",
+    "kareler = list(map(lambda x: x ** 2, sayilar))"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Yeniden kurulmuş örnek. İşlenecek liste; map her elemanına aynı işlemi uygulayacak."},
+    {"s": [2, 2], "n": "lambda x: x ** 2 isimsiz, tek ifadelik fonksiyondur; def ile isim vermeye değmeyecek kadar kısa işler için. Birden fazla parametre alabilir ama yalnızca tek bir ifade yazılır."},
+    {"s": [2, 2], "n": "map(fonksiyon, liste) fonksiyonu her elemana uygular. Bütün kotlara aynı jeoit düzeltmesini tek satırda uygulamak gibi; for döngüsünün kısa hâli."},
+    {"s": [2, 2], "n": "map sonucu doğrudan liste değildir; list() ile listeye çevrilir. list() unutulursa print ekrana [1, 4, 9, 16, 25] yerine bir map nesnesi yazar."}
+   ],
+   "akis": {
+    "kutular": ["sayilar", "lambda x: x**2", "map()", "list()", "kareler"],
+    "oklar": [[0, 2, "liste"], [1, 2, "fonksiyon"], [2, 3], [3, 4]]
+   },
+   "zaman": "≈2:37–2:40"
+  }
+ ]
+}

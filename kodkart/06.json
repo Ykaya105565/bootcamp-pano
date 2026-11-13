@@ -1,0 +1,116 @@
+{
+ "ders": "06",
+ "kartlar": [
+  {
+   "id": "k0",
+   "ad": "uv ile proje ve .env",
+   "dosya": "terminal + .env",
+   "dil": "bash",
+   "kod": [
+    "uv init --python 3.12",
+    "uv add openai streamlit python-dotenv",
+    "",
+    "# .env (proje kök dizininde)",
+    "OPENAI_API_KEY=sk-..."
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Bulunduğun klasörde proje başlatır: .python-version, pyproject.toml, README.md ve .gitignore oluşur. --python 3.12 sürümü sabitler; başka makinede de aynı Python kullanılır."},
+    {"s": [1, 1], "n": "Her proje ayrı sanal ortam: kütüphane sürümleri çakışmaz. Hoca conda yerine uv'ye alışmayı öneriyor; conda kullanışlı ama ağır."},
+    {"s": [2, 2], "n": "openai modele bağlanmak, streamlit arayüz, python-dotenv .env'i okumak için. Paketler önceki derste kurulmuş olsa da her yeni proje klasöründe tekrar eklenir; ortamlar paylaşılmaz."},
+    {"s": [4, 5], "n": "Değişken adı büyük harfle, tırnaksız. Dosya proje kök dizininde olmalı; derste alt klasöre düşen .env bulunamadı. .gitignore sayesinde GitHub'a gitmez."}
+   ],
+   "akis": {
+    "kutular": ["uv init", "uv add", "pyproject.toml + .venv", ".env", "my-first-app.py"],
+    "oklar": [[0, 1], [1, 2, "kaydeder"], [2, 4, "paketler"], [3, 4, "anahtar"]]
+   },
+   "zaman": "≈0:22–0:34"
+  },
+  {
+   "id": "k1",
+   "ad": "Uygulamanın başı: import, anahtar, arayüz",
+   "dosya": "1_my-first-app.py",
+   "dil": "python",
+   "kod": [
+    "from dotenv import load_dotenv",
+    "from openai import OpenAI",
+    "import streamlit as st",
+    "",
+    "load_dotenv(override=True)",
+    "client = OpenAI()",
+    "",
+    "st.title(\"İlk AI Uygulamam\")",
+    "soru = st.text_input(\"Ne sormak istersin?\")",
+    "# ..."
+   ],
+   "balon": [
+    {"s": [1, 3], "n": "Önce import, sonra kullan. Kütüphanenin tamamı değil yalnızca gereken sınıf alınır. st kısaltması her seferinde streamlit yazmamak için. Altı kırmızı çiziliyse VS Code yanlış yorumlayıcıdadır: Select Interpreter → .venv."},
+    {"s": [5, 5], "n": ".env'deki anahtarı ortama yükler. override=True, terminalde daha önce tanımlanmış eski bir anahtar varsa .env'dekini esas alır; derste görülen 'Incorrect API key provided' hatasının çözümü bu."},
+    {"s": [6, 6], "n": "Sınıftan bir örnek (nesne) alınır. Parantez boş çünkü anahtarı OPENAI_API_KEY ortam değişkeninden kendisi okur; load_dotenv bu satırdan önce gelmeli."},
+    {"s": [8, 8], "n": "Sayfa başlığı. Streamlit'te her st. satırı sayfaya yukarıdan aşağı bir öğe ekler; HTML yazmadan arayüz kurulur."},
+    {"s": [9, 9], "n": "Metin kutusu. Parantezdeki yazı kutunun etiketi; kullanıcının yazdığı değer soru değişkenine gelir. Kutu boşsa soru boş metindir."}
+   ],
+   "akis": {
+    "kutular": [".env", "load_dotenv()", "Ortam değişkeni", "client = OpenAI()"],
+    "oklar": [[0, 1, "okur"], [1, 2, "üzerine yazar"], [2, 3, "anahtarı bulur"]]
+   },
+   "zaman": "≈0:34–0:38"
+  },
+  {
+   "id": "k2",
+   "ad": "Buton, boş soru kontrolü ve model cevabı",
+   "dosya": "1_my-first-app.py",
+   "dil": "python",
+   "kod": [
+    "# ... (importlar, client, soru = st.text_input(...))",
+    "",
+    "if st.button(\"Cevapla\"):",
+    "    if soru.strip():",
+    "        with st.spinner(\"Cevap hazırlanıyor...\"):",
+    "            response = client.responses.create(",
+    "                model = \"gpt-5.6-luna\",",
+    "                input = soru",
+    "            )",
+    "        st.write(response.output_text)",
+    "    else:",
+    "        st.warning(\"Önce bir soru yaz.\")"
+   ],
+   "balon": [
+    {"s": [3, 3], "n": "Butonu çizer; basıldığı anda True döner ve içindeki blok çalışır. Basılmadıkça modele istek gitmez, token harcanmaz."},
+    {"s": [4, 4], "n": "strip() baştaki ve sondaki boşlukları atar; geriye bir şey kalmazsa koşul False olur. Böylece boş ya da yalnızca boşluktan oluşan soru modele gönderilmez."},
+    {"s": [5, 5], "n": "Cevap bazen hızlı bazen yavaş gelir; bu sürede bekleme mesajı gösterilir. with bloğu bitince, yani istek tamamlanınca mesaj kaybolur."},
+    {"s": [6, 9], "n": "Önceki dersteki Responses API isteği: model hangi beyin, input kullanıcının sorusu. Sonuç response nesnesine gelir."},
+    {"s": [10, 10], "n": "output_text yalnızca cevap metnini verir; response'un tamamında token sayıları gibi meta veri de var. Girinti kritik: with'in dışında ama if soru.strip() içinde. Bir kademe sola kayarsa boş soruda response tanımsız kalır ve hata verir."},
+    {"s": [11, 12], "n": "Boş soruyla butona basılırsa kullanıcıya sarı uyarı çıkar. Python girintiye duyarlı: her yerde aynı boşluk sayısı (hep 4) kullanılmalı."}
+   ],
+   "akis": {
+    "kutular": ["st.text_input", "Cevapla butonu", "soru.strip()", "responses.create", "st.write cevap", "st.warning"],
+    "oklar": [[0, 1], [1, 2, "tıklanınca"], [2, 3, "dolu"], [3, 4, "output_text"], [2, 5, "boş"]]
+   },
+   "zaman": "≈0:50–0:56"
+  },
+  {
+   "id": "k3",
+   "ad": "Çalıştırma ve yayınlama",
+   "dosya": "terminal",
+   "dil": "bash",
+   "kod": [
+    "uv run streamlit run my-first-app.py",
+    "",
+    "# Yayınlama (deploy):",
+    "# Streamlit hesabı → GitHub hesabı → yeni repository (ör. my-first-app)",
+    "# → dosyaları yükle → Streamlit Community Cloud repoyu görür → public link"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "uv run komutu projenin sanal ortamında çalıştırır; streamlit run dosyayı web uygulaması olarak başlatır ve bir localhost adresi verir. python my-first-app.py ile çalışmaz, Streamlit'in kendi komutu gerekir."},
+    {"s": [1, 1], "n": "Sayfa boş geliyorsa önce dosyanın kaydedildiğine bak (derste sorun buydu); Auto Save açılabilir. Dosyayla aynı klasördeysen yol öneki yazma; macOS/Linux'ta ayraç / olur, \\ değil."},
+    {"s": [4, 5], "n": "Streamlit Community Cloud ücretsiz yayın yapar: kod GitHub reposunda durur, Streamlit repoyu görür ve herkese açık bir link verir. Prototipi müdüre ya da müşteriye göstermek için ideal."},
+    {"s": [4, 5], "n": ".env GitHub'a gitmediği için yayındaki uygulama anahtarı bulamaz. Derste değinilmedi; Streamlit Cloud'da bunun için 'Secrets' ayarı var, hocaya teyit ettirilebilir."}
+   ],
+   "akis": {
+    "kutular": ["my-first-app.py", "uv run streamlit", "localhost", "GitHub repo", "Community Cloud linki"],
+    "oklar": [[0, 1], [1, 2, "yerel"], [0, 3, "yükle"], [3, 4, "deploy"]]
+   },
+   "zaman": "≈0:38–1:04"
+  }
+ ]
+}

@@ -1,0 +1,152 @@
+{
+ "ders": "14",
+ "kartlar": [
+  {
+   "id": "k0",
+   "ad": "Model indirme ve çalıştırma",
+   "dosya": "terminal",
+   "dil": "bash",
+   "kod": [
+    "ollama list",
+    "ollama pull qwen3.5:9b",
+    "ollama run qwen3.5:9b"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Bilgisayarda inmiş modelleri listeler; ilk kurulumda boş gelir, bu hata değil. (Bu dersin kod dosyası yok; komutlar ders anlatımından derlendi.)"},
+    {"s": [2, 2], "n": "Modeli Ollama kütüphanesinden indirir. :9b etiketi boyutu seçer; etiket yazmazsan latest iner. Model katman katman iner, önceden inmiş katman tekrar inmez. 9B, 4-bit'te ~6-7 GB VRAM ister; kartın küçükse 4b seç."},
+    {"s": [3, 3], "n": "Modeli belleğe (GPU'ya) yükler ve sohbet açar; model yoksa önce indirir. Qwen 3.5 düşünen model olduğu için cevaptan önce düşünme metni görünür."}
+   ],
+   "akis": {
+    "kutular": ["Ollama kütüphanesi", "ollama pull", "Yerel disk", "ollama run", "GPU + sohbet"],
+    "oklar": [[0, 1, "indir"], [1, 2, "yazar"], [2, 3, "okur"], [3, 4, "yükler"]]
+   },
+   "zaman": "≈1:07–1:25"
+  },
+  {
+   "id": "k1",
+   "ad": "Düşünme modunu yönetme",
+   "dosya": "terminal",
+   "dil": "bash",
+   "kod": [
+    "ollama run gemma4:12b --think=false     # düşünmeden cevap",
+    "ollama run gemma4:12b --think           # düşünerek cevap",
+    "ollama run gemma4:12b --hidethinking    # düşünür ama düşünmeyi göstermez"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Düşünme adımını tamamen kapatır; cevap hızlı gelir. Basit sorular için: 'bir kilo pamuk mu ağır, demir mi?' sorusu bu modda doğru cevaplandı."},
+    {"s": [2, 2], "n": "Model cevaptan önce akıl yürütür ve bunu ekrana yazar. Yavaştır; küçük modeller burada takılabilir, Ctrl+C ile kesilir. Production'da düşünme turuna sınır konur (3-5 tur)."},
+    {"s": [3, 3], "n": "Model yine düşünür ama düşünme metni gizlenir, yalnızca cevap görünür. Chatbot'ta kullanıcıya iç sesi göstermemek için. --think=false ile karıştırma: o düşünmeyi kapatır, bu sadece saklar."}
+   ],
+   "akis": {
+    "kutular": ["Soru", "Düşünme adımı", "Düşünme metni", "Cevap"],
+    "oklar": [[0, 1, "--think"], [1, 2, "--hidethinking gizler"], [1, 3], [0, 3, "--think=false"]]
+   },
+   "zaman": "≈2:12–2:23"
+  },
+  {
+   "id": "k2",
+   "ad": "Sohbet içi komutlar",
+   "dosya": "ollama sohbeti",
+   "dil": "text",
+   "kod": [
+    "/set nothink | /set think        # düşünmeyi kapat/aç (sohbetten çıkmadan)",
+    "\"\"\"çok satırlı",
+    "mesaj\"\"\"                          # birden fazla satırlı girdi",
+    "/show info                        # mimari, parametre, kuantizasyon",
+    "/show license                     # lisans — kullanmadan önce bak!",
+    "/set verbose                      # token sayısı, süreler, tok/s istatistikleri",
+    "/set system \"…\"                   # sistem mesajı",
+    "/show system                      # mevcut sistem mesajını gör",
+    "/set parameter                    # ayarlanabilir parametreleri listele",
+    "/set parameter num_ctx 10000      # bağlam penceresini 10 000 token yap",
+    "/bye   (veya Ctrl+D)              # çık; Ctrl+C takılan üretimi keser"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Düşünmeyi sohbetten çıkmadan açıp kapatır. Bayrakla (--think) yapınca modeli her seferinde yeniden başlatman gerekir; bu daha pratik."},
+    {"s": [2, 3], "n": "Üç tırnak çok satırlı mesajı açar ve kapatır. Yazmazsan Enter'a bastığın anda ilk satır tek başına gönderilir."},
+    {"s": [4, 6], "n": "Modelin künyesi: info mimari, parametre ve kuantizasyonu (ör. Q4_K_M), license lisansı gösterir; verbose her cevaptan sonra token, süre ve tok/s yazar. Lisansa kullanmadan önce bak: Llama 4 lisansı 700 milyon kullanıcıda ayrı lisans ister. Paftanın lejantını okumadan haritayı kullanmamak gibi."},
+    {"s": [7, 8], "n": "Modele bu oturum için rol verir, /show system ile kontrol edilir. Derste 'her zaman kafiyeli cevap ver' denendi. Sohbetten çıkınca kaybolur; kalıcı rol için Modelfile gerekir."},
+    {"s": [9, 10], "n": "Ayarlanabilir parametreler: seed rastgeleliği sabitler (tekrarlanabilir sonuç), temperature/top_k/top_p yaratıcılığı, num_ctx modelin aynı anda görebildiği token sayısını belirler. Derste num_ctx 10 000 yapıldı."},
+    {"s": [11, 11], "n": "/bye ya da Ctrl+D sohbetten çıkar ama model bellekte kalabilir; ollama ps ile bak. Ctrl+C çıkmaz, yalnızca takılan üretimi keser."}
+   ],
+   "akis": {
+    "kutular": ["Sohbet satırı", "/ ile başlıyor mu?", "Ollama ayarı", "Modele mesaj"],
+    "oklar": [[0, 1], [1, 2, "evet"], [1, 3, "hayır"]]
+   },
+   "zaman": "≈2:12–2:27"
+  },
+  {
+   "id": "k3",
+   "ad": "Modelfile ile model türetme",
+   "dosya": "Modelfile",
+   "dil": "text",
+   "kod": [
+    "FROM gemma4:12b",
+    "SYSTEM \"Sen bir Python uzmanısın. Türkçe cevap ver.\"",
+    "PARAMETER temperature 0.?        # değer transkriptte anlaşılmıyor",
+    "",
+    "# terminal",
+    "ollama create gemma4-12b-turkce -f Modelfile",
+    "ollama run gemma4-12b-turkce"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Temel model. Yeni model bunun katmanlarını yeniden kullanır; bu yüzden saniyeler içinde oluşur ve list 8 GB gösterse de ek disk yeri küçüktür. Altlık paftanın üstüne yeni bir katman çizmek gibi: altlık kopyalanmaz."},
+    {"s": [2, 2], "n": "Kalıcı rol. Sohbetteki /set system oturumla biter; bu satır modelin içine gömülür, her run'da yeniden yazman gerekmez."},
+    {"s": [3, 3], "n": "Varsayılan parametreyi sabitler. Değer transkriptte anlaşılmıyor ('sıfır nokta...'), 0 ile 1 arasında bir değer verildi. 0.? olduğu gibi kalırsa create hata verir; kendi değerini yaz."},
+    {"s": [6, 6], "n": "create yeni model oluşturur, -f hangi tarif dosyasından türetileceğini söyler. Dosya adı Modelfile ve uzantısız olmalı; editör .txt eklerse -f dosyayı bulamaz."},
+    {"s": [7, 7], "n": "Türetilmiş modeli çalıştırır. 'Kendini tanıt' denince 'Ben bir Python uzmanıyım' dedi: rol kalıcı oldu."}
+   ],
+   "akis": {
+    "kutular": ["gemma4:12b (FROM)", "Modelfile", "ollama create", "gemma4-12b-turkce", "ollama run"],
+    "oklar": [[0, 1, "temel"], [1, 2, "-f"], [2, 3, "üretir"], [3, 4]]
+   },
+   "zaman": "≈2:27–2:34"
+  },
+  {
+   "id": "k4",
+   "ad": "Çalışanları izleme, sunucu, durdurma",
+   "dosya": "terminal",
+   "dil": "bash",
+   "kod": [
+    "ollama ps                        # çalışan modeller, boyut, %GPU, context, süre",
+    "ollama stop gemma4-12b-turkce    # modeli bellekten indir",
+    "ollama serve                     # sunucuyu başlat (harness'ler için)",
+    "ollama --help                    # tüm komutlar",
+    "",
+    "# tarayıcı: http://localhost:11434  ->  \"Ollama is running\""
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Şu an bellekte çalışan modelleri gösterir: boyut (~9,3 GB), %100 GPU, bağlam penceresi, süre. %100 GPU modelin tamamen VRAM'e yüklendiğini gösterir; model sığmayıp RAM'e taşarsa çok yavaşlar."},
+    {"s": [2, 2], "n": "Modeli VRAM'den boşaltır; yapmazsan sohbetten çıktıktan sonra da yer kaplar. Ad ps'teki tam adla aynı olmalı: derste yanlış adla model bulunamadı."},
+    {"s": [3, 3], "n": "Ollama'yı arka planda sunucu olarak başlatır. Claude Code, n8n, Hermes gibi harness'ler modele bu sunucu üzerinden ulaşır; kapalıysa bağlanamazlar."},
+    {"s": [4, 4], "n": "Bütün komutları listeler: serve, create, run, list, ps, cp, stop."},
+    {"s": [6, 6], "n": "Sunucunun adresi. Tarayıcıda 'Ollama is running' yazıyorsa ayakta. Başka araçlara bağlantı adresi olarak bu girilir; bir WMS servisinin URL'sini QGIS'e vermek gibi."}
+   ],
+   "akis": {
+    "kutular": ["ollama serve", "localhost:11434", "Harness (n8n, Hermes)", "Model (VRAM)", "ollama stop"],
+    "oklar": [[0, 1, "açar"], [2, 1, "bağlanır"], [1, 3, "çalıştırır"], [4, 3, "boşaltır"]]
+   },
+   "zaman": "≈2:33–2:38"
+  },
+  {
+   "id": "k5",
+   "ad": "Claude Code'u lokal modelle başlatma",
+   "dosya": "terminal",
+   "dil": "bash",
+   "kod": [
+    "claude --version     # Claude Code kurulu mu?",
+    "ollama               # menü → \"Launch Claude Code\" → listeden lokal model (ör. gemma4:12b)"
+   ],
+   "balon": [
+    {"s": [1, 1], "n": "Claude Code kurulu mu diye bakar; sürüm numarası geliyorsa hazır, gelmiyorsa önce resmî kurulum komutuyla kur. 'auto-update failed' uyarısında Claude Code/npm güncellemesi gerekebilir."},
+    {"s": [2, 2], "n": "Yalnızca ollama yazınca harness menüsü açılır: Claude Code, Hermes Agent, Codex, OpenClaw. İlk açılışta karşılama ekranı gelir, Enter'a bas. Motor (model) aynı kalır, araba (harness) değişir."},
+    {"s": [2, 2], "n": "Listede en üstte önerilen bulut model, en altta lokal modeller var. 'Waiting for sign-in to complete' çıkarsa bulut model seçilmiştir; en alttan lokal modeli (gemma4:12b) seç. Klasöre güven sorusuna evet de."}
+   ],
+   "akis": {
+    "kutular": ["ollama menüsü", "Launch Claude Code", "Model listesi", "Lokal model (gemma4:12b)", "Claude Code oturumu"],
+    "oklar": [[0, 1], [1, 2], [2, 3, "en alttan seç"], [3, 4, "beyin olur"]]
+   },
+   "zaman": "≈2:38–2:49"
+  }
+ ]
+}

@@ -1,0 +1,569 @@
+{
+ "ders": "07",
+ "kartlar": [
+  {
+   "id": "k0",
+   "ad": "Ortam: uv, gensim, transformers, torch",
+   "dosya": "terminal",
+   "dil": "bash",
+   "kod": [
+    "uv init --python 3.12",
+    "uv add gensim numpy jupyter",
+    "uv add transformers",
+    "",
+    "nvidia-smi",
+    "uv pip install torch ...   # pytorch.org komutu; pip3 -> pip"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      1
+     ],
+     "n": "Projeyi başlatır ve Python sürümünü 3.12'ye sabitler. Sürüm verilmezse 3.14 gelebiliyor; torch gibi büyük kütüphaneler yeni sürümde sorun çıkarabiliyor. Her proje için ayrı klasör, ayrı ortam."
+    },
+    {
+     "s": [
+      2,
+      2
+     ],
+     "n": "Uygulama 01 için: gensim hazır Word2Vec modelini indirir, numpy vektör işlemleri, jupyter notebook çalıştırmak için. Bağımlılıklar (scipy gibi) kendiliğinden gelir. Atlanırsa 'No module named gensim' hatası alınır."
+    },
+    {
+     "s": [
+      3,
+      3
+     ],
+     "n": "Uygulama 02 için Hugging Face kütüphanesi. Kendisi PyTorch üzerine kurulu, bu yüzden torch'u da ayrıca kurmak gerekir."
+    },
+    {
+     "s": [
+      5,
+      5
+     ],
+     "n": "Ekran kartını ve CUDA sürümünü gösterir. torch'un hangi CUDA sürümüyle kurulacağı buna göre seçilir; GNSS alıcısına uygun firmware seçmek gibi."
+    },
+    {
+     "s": [
+      6,
+      6
+     ],
+     "n": "pytorch.org'un verdiği komut pip3 ile gelir; 3 silinip başına uv eklenir, yoksa hata verir. Kurulumdan sonra notebook kernel'i Restart edilmezse torch görünmez."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "uv init",
+     "uv add",
+     "nvidia-smi",
+     "uv pip install torch",
+     ".venv kernel"
+    ],
+    "oklar": [
+     [
+      0,
+      1,
+      "ortam"
+     ],
+     [
+      2,
+      3,
+      "CUDA sürümü"
+     ],
+     [
+      1,
+      4
+     ],
+     [
+      3,
+      4,
+      "Restart"
+     ]
+    ]
+   },
+   "zaman": "≈01:23–01:42"
+  },
+  {
+   "id": "k1",
+   "ad": "Hazır Word2Vec modeli ve bir kelimenin vektörü",
+   "dosya": "01-word2vec.ipynb",
+   "dil": "python",
+   "kod": [
+    "import gensim.downloader as api",
+    "word2vec_model = api.load(\"word2vec-google-news-300\")",
+    "",
+    "vector = word2vec_model[\"king\"]",
+    "print(type(vector))   # numpy.ndarray",
+    "print(vector.shape)   # (300,)",
+    "print(vector[:10])    # ilk 10 boyut"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      1
+     ],
+     "n": "gensim'in downloader modülü hazır eğitilmiş modelleri indirip yükler; api kısa adıyla kullanılır."
+    },
+    {
+     "s": [
+      2,
+      2
+     ],
+     "n": "Google News üzerinde eğitilmiş model; her kelime 300 sayıyla temsil edilir. ≈1.6 GB, ilk seferde indirme uzun sürer, sonra önbellekten gelir. Hücreyi durdurup tekrar başlatmak işi uzatır."
+    },
+    {
+     "s": [
+      4,
+      4
+     ],
+     "n": "Model sözlük gibi kullanılır: kelime ver, vektör al. Büyük/küçük harfe duyarlıdır; sözlükte olmayan kelime KeyError verir."
+    },
+    {
+     "s": [
+      5,
+      6
+     ],
+     "n": "Tip NumPy dizisi, boyut 300. Bir parselin koordinatı 2-3 sayıdır; burada bir kelimenin anlamdaki 'koordinatı' 300 sayı."
+    },
+    {
+     "s": [
+      7,
+      7
+     ],
+     "n": "Yalnızca ilk 10 boyut basılır: her boyut ondalıklı bir sayı. Tek tek boyutların insan için anlamı yoktur; anlam aralarındaki mesafededir."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "Google News modeli",
+     "api.load",
+     "word2vec_model",
+     "\"king\"",
+     "300 boyutlu vektör"
+    ],
+    "oklar": [
+     [
+      0,
+      1,
+      "indir"
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      3,
+      2,
+      "anahtar"
+     ],
+     [
+      2,
+      4,
+      "döndürür"
+     ]
+    ]
+   },
+   "zaman": "≈01:42–01:54"
+  },
+  {
+   "id": "k2",
+   "ad": "Benzerlik ve vektör aritmetiği (analoji)",
+   "dosya": "01-word2vec.ipynb",
+   "dil": "python",
+   "kod": [
+    "word2vec_model.most_similar(\"king\", topn=10)",
+    "",
+    "analogy_vector = word2vec_model[\"king\"] - word2vec_model[\"man\"] + word2vec_model[\"woman\"]",
+    "result = word2vec_model.similar_by_vector(analogy_vector, topn=10)",
+    "for word, score in result:",
+    "    print(f\"{word}: {score:.4f}\")",
+    "",
+    "analogy_vector2 = word2vec_model[\"Paris\"] + word2vec_model[\"Germany\"] - word2vec_model[\"France\"]"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      1
+     ],
+     "n": "'king'e uzayda en yakın 10 kelimeyi kosinüs benzerliği skoruyla döndürür. Semantic search'ün en küçük hali; ArcGIS'teki Near analizinin anlam uzayındaki karşılığı."
+    },
+    {
+     "s": [
+      3,
+      3
+     ],
+     "n": "Vektörler toplanıp çıkarılabilir: king'den 'erkeklik' yönü çıkar, 'kadınlık' yönü eklenir. Bu kısım transkriptte yok; kod hocanın notebook'undan alınmış."
+    },
+    {
+     "s": [
+      4,
+      4
+     ],
+     "n": "most_similar bir kelimeye, similar_by_vector hesaplanmış herhangi bir vektöre en yakınları bulur. Beklenen: 'queen' üst sıralarda."
+    },
+    {
+     "s": [
+      5,
+      6
+     ],
+     "n": "Sonuç (kelime, skor) çiftleri listesi; :.4f skoru 4 ondalıkla basar. Sık görülen durum: girdi kelimesi 'king' de listeye çıkar. most_similar(positive=[\"king\",\"woman\"], negative=[\"man\"]) bunları otomatik dışarıda bırakır."
+    },
+    {
+     "s": [
+      8,
+      8
+     ],
+     "n": "Başkent ilişkisi: Paris - France + Germany, beklenen 'Berlin'. Ülke ve şehir adları büyük harfle yazılmalı; model harf duyarlı."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "king, man, woman",
+     "vektör aritmetiği",
+     "analogy_vector",
+     "similar_by_vector",
+     "queen ?"
+    ],
+    "oklar": [
+     [
+      0,
+      1,
+      "- ve +"
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      3,
+      4,
+      "en yakın"
+     ]
+    ]
+   },
+   "zaman": "≈01:42–02:17"
+  },
+  {
+   "id": "k3",
+   "ad": "Tokenizer: metinden token ve ID'ye",
+   "dosya": "02-context-embedding.ipynb",
+   "dil": "python",
+   "kod": [
+    "from transformers import AutoTokenizer",
+    "model_name = \"bert-base-multilingual-cased\"",
+    "tokenizer = AutoTokenizer.from_pretrained(model_name)",
+    "",
+    "tokens = tokenizer.tokenize(\"Yapay zeka çok hızlı gelişiyor.\")",
+    "input_ids = tokenizer.convert_tokens_to_ids(tokens)"
+   ],
+   "balon": [
+    {
+     "s": [
+      2,
+      2
+     ],
+     "n": "Türkçe dahil çok dilli, büyük/küçük harf duyarlı (cased) BERT. Türkçe cümleyi işleyebilmek için seçildi; yalnızca İngilizce bir model Türkçeyi çok parçalı ve kötü böler."
+    },
+    {
+     "s": [
+      3,
+      3
+     ],
+     "n": "AutoTokenizer, model adına bakıp o modelin kendi tokenizer'ını indirir. Her modelin bölme kuralı farklıdır; başka modelin tokenizer'ı kullanılırsa ID'ler yanlış eşleşir."
+    },
+    {
+     "s": [
+      5,
+      5
+     ],
+     "n": "Metni alt kelime parçalarına böler. '##' ile başlayan parça önceki token'ın devamıdır; '##' yoksa önünde boşluk vardır. Boşluk için ayrı token yok."
+    },
+    {
+     "s": [
+      6,
+      6
+     ],
+     "n": "Her token'ı sözlükteki sayısal ID'sine çevirir. Model metinden değil sayıdan anlar; pafta adının pafta numarasına çevrilmesi gibi."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "Metin",
+     "tokenize()",
+     "Token'lar (##)",
+     "convert_tokens_to_ids",
+     "input_ids"
+    ],
+    "oklar": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2,
+      "böler"
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      3,
+      4,
+      "sayıya"
+     ]
+    ]
+   },
+   "zaman": "≈02:24–02:50"
+  },
+  {
+   "id": "k4",
+   "ad": "PyTorch kontrolü ve modele girdi hazırlama",
+   "dosya": "02-context-embedding.ipynb",
+   "dil": "python",
+   "kod": [
+    "import torch",
+    "print(torch.__version__, torch.cuda.is_available(), torch.version.cuda)",
+    "",
+    "from transformers import AutoModel",
+    "model = AutoModel.from_pretrained(model_name)",
+    "inputs = tokenizer(text, return_tensors=\"pt\")"
+   ],
+   "balon": [
+    {
+     "s": [
+      2,
+      2
+     ],
+     "n": "Sürüm, GPU (CUDA) erişimi ve CUDA sürümü basılır. False ise işlem CPU'da (yavaş ama çalışır) ya da Mac'te MPS ile yapılır. Kurulu olduğu halde 'No module named torch' çıkarsa kernel Restart edilmemiştir."
+    },
+    {
+     "s": [
+      5,
+      5
+     ],
+     "n": "Sınıflandırma başlığı olmayan 'çıplak' BERT; çıktısı embedding'lerdir. Ağırlıklar ilk seferde iner; Hugging Face hesabıyla ilgili uyarı önemsizdir."
+    },
+    {
+     "s": [
+      6,
+      6
+     ],
+     "n": "Tokenizer doğrudan çağrılınca tokenize, ID'ye çevirme, [CLS]=101 ve [SEP]=102 özel token'ları ve attention_mask hepsi birlikte üretilir. Tek tek adımları elle yapmaya gerek kalmaz."
+    },
+    {
+     "s": [
+      6,
+      6
+     ],
+     "n": "return_tensors=\"pt\" çıktıyı PyTorch tensörü yapar; model girdiyi bu tipte bekler. Tek cümlede görülen sıfırlar padding değil token_type_ids'tir; notlar bunu hocanın yorumuna düzeltme olarak ekliyor."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "torch kontrol",
+     "AutoModel",
+     "text",
+     "tokenizer(..., pt)",
+     "inputs (tensör)"
+    ],
+    "oklar": [
+     [
+      0,
+      1,
+      "GPU/CPU"
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      3,
+      4,
+      "ID + mask"
+     ],
+     [
+      4,
+      1,
+      "girdi"
+     ]
+    ]
+   },
+   "zaman": "≈02:24–02:50"
+  },
+  {
+   "id": "k5",
+   "ad": "Bağlamsal embedding: last_hidden_state",
+   "dosya": "02-context-embedding.ipynb",
+   "dil": "python",
+   "kod": [
+    "with torch.no_grad():",
+    "    outputs = model(**inputs)",
+    "token_embeddings = outputs.last_hidden_state",
+    "print(token_embeddings.shape)   # [1, token_sayısı, 768]",
+    "",
+    "tokens = tokenizer.convert_ids_to_tokens(inputs[\"input_ids\"][0])",
+    "for token, embedding in zip(tokens, token_embeddings[0]):",
+    "    print(f\"{token:15} -> {embedding.shape}\")"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      1
+     ],
+     "n": "Gradyan hesabını kapatır: model eğitilmiyor, yalnızca çıkarım (inference) yapılıyor. Daha hızlı ve daha az bellek; yazılmazsa sonuç aynı ama boşa bellek harcanır."
+    },
+    {
+     "s": [
+      2,
+      2
+     ],
+     "n": "** sözlüğü açar: input_ids, attention_mask, token_type_ids ayrı ayrı argüman olarak modele gider."
+    },
+    {
+     "s": [
+      3,
+      4
+     ],
+     "n": "Son katmandaki her token'ın bağlamsal vektörü. Şekil [batch, token sayısı, 768]: 1 cümle, [CLS] ve [SEP] dahil N token, her biri 768 sayı (BERT-base gizli katman boyutu)."
+    },
+    {
+     "s": [
+      6,
+      6
+     ],
+     "n": "[0] batch'teki ilk ve tek cümleyi seçer. ID'ler geri token'a çevrilir ki hangi vektörün hangi parçaya ait olduğu görülsün."
+    },
+    {
+     "s": [
+      7,
+      8
+     ],
+     "n": "zip token'la vektörü yan yana eşler; her satır 768 boyut gösterir. Nokta numarası ile koordinatını aynı satıra yazan bir koordinat listesi gibi."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "inputs",
+     "model (BERT)",
+     "last_hidden_state",
+     "[1, N, 768]",
+     "token -> vektör"
+    ],
+    "oklar": [
+     [
+      0,
+      1,
+      "no_grad"
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      3,
+      "shape"
+     ],
+     [
+      2,
+      4,
+      "zip"
+     ]
+    ]
+   },
+   "zaman": "≈02:24–02:50"
+  },
+  {
+   "id": "k6",
+   "ad": "\"bank\" deneyi: aynı kelime, farklı vektör",
+   "dosya": "02-context-embedding.ipynb",
+   "dil": "python",
+   "kod": [
+    "# cümle 1: \"I deposited money in the bank.\"",
+    "# cümle 2: \"I sat near the river bank.\"",
+    "# her cümle için: tokenizer -> no_grad -> model",
+    "# ...",
+    "bank_index = tokens.index(\"bank\")",
+    "bank_embedding = outputs.last_hidden_state[0][bank_index]",
+    "# ...",
+    "# iki cümlenin bank_embedding[:10] değerleri karşılaştırılır"
+   ],
+   "balon": [
+    {
+     "s": [
+      1,
+      2
+     ],
+     "n": "İki 'bank' aynı yazılır ama biri banka, öteki nehir kıyısı. Word2Vec statik olduğu için ikisine aynı vektörü verir; sorunun kaynağı bu."
+    },
+    {
+     "s": [
+      5,
+      5
+     ],
+     "n": "Token listesinde 'bank'ın sırasını bulur. Kelime alt parçalara bölünmüş olsaydı index() hata verirdi; burada 'bank' tek token."
+    },
+    {
+     "s": [
+      6,
+      6
+     ],
+     "n": "Cümlenin tüm token vektörlerinden yalnızca 'bank'ınki seçilir: [0] cümle, [bank_index] token. Satır başına 768 sayı."
+    },
+    {
+     "s": [
+      8,
+      8
+     ],
+     "n": "İlk 10 değer iki cümlede farklı çıktı: model çevredeki kelimelere bakıp anlamı ayırdı. Aynı 'ada' kelimesinin kadastroda ada-parsel, haritada kara parçası olması gibi; bağlam belirler."
+    },
+    {
+     "s": [
+      8,
+      8
+     ],
+     "n": "Farkı tek sayıyla görmek için notlar torch.nn.functional.cosine_similarity ile kıyas öneriyor (notu yazanın kendi eklemesi, derste yok). Word2Vec'te bu değer tam 1 olurdu."
+    }
+   ],
+   "akis": {
+    "kutular": [
+     "İki cümle",
+     "tokenizer + model",
+     "last_hidden_state",
+     "bank_index",
+     "bank vektörleri farklı"
+    ],
+    "oklar": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      3,
+      "seç"
+     ],
+     [
+      3,
+      4,
+      "karşılaştır"
+     ]
+    ]
+   },
+   "zaman": "≈02:24–02:50"
+  }
+ ]
+}
