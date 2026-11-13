@@ -318,6 +318,17 @@
   .kk-liste li.kk-yanip{background:color-mix(in srgb,var(--mark) 14%,transparent)}
   .kk-akis{margin:4px 10px 12px; border:0; padding:0}
   .kk-ekran{padding:8px 12px 2px}
+  .kodkart.kk-hedef{outline:2px solid var(--mark); outline-offset:2px}
+  .pj-ornek{margin:10px 0 4px}
+  .pj-ornek > summary{cursor:pointer; font-family:var(--f-disp); font-weight:600; font-size:14px; color:var(--water); padding:6px 0; list-style:none}
+  .pj-ornek > summary::-webkit-details-marker{display:none}
+  .pj-ornek > summary::before{content:"▸ "} .pj-ornek[open] > summary::before{content:"▾ "}
+  .pj-senaryo{font-size:14.5px; line-height:1.55; margin:8px 0 4px; padding:10px 12px; border-left:3px solid var(--contour); background:var(--surface2); border-radius:0 8px 8px 0}
+  .pj-karsilik{padding:4px 14px 10px}
+  .pj-karsilik .kk-k{display:block; width:100%; text-align:left; border:1px solid var(--line2); background:var(--surface2); border-radius:8px; padding:9px 11px; margin:6px 0 0; font-size:13.5px; line-height:1.45; color:var(--ink); cursor:pointer; font-family:var(--f-body)}
+  .pj-karsilik .kk-k b{font-family:var(--f-disp); color:var(--water); display:block; margin-bottom:2px}
+  .pj-dene{margin:0 14px 12px; padding:9px 11px; border:1px dashed var(--line2); border-radius:8px; font-size:13.5px; overflow-wrap:anywhere}
+  .pj-dene code, .pj-senaryo code{overflow-wrap:anywhere}
   .kk-ekran figure{margin:6px 0 10px}
   .kk-ekran img{display:block; width:100%; border:1px solid var(--line); border-radius:8px; cursor:zoom-in; background:#fff}
   .kk-ekran img.kk-buyuk{position:fixed; inset:0; width:100vw; height:100vh; object-fit:contain; z-index:100; background:#000; border:0; border-radius:0; cursor:zoom-out}
@@ -4372,6 +4383,7 @@ function dersAc(nn, yerinde){
     kodKartYukle(nn).then(d => {
       if(!d || !d.kartlar){ alan.appendChild(etiket("div", "err", "Bu dersin kod kartları yüklenemedi.")); return; }
       d.kartlar.forEach(k => alan.appendChild(kodKartCiz(k)));
+      if(window.__kkHedef){ const h = alan.querySelector(".kodkart[data-kid='" + window.__kkHedef + "']"); window.__kkHedef = null; if(h){ h.scrollIntoView({block:"start"}); h.classList.add("kk-hedef"); } }
     });
   }
   else if(ktSekme === "dosyalar"){
@@ -4751,6 +4763,7 @@ function projeCiz(){
     ic.appendChild(lb);
     ic.appendChild(etiket("p", "alt", a.yap));
     ic.appendChild(etiket("p", "alt", "Çıktı: " + a.cikti));
+    projeOrnekEkle(ic, a.id);
     const ta = document.createElement("textarea");
     ta.id = "pjn-" + a.id; ta.placeholder = "Notun: ne yaptın, nerede takıldın…"; ta.value = st.n || "";
     ic.appendChild(ta);
@@ -4847,6 +4860,7 @@ function kodRenk(satir, dil){
 function kodKartCiz(k, secenek){
   secenek = secenek || {};
   const sar = etiket("div", "kodkart");
+  if(k.id) sar.dataset.kid = k.id;
   const ust = etiket("div", "kk-ust");
   const nokta = etiket("span", "kk-nokta"); nokta.innerHTML = "<i></i><i></i><i></i>";
   ust.appendChild(nokta);
@@ -4901,6 +4915,48 @@ function kodKartBul(nn, baslik){
   const b = String(baslik || "").toLowerCase();
   return d.kartlar.filter(k => k.dosya && b.indexOf(k.dosya.toLowerCase().replace(/\.(ipynb|py)$/, "")) >= 0)[0] ||
          d.kartlar.filter(k => /ortam|api anahtar/i.test(b) && /ortam/i.test(k.ad))[0] || null;
+}
+
+
+/* ═══════════ PROJE ÖRNEK KODU: adım adım senaryo, dersteki karşılığıyla ═══════════ */
+let PROJE_KOD = null;
+async function projeKodYukle(){
+  if(PROJE_KOD) return PROJE_KOD;
+  try{ const r = await fetch("kodkart/proje.json"); PROJE_KOD = r.ok ? await r.json() : {kartlar:[]}; }
+  catch(e){ PROJE_KOD = {kartlar:[]}; }
+  return PROJE_KOD;
+}
+function projeKartCiz(k){
+  const sar = etiket("div", "");
+  if(k.senaryo){ const sc = etiket("div", "pj-senaryo"); hcSatirIci(sc, k.senaryo); sar.appendChild(sc); }
+  const kart = kodKartCiz(k);
+  if(Array.isArray(k.karsilik) && k.karsilik.length){
+    const kb = etiket("div", "pj-karsilik");
+    kb.appendChild(etiket("p", "eyebrow", "Dersteki karşılığı"));
+    k.karsilik.forEach(c => {
+      const d = dersNN(c.nn);
+      const b = etiket("button", "kk-k"); b.type = "button";
+      b.appendChild(etiket("b", "", (d ? d.ad + " · " + d.alt : "Ders " + c.nn) + " · kod kartını aç"));
+      b.appendChild(document.createTextNode(c.not || ""));
+      b.addEventListener("click", () => { window.__kkHedef = c.kart; ktDetay = c.nn; ktSekme = "kod"; go("dersler"); });
+      kb.appendChild(b);
+    });
+    kart.appendChild(kb);
+  }
+  if(k.dene){ const dn = etiket("div", "pj-dene"); dn.appendChild(etiket("strong", "", "Dene: ")); hcSatirIci(dn, k.dene); kart.appendChild(dn); }
+  sar.appendChild(kart);
+  return sar;
+}
+async function projeOrnekEkle(ic, adimId){
+  const d = await projeKodYukle();
+  const ks = (d.kartlar || []).filter(k => k.adim === adimId);
+  if(!ks.length) return;
+  const det = etiket("details", "pj-ornek");
+  const sm = etiket("summary", "", "Örnek kod senaryosu · " + ks.length + " kart");
+  det.appendChild(sm);
+  let cizildi = false;
+  det.addEventListener("toggle", () => { if(det.open && !cizildi){ cizildi = true; ks.forEach(k => det.appendChild(projeKartCiz(k))); } });
+  ic.appendChild(det);
 }
 
 /* ═══════════ ŞEMA ÇİZİCİ: kutu + ok, telefona sığar ═══════════ */
